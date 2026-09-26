@@ -73,6 +73,9 @@ namespace Navigator.Editor
                 assigned += Set(ref sm.PlanetSaturn,  "PL-05");
                 assigned += Set(ref sm.PlanetUranus,  "PL-06");
                 assigned += Set(ref sm.PlanetNeptune, "PL-07");
+                // Optional extra from NAVIGATOR_MESHY_VISUALS.md; skipped quietly until it exists
+                if (AssetDatabase.FindAssets("PL-08", new[] { "Assets/Models" }).Length > 0)
+                    assigned += Set(ref sm.PlanetEarth, "PL-08");
                 EditorUtility.SetDirty(sm);
             }
 

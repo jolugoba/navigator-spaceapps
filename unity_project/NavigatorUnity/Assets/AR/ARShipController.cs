@@ -2,8 +2,9 @@
 // Piloting. The ship always flies toward where the camera looks; every input just moves that aim.
 //   Phone:    tilt the phone (gyro) · on-screen joystick steers · ACELERAR / BOOST buttons
 //             (or 1 finger anywhere = thrust, 2 fingers / double tap = boost)
-//   Gamepad:  left stick steers · RT or A = thrust · LT or B = boost · LB / RB = barrel roll
-//   Keyboard: W thrust · S brake · A/D turn · ↑/↓ or R/F climb · Space boost · Q/E barrel roll
+//   Gamepad:  left stick steers · RT or A = thrust · LT or B = boost · LB / RB = turn (double press = barrel roll)
+//   Keyboard: W thrust · S brake · A/D or Q/E turn (the ship banks) · ↑/↓ or R/F climb · Space boost
+//             double-tap Q/E = barrel roll (dodge)
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
@@ -32,6 +33,8 @@ namespace Navigator.AR
         public float TouchThrottle    = 1f;
         public float TapBoostDuration = 0.6f;
         public float RollSpeed        = 720f;   // degrees per second during a barrel roll
+        public float MaxBank          = 40f;    // how far the ship leans into a turn
+        public float BankSharpness    = 6f;
 
         // Only true while in flight — GameManager toggles it
         [HideInInspector] public bool ControlsEnabled;
@@ -41,6 +44,9 @@ namespace Navigator.AR
         private float      _lastTapTime = -1f;
         private Quaternion _aim = Quaternion.identity;
         private float      _roll, _rollTarget;
+        private float      _bank, _turn;
+        private float      _lastRollKey = -1f;
+        private int        _lastRollDir;
 
         void Awake()
         {
@@ -59,6 +65,7 @@ namespace Navigator.AR
                 Ship.Boosting   = false;
                 _aim = transform.rotation;   // start the next flight from wherever the ship was placed
                 _roll = _rollTarget = 0f;
+                _bank = _turn = 0f;
                 return;
             }
             HandleInput();
@@ -75,7 +82,9 @@ namespace Navigator.AR
                             : transform.rotation;
             float t = 1f - Mathf.Exp(-TurnSharpness * Time.fixedDeltaTime);
             _aim = Quaternion.Slerp(_aim, look, t);
-            Quaternion next = _aim * Quaternion.Euler(0f, 0f, _roll);   // roll never changes the heading
+            // Lean into turns like a plane; roll never changes the heading
+            _bank = Mathf.Lerp(_bank, -_turn * MaxBank, 1f - Mathf.Exp(-BankSharpness * Time.fixedDeltaTime));
+            Quaternion next = _aim * Quaternion.Euler(0f, 0f, _roll + _bank);
 
             if (_rb != null) _rb.MoveRotation(next);
             else             transform.rotation = next;
@@ -122,8 +131,10 @@ namespace Navigator.AR
                 thrust |= pad.rightTrigger.ReadValue() > 0.2f || pad.buttonSouth.isPressed;
                 boost  |= pad.leftTrigger.ReadValue()  > 0.2f || pad.buttonEast.isPressed;
                 brake  |= pad.buttonWest.isPressed;
-                if (pad.leftShoulder.wasPressedThisFrame)  BarrelRoll(+1);
-                if (pad.rightShoulder.wasPressedThisFrame) BarrelRoll(-1);
+                if (pad.leftShoulder.isPressed)  steer.x -= 1f;
+                if (pad.rightShoulder.isPressed) steer.x += 1f;
+                if (pad.leftShoulder.wasPressedThisFrame)  RollKey(+1);
+                if (pad.rightShoulder.wasPressedThisFrame) RollKey(-1);
             }
 
             // ── Keyboard (Editor / desktop) ───────────────────────────────────
@@ -133,8 +144,11 @@ namespace Navigator.AR
                 thrust |= kb.wKey.isPressed || (Mouse.current != null && Mouse.current.leftButton.isPressed && !IsOverUI(-1));
                 boost  |= kb.spaceKey.isPressed;
                 brake  |= kb.sKey.isPressed;
-                if (kb.qKey.wasPressedThisFrame) BarrelRoll(+1);
-                if (kb.eKey.wasPressedThisFrame) BarrelRoll(-1);
+                // Q/E turn left/right in every mode (hold); double-tap = barrel roll
+                if (kb.qKey.isPressed) steer.x -= 1f;
+                if (kb.eKey.isPressed) steer.x += 1f;
+                if (kb.qKey.wasPressedThisFrame) RollKey(+1);
+                if (kb.eKey.wasPressedThisFrame) RollKey(-1);
                 // In gyro mode the rig ignores A/D and arrows, so route them here
                 if (Rig != null && Rig.GyroOn)
                 {
@@ -146,6 +160,10 @@ namespace Navigator.AR
             }
 
             if (Rig != null && steer.sqrMagnitude > 0f) Rig.Steer(Vector2.ClampMagnitude(steer, 1f));
+            // Bank from whatever is turning the ship (A/D reach the rig directly when the gyro is off)
+            float turn = steer.x;
+            if (Rig != null && !Rig.GyroOn) turn += Input.GetAxis("Horizontal");
+            _turn = Mathf.Clamp(turn, -1f, 1f);
 
             Ship.ThrustMain = thrust || boost ? TouchThrottle : 0f;
             Ship.Boosting   = boost;
@@ -153,6 +171,13 @@ namespace Navigator.AR
             // Brake: bleed off speed without spending fuel
             if (brake && _rb != null && !_rb.isKinematic)
                 _rb.linearVelocity *= Mathf.Clamp01(1f - 2.5f * Time.deltaTime);
+        }
+
+        void RollKey(int direction)
+        {
+            if (direction == _lastRollDir && Time.time - _lastRollKey < 0.3f) BarrelRoll(direction);
+            _lastRollDir = direction;
+            _lastRollKey = Time.time;
         }
 
         // Full 360° spin around the nose; purely a manoeuvre, the heading stays the same

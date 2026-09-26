@@ -21,6 +21,7 @@ namespace Navigator.AR
         public GameObject PlanetSaturn;
         public GameObject PlanetUranus;
         public GameObject PlanetNeptune;
+        public GameObject PlanetEarth;     // optional (Meshy PL-08_Earth) — flyby body
 
         [Header("Escala del viaje (unidades de juego)")]
         public float BaseJourney      = 1200f;  // distancia mínima de viaje
@@ -122,6 +123,7 @@ namespace Navigator.AR
             "saturn"  => PlanetSaturn,
             "uranus"  => PlanetUranus,
             "neptune" => PlanetNeptune,
+            "earth"   => PlanetEarth,
             _         => null,
         };
 

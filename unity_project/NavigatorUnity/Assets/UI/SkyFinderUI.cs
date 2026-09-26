@@ -52,6 +52,7 @@ namespace Navigator.UI
         public void Show(string planetId)
         {
             if (Panel != null) Panel.SetActive(true);
+            Navigator.Game.CosmicSkyFX.SetVisible(false);
             Locate(planetId);
         }
 
@@ -60,6 +61,7 @@ namespace Navigator.UI
             if (_locate != null) StopCoroutine(_locate);
             if (_marker != null) Destroy(_marker);
             if (Panel != null) Panel.SetActive(false);
+            Navigator.Game.CosmicSkyFX.SetVisible(true);
         }
 
         void Locate(string planetId)

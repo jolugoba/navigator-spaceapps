@@ -97,6 +97,7 @@ namespace Navigator.Game
             // Speed cap (Burnout mode = 2.5x)
             float maxSpeed = BaseMaxSpeed * (_burnout.BurnoutActive ? _burnout.SpeedMultiplier
                                            : boost ? 1.5f : 1f);
+            if (Time.time < _slingUntil) maxSpeed *= SlingshotSpeedMult;   // gravity assist in progress
             if (_rb.linearVelocity.magnitude > maxSpeed)
                 _rb.linearVelocity = _rb.linearVelocity.normalized * maxSpeed;
 
@@ -121,6 +122,18 @@ namespace Navigator.Game
         }
 
         // ── Remote ships: apply received state ───────────────────────────────
+        // ── Gravity assist: a planet's pull swings the ship and hands it free speed ──
+        public const float SlingshotSpeedMult = 1.6f;
+        private float _slingUntil;
+
+        public void Slingshot(float deltaV, float seconds)
+        {
+            if (_rb == null || _rb.isKinematic) return;
+            Vector3 dir = _rb.linearVelocity.sqrMagnitude > 1f ? _rb.linearVelocity.normalized : transform.forward;
+            _rb.linearVelocity += dir * deltaV;
+            _slingUntil = Time.time + seconds;
+        }
+
         public void ApplyRemoteState(ShipStateNet state)
         {
             if (IsLocalPlayer) return;

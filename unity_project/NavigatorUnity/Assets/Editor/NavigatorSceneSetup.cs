@@ -135,6 +135,16 @@ namespace Navigator.Editor
             var asteroids   = EnsureComp<AsteroidField>(asteroidsGO);
             asteroids.ExplosionPrefab = explosion;
 
+            // Real flybys (MESSENGER, Galileo, Cassini, Voyager 2) and the painted sky
+            var gravity = EnsureComp<GravityField>(GetOrCreate("GravityField"));
+            gravity.GlowMaterial = ParticleMaterial();
+            var sky = EnsureComp<CosmicSkyFX>(mainCamGO);
+            sky.GlowMaterial     = ParticleMaterial();
+            sky.NebulaTextures   = SkyTextures("nebula");
+            sky.GalaxyTextures   = SkyTextures("galaxy");
+            var holes            = SkyTextures("blackhole");
+            sky.BlackHoleTexture = holes.Length > 0 ? holes[0] : null;
+
             var scoreGO = GetOrCreate("MissionScore");
             var score   = EnsureComp<MissionScore>(scoreGO);
 
@@ -160,6 +170,7 @@ namespace Navigator.Editor
             gm.Rig          = rig;
             gm.Powerups     = powerups;
             gm.Asteroids    = asteroids;
+            gm.Gravity      = gravity;
             gm.Score        = score;
 
             // ── UI completa ───────────────────────────────────────────────────
@@ -350,6 +361,27 @@ namespace Navigator.Editor
             mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             AssetDatabase.CreateAsset(mat, path);
             return mat;
+        }
+
+        // Meshy sky art dropped in Assets/Art/Sky (e.g. nebula_01.png, galaxy_01.png, blackhole_01.png)
+        static Texture2D[] SkyTextures(string prefix)
+        {
+            var list = new System.Collections.Generic.List<Texture2D>();
+            if (!AssetDatabase.IsValidFolder("Assets/Art/Sky")) return list.ToArray();
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Art/Sky" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!System.IO.Path.GetFileName(path).StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) continue;
+                if (AssetImporter.GetAtPath(path) is TextureImporter ti && (!ti.alphaIsTransparency || ti.wrapMode != TextureWrapMode.Clamp))
+                {
+                    ti.alphaIsTransparency = true;
+                    ti.wrapMode = TextureWrapMode.Clamp;
+                    ti.SaveAndReimport();
+                }
+                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (tex != null) list.Add(tex);
+            }
+            return list.ToArray();
         }
 
         static GameObject NameTagPrefab()

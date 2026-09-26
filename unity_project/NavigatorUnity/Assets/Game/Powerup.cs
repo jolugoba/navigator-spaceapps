@@ -34,7 +34,7 @@ namespace Navigator.Game
 
         private Vector3 _startPos;
         private float   _bobPhase;
-        private static readonly MaterialPropertyBlock _mpb = new();
+        private static MaterialPropertyBlock _mpb;   // created on first use: Unity forbids it in static init
         private static readonly int _colorId = Shader.PropertyToID("_BaseColor");
         private static readonly int _emitId  = Shader.PropertyToID("_EmissionColor");
 
@@ -147,6 +147,7 @@ namespace Navigator.Game
         {
             if (PodRenderer == null) return;
             Color c = TypeColor();
+            _mpb ??= new MaterialPropertyBlock();
             _mpb.SetColor(_colorId, c);
             _mpb.SetColor(_emitId,  c * 1.8f);
             PodRenderer.SetPropertyBlock(_mpb);
