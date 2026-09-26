@@ -1395,7 +1395,11 @@ namespace Navigator.Editor
             ti.mipmapEnabled = false;
             ti.spriteBorder = border;
             ti.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-            ti.spriteMeshType = SpriteMeshType.FullRect;
+            // Full-rect mesh (needed for tiling); set through the importer settings
+            var st = new TextureImporterSettings();
+            ti.ReadTextureSettings(st);
+            st.spriteMeshType = SpriteMeshType.FullRect;
+            ti.SetTextureSettings(st);
             ti.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
