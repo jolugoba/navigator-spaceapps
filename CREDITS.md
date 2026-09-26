@@ -7,6 +7,7 @@ The same list appears in the app (lobby → **CREDITS**).
 
 | What | Source |
 |---|---|
+| Planetary orbits for launch windows and the free-flight Solar System | NASA/JPL "Approximate Positions of the Planets" (E. M. Standish), Keplerian elements — https://ssd.jpl.nasa.gov/planets/approx_pos.html |
 | Real-time planet positions ("Where is it tonight?", planet placement) | NASA/JPL **Horizons** System — https://ssd.jpl.nasa.gov/horizons/ |
 | Mission facts, ΔV, orbit-insertion burns, probe histories, planet and moon facts | NASA Science (science.nasa.gov), NASA/JPL mission pages, NSSDCA |
 | Real flyby routes (MESSENGER, Galileo, Cassini, Voyager 2) | NASA/JPL mission trajectories |

@@ -51,7 +51,7 @@ the result — and what would have happened if you had chosen differently.
 **Run it:** open the Unity project → menu **Navigator → Setup Scene** → Play.
 See [`NAVIGATOR_UNITY_QUICKSTART.md`](NAVIGATOR_UNITY_QUICKSTART.md) and [`flutter_app/README.md`](flutter_app/README.md).
 **Design & equations:** [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md).
-**Credits & licenses:** [`CREDITS.md`](CREDITS.md).
+**Credits & licenses:** [`CREDITS.md`](CREDITS.md) · **Submission kit:** [`SPACE_APPS_SUBMISSION.md`](SPACE_APPS_SUBMISSION.md).
 
 ---
 
