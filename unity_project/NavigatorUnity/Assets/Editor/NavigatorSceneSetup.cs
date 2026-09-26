@@ -92,6 +92,7 @@ namespace Navigator.Editor
             thruster.ParticleMaterial = ParticleMaterial();
             thruster.ShipLength       = NavigatorAssignModels.ShipSize;
             EnsureComp<ShieldFX>(ship).BubbleMaterial = ParticleMaterial();
+            EnsureComp<SpeedLines>(ship).ParticleMaterial = ParticleMaterial();   // streaks at speed
             var tools = EnsureComp<ShipTools>(ship);   // SCAN ("what is that?") and FIRE
             tools.GlowMaterial = ParticleMaterial();
             tools.ImpactFX     = PickupBurstPrefab();

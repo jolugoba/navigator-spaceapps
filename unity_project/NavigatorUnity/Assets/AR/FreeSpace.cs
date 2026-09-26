@@ -113,6 +113,10 @@ namespace Navigator.AR
             AddHalo(_sun, SunDiameter * 2.6f, new Color(1f, 0.7f, 0.3f, 0.45f));
             Scannable.Tag(_sun.gameObject, "sun", "sun", SunDiameter * 0.5f);
 
+            // Cyan orbit lines around the Sun (circles at each planet's distance)
+            foreach (var p in Planets)
+                AddOrbit(OrbitRadius(p.au), p.id == "earth");
+
             // Planets as gravity wells (with assist rings), then their moons and probes
             var list = new List<(string, Vector3, float)>();
             foreach (var p in Planets)
@@ -196,6 +200,26 @@ namespace Navigator.AR
                 if (d < best) { best = d; id = bid; }
             }
             return (id, best);
+        }
+
+        void AddOrbit(float radius, bool home)
+        {
+            var go = new GameObject("Orbit");
+            go.transform.SetParent(_root.transform, false);
+            go.transform.position = SunPosition;
+            var lr = go.AddComponent<LineRenderer>();
+            const int seg = 128;
+            lr.positionCount = seg;
+            lr.loop = true;
+            lr.useWorldSpace = false;
+            lr.widthMultiplier = home ? 1.6f : 1.1f;
+            for (int i = 0; i < seg; i++)
+            {
+                float a = i / (float)seg * Mathf.PI * 2f;
+                lr.SetPosition(i, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius);
+            }
+            if (GlowMaterial != null) lr.sharedMaterial = GlowMaterial;
+            lr.startColor = lr.endColor = home ? new Color(0.3f, 0.9f, 1f, 0.5f) : new Color(0.3f, 0.8f, 1f, 0.22f);
         }
 
         void AddHalo(Transform parent, float size, Color color)

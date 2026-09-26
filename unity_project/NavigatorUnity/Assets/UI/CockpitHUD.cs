@@ -67,6 +67,10 @@ namespace Navigator.UI
 
         [Header("Avisos de impacto")]
         public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
+        public GameObject ImpactBanner;      // plate behind the alert (pops in)
+        public Image      ImpactRim;         // its glowing frame, tinted per alert
+        public Image      HitFlash;          // whole-screen colour flash
+        public UIGlitch[] Glitch;            // display parts that jolt on hits
 
         [Header("Progreso del viaje")]
         public Image      ProgressBar;       // 0 = salida, 1 = planeta
@@ -94,6 +98,7 @@ namespace Navigator.UI
             Loc.Changed -= RefreshGyroLabel;
             ShipTools.Scanned -= OnScanned;
             ShipTools.FiredAt -= OnFiredAt;
+            ShipTools.Fired   -= OnFired;
         }
 
         void RefreshGyroLabel()
@@ -129,8 +134,41 @@ namespace Navigator.UI
                 ImpactLabel.color = color;
                 ImpactLabel.gameObject.SetActive(true);
             }
+            if (ImpactRim != null) ImpactRim.color = new Color(color.r, color.g, color.b, 0.95f);
+            if (ImpactBanner != null)
+            {
+                if (ImpactBanner.activeSelf) UIPopIn.Play(ImpactBanner.transform);   // new alert: bounce again
+                else ImpactBanner.SetActive(true);
+            }
             _impactTimer = 2f;
-            if (shake > 0f && _rig != null) _rig.Shake(shake);
+            if (shake > 0f)
+            {
+                _rig?.Shake(shake);
+                // The screen flashes the alert's colour and the HUD jolts, both scaled by the hit
+                _flash = Mathf.Max(_flash, Mathf.Min(0.55f, 0.2f + shake * 0.3f) * (FxPrefs.Motion ? 1f : 0.35f));
+                _flashColor = color;
+                if (Glitch != null) foreach (var g in Glitch) if (g != null) g.Hit(Mathf.Min(1f, shake));
+            }
+        }
+
+        private float _flash;
+        private Color _flashColor;
+        private float _reticleKick;
+
+        void UpdateHitFlash()
+        {
+            if (HitFlash == null) return;
+            _flash = Mathf.MoveTowards(_flash, 0f, Time.unscaledDeltaTime * 1.6f);
+            var c = _flashColor; c.a = _flash;
+            HitFlash.color = c;
+        }
+
+        // The trigger was pulled: button bounce, reticle kick, a small camera jolt
+        void OnFired()
+        {
+            if (FireButton != null && FireButton.TryGetComponent<UIPress>(out var press)) press.Kick(0.3f);
+            _reticleKick = 1f;
+            _rig?.Shake(0.06f);
         }
         private float _comboTimer   = 0f;
 
@@ -184,6 +222,8 @@ namespace Navigator.UI
             });
             ShipTools.Scanned += OnScanned;
             ShipTools.FiredAt += OnFiredAt;
+            ShipTools.Fired   += OnFired;
+            if (ImpactBanner != null) ImpactBanner.SetActive(false);
             ExitButton?.onClick.AddListener(() => GameManager.Instance?.ExitFreeFlight());
             if (ExitButton != null) ExitButton.gameObject.SetActive(false);
             if (InfoCard != null) InfoCard.SetActive(false);
@@ -206,8 +246,13 @@ namespace Navigator.UI
             if (_impactTimer > 0f)
             {
                 _impactTimer -= Time.deltaTime;
-                if (_impactTimer <= 0f && ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
+                if (_impactTimer <= 0f)
+                {
+                    if (ImpactLabel != null)  ImpactLabel.gameObject.SetActive(false);
+                    if (ImpactBanner != null) ImpactBanner.SetActive(false);
+                }
             }
+            UpdateHitFlash();
         }
 
         // ── Scanner / laser ───────────────────────────────────────────────────
@@ -266,7 +311,8 @@ namespace Navigator.UI
             Reticle.anchoredPosition = Vector2.Lerp(Reticle.anchoredPosition, local, 1f - Mathf.Exp(-18f * Time.deltaTime));
             var img = Reticle.GetComponent<Image>();
             if (img != null) img.color = locked ? new Color(1f, 0.84f, 0.3f, 0.9f) : new Color(1f, 1f, 1f, 0.35f);
-            Reticle.localScale = Vector3.one * (locked ? 1f + 0.08f * Mathf.Sin(Time.time * 8f) : 0.8f);
+            _reticleKick = Mathf.MoveTowards(_reticleKick, 0f, Time.deltaTime * 5f);
+            Reticle.localScale = Vector3.one * ((locked ? 1f + 0.08f * Mathf.Sin(Time.time * 8f) : 0.8f) + 0.35f * _reticleKick);
             if (ReticleLabel != null) ReticleLabel.text = locked ? _tools.TargetName : "";
         }
 
@@ -361,6 +407,7 @@ namespace Navigator.UI
             }
 
             if (ProgressBar != null) ProgressBar.fillAmount = _arSpace.Progress01;
+            UpdateCalendar(gm, _arSpace.Progress01);
 
             // Flecha apunta al planeta; cuando está detrás, WorldToScreenPoint se invierte
             var cam = Camera.main;
@@ -454,10 +501,26 @@ namespace Navigator.UI
 
         // ── Setters externos ──────────────────────────────────────────────────
 
+        private string _signal;
+
         public void SetCommDelay(string delay)
         {
+            _signal = delay;
             if (CommDelayLabel != null)
                 CommDelayLabel.text = Loc.F("hud.signal", delay);
+        }
+
+        // Mission calendar: the real date along the Lambert transfer (launch → arrival) as you fly
+        void UpdateCalendar(GameManager gm, float progress)
+        {
+            var m = gm != null ? gm.Mission : null;
+            if (CommDelayLabel == null || m == null || m.TransferDays <= 0f ||
+                !System.DateTime.TryParse(m.LaunchDateIso, System.Globalization.CultureInfo.InvariantCulture,
+                                          System.Globalization.DateTimeStyles.None, out var launch)) return;
+            var today = launch.AddDays(m.TransferDays * Mathf.Clamp01(progress));
+            string date = today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            CommDelayLabel.text = (_signal != null ? Loc.F("hud.signal", _signal) + "   ·   " : "") +
+                                  Loc.F("hud.date", date, Mathf.RoundToInt(m.TransferDays * Mathf.Clamp01(progress)));
         }
 
         public void SetRacePosition(int pos)

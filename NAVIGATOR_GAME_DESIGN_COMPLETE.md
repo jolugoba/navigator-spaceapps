@@ -630,6 +630,28 @@ Al terminar una misión: **COMPARTIR RETO** genera un QR y un código `NAVC1:…
 Quien lo recibe lo escanea con el mismo botón *Escanear QR* del lobby, o toca **PEGAR RETO**. Vuela el mismo
 destino y objetivo con **lo que gastó el retador como presupuesto máximo**, y debe superar su puntaje.
 
+## 10j. Estilo sci-fi y "game feel" — `UI/UIJuice.cs`, `Game/SpeedLines.cs`, `Game/Haptics.cs`, `UI/SettingsUI.cs`
+
+**Estilo (todo generado por Setup Scene en `Assets/UI/Generated/`, borra un PNG para regenerarlo):**
+- Tarjetas, botones, campos y barras: placa con esquinas cortadas + borde brillante con corchetes (9-slice).
+- Botones de vuelo (SCAN / FIRE / BOOST / THRUST): placas inclinadas de color con barra segmentada.
+- Fondo de cada pantalla: rejilla cian tenue; al abrir, la pantalla aparece con fundido y se asienta.
+- Joystick: anillo con marcas y flechas que **gira hacia donde empujas**; el botón brilla al tocarlo y vuelve suave.
+- Mapa de mundos: cada planeta tiene un anillo orbital girando.
+
+**Efectos y física:**
+| Momento | Efecto | Física real |
+|---|---|---|
+| Tocar un botón | se aplasta y rebota (resorte amortiguado) | x'' = k(x₀ − x) − c·x' |
+| Disparar | destello en la nariz, retroceso de la nave, la mira salta, cámara tiembla | 3ª ley de Newton: la nave retrocede 1.5 m/s |
+| El láser pega a un asteroide | lo empuja y lo hace girar | Δv = J/m con m ∝ r³: las rocas chicas salen volando, las grandes casi no se mueven, y no frenan (no hay rozamiento en el espacio) |
+| Chocar | destello de color, el HUD se sacude, la nave da un tirón y **el celular vibra** | la nave vuelve a su rumbo con un resorte amortiguado |
+| Ir rápido / boost / Burnout | líneas de velocidad (cian / naranja / blanco) | aparecen desde el 45 % de la velocidad máxima |
+| Alertas | banner con marco del color de la alerta que aparece con rebote; eventos de crucero con marco que late | — |
+
+**Ajustes (lobby → AJUSTES):** idioma, sonido, vibración y **efectos de movimiento** (apaga temblor, sacudidas,
+destellos fuertes y líneas de velocidad para quien se marea).
+
 ## 10b. Idiomas — `Core/Loc.cs`
 Todo el juego está en **inglés por defecto** y en **español**; el botón de idioma del lobby cambia
 entre ambos al instante y la elección se guarda (`PlayerPrefs`). Los textos fijos de la UI usan

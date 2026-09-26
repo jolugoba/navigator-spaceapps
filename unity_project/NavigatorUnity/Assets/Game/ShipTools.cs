@@ -35,6 +35,9 @@ namespace Navigator.Game
         public float FireCooldown  = 1f;
         public float FireFuelCost  = 0.015f;   // 1.5 % of the tank per shot
         public float BoltSpeed     = 900f;
+        // Newton's third law: the shot pushes the ship back, and the bolt pushes what it hits
+        public float RecoilDv      = 1.5f;    // m/s backwards per shot
+        public float LaserPush     = 200f;    // impulse on a hit asteroid (Δv = J / m, m ∝ r³)
         public Material   GlowMaterial;
         public GameObject ImpactFX;
 
@@ -45,6 +48,7 @@ namespace Navigator.Game
 
         public static event Action<ScanInfo> Scanned;
         public static event Action<string>   FiredAt;      // name of what was hit (null = missed)
+        public static event Action           Fired;        // the moment the trigger is pulled
 
         public Scannable Target { get; private set; }
         public string    TargetName { get; private set; }   // short name for the reticle
@@ -55,6 +59,7 @@ namespace Navigator.Game
         private FuelSystem     _fuel;
         private SendaBridge    _senda;
         private RemoteShipManager _remotes;
+        private AsteroidField     _field;
         private static readonly HashSet<string> _discovered = new();
 
         void Awake()
@@ -236,6 +241,12 @@ namespace Navigator.Game
             _fuel?.Leak(FireFuelCost);
             AudioFX.Play(Sfx.Laser, 0.7f);
 
+            // Recoil (momentum conservation) and a muzzle flash at the nose
+            var rb = GetComponent<Rigidbody>();
+            if (rb != null && !rb.isKinematic) rb.AddForce(-transform.forward * RecoilDv, ForceMode.VelocityChange);
+            StartCoroutine(MuzzleFlash(transform.position + transform.forward * 3f));
+            Fired?.Invoke();
+
             // Mild auto-aim: the bolt flies at whatever is in the reticle and within range
             Scannable target = Target != null && !Target.AtInfinity &&
                                Vector3.Distance(Target.transform.position, transform.position) <= FireRange ? Target : null;
@@ -282,9 +293,32 @@ namespace Navigator.Game
             }
             else
             {
-                // Rocks and pods shrug it off: the laser doesn't destroy the environment
+                // Rocks and pods aren't destroyed, but a loose asteroid gets shoved by the hit
+                if (target.Kind == "asteroid")
+                {
+                    _field ??= FindFirstObjectByType<AsteroidField>();
+                    _field?.Push(target.transform, (to - from).normalized * LaserPush);
+                }
                 FiredAt?.Invoke(Describe(target).Title);
             }
+        }
+
+        // A quick flash of light at the nose: bright for a frame, gone in 0.12 s
+        IEnumerator MuzzleFlash(Vector3 at)
+        {
+            var go = new GameObject("MuzzleFlash");
+            go.transform.position = at;
+            go.transform.SetParent(transform, true);
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.55f, 0.3f);
+            light.range = 30f;
+            for (float t = 0f; t < 0.12f; t += Time.deltaTime)
+            {
+                light.intensity = Mathf.Lerp(6f, 0f, t / 0.12f);
+                yield return null;
+            }
+            Destroy(go);
         }
 
         // ── Network ───────────────────────────────────────────────────────────
