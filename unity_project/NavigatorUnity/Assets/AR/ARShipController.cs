@@ -94,7 +94,7 @@ namespace Navigator.AR
                 var touch = Input.GetTouch(i);
                 if (IsOverUI(touch.fingerId)) continue;
                 fingers++;
-                if (touch.phase == TouchPhase.Began) tapBegan = true;
+                if (touch.phase == UnityEngine.TouchPhase.Began) tapBegan = true;
             }
             if (tapBegan)
             {
