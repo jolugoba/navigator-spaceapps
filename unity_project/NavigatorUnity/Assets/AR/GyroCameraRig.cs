@@ -5,6 +5,7 @@
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
+using Navigator.Game;
 
 namespace Navigator.AR
 {
@@ -18,6 +19,12 @@ namespace Navigator.AR
         public float ChaseDistance   = 7f;
         public float ChaseHeight     = 1.6f;
         public float FollowSharpness = 8f;
+
+        [Header("Sensación de velocidad (campo de visión)")]
+        public float BaseFov    = 60f;
+        public float SpeedFov   = 8f;    // extra at top speed
+        public float BoostFov   = 6f;
+        public float BurnoutFov = 12f;
 
         [Header("Editor / sin giroscopio")]
         public float MouseSensitivity = 3f;
@@ -62,6 +69,7 @@ namespace Navigator.AR
             transform.rotation = LookRotation;
 
             if (Target == null) return;
+            UpdateFov();
             Vector3 desired = Target.position + LookRotation * new Vector3(0f, ChaseHeight, -ChaseDistance);
             float t = 1f - Mathf.Exp(-FollowSharpness * Time.deltaTime);
             transform.position = Vector3.Lerp(transform.position, desired, t);
@@ -71,6 +79,27 @@ namespace Navigator.AR
                 transform.position += Random.insideUnitSphere * _shake;
                 _shake = Mathf.MoveTowards(_shake, 0f, 2.5f * Time.deltaTime);
             }
+        }
+
+        private Camera         _cam;
+        private Rigidbody      _targetRb;
+        private ShipController _targetShip;
+        private BurnoutSystem  _targetBurnout;
+
+        void UpdateFov()
+        {
+            if (_cam == null) _cam = GetComponent<Camera>();
+            if (_targetRb == null)
+            {
+                _targetRb      = Target.GetComponent<Rigidbody>();
+                _targetShip    = Target.GetComponent<ShipController>();
+                _targetBurnout = Target.GetComponent<BurnoutSystem>();
+            }
+            float speed = _targetRb != null && !_targetRb.isKinematic ? _targetRb.linearVelocity.magnitude : 0f;
+            float fov = BaseFov + SpeedFov * Mathf.Clamp01(speed / 80f);
+            if (_targetBurnout != null && _targetBurnout.BurnoutActive) fov += BurnoutFov;
+            else if (_targetShip != null && _targetShip.Boosting)       fov += BoostFov;
+            _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, fov, 1f - Mathf.Exp(-4f * Time.deltaTime));
         }
 
         // Unity-space orientation of a portrait phone from the gyro attitude

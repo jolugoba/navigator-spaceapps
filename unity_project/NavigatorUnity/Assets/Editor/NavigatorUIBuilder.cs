@@ -289,24 +289,27 @@ namespace Navigator.Editor
         // EVENTOS DE OPERACIÓN (crucero)
         // ══════════════════════════════════════════════════════════════════════
 
+        // A banner under the HUD's top bar: nothing is dimmed or blocked and the flight keeps
+        // running, so a decision never hands the rivals free time
         static void BuildEvents(Transform root, MissionEventsUI ev)
         {
             var go = UIKit.Stretch(root, "EventPanel").gameObject;
-            var dim = go.AddComponent<Image>();
-            dim.color = new Color(0f, 0f, 0f, 0.6f);
-            dim.raycastTarget = true;
-            var card = UIKit.Card(UIKit.Column(go.transform), "Card", new Vector4(0.05f, 0.24f, 0.95f, 0.76f), UIStyle.Card);
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var card = UIKit.Card(UIKit.Column(safe), "Banner", new Vector4(0.03f, 0.655f, 0.97f, 0.84f), UIStyle.Card);
+            card.GetComponent<Image>().raycastTarget = true;   // taps on the banner don't thrust
 
-            UIKit.Text(card, "Tag", "@ev.header", 26, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Warn, FontStyles.Bold);
-            ev.TitleLabel = UIKit.Text(card, "Title", "", 54, new Vector4(0.05f, 0.78f, 0.95f, 0.9f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
-            ev.BodyLabel  = UIKit.Text(card, "Body", "", 32, new Vector4(0.05f, 0.44f, 0.95f, 0.78f), TextAlignmentOptions.TopLeft, UIStyle.Text);
-            ev.TimerLabel = UIKit.Text(card, "Timer", "", 28, new Vector4(0.05f, 0.37f, 0.95f, 0.44f), TextAlignmentOptions.Left, UIStyle.Muted);
-            ev.OptionA = UIKit.Button(card, "OptionA", "A", new Vector4(0.04f, 0.2f, 0.96f, 0.36f), UIStyle.Accent, UIStyle.Ink, 34, FontStyles.Bold);
-            ev.OptionB = UIKit.Button(card, "OptionB", "B", new Vector4(0.04f, 0.03f, 0.96f, 0.19f), UIStyle.ButtonIdle, UIStyle.Text, 34, FontStyles.Bold);
+            UIKit.Text(card, "Tag", "@ev.header", 22, new Vector4(0.04f, 0.83f, 0.66f, 0.97f), TextAlignmentOptions.Left, UIStyle.Warn, FontStyles.Bold);
+            ev.TimerLabel = UIKit.Text(card, "Timer", "", 22, new Vector4(0.6f, 0.83f, 0.96f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
+            ev.TitleLabel = UIKit.Text(card, "Title", "", 40, new Vector4(0.04f, 0.64f, 0.96f, 0.83f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            ev.BodyLabel  = UIKit.Text(card, "Body", "", 26, new Vector4(0.04f, 0.37f, 0.96f, 0.64f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            ev.OptionA = UIKit.Button(card, "OptionA", "A", new Vector4(0.03f, 0.07f, 0.495f, 0.36f), UIStyle.Accent, UIStyle.Ink, 26, FontStyles.Bold);
+            ev.OptionB = UIKit.Button(card, "OptionB", "B", new Vector4(0.505f, 0.07f, 0.97f, 0.36f), UIStyle.ButtonIdle, UIStyle.Text, 26, FontStyles.Bold);
             ev.OptionALabel = ev.OptionA.GetComponentInChildren<TMP_Text>();
             ev.OptionBLabel = ev.OptionB.GetComponentInChildren<TMP_Text>();
             ev.OptionALabel.textWrappingMode = TextWrappingModes.Normal;
             ev.OptionBLabel.textWrappingMode = TextWrappingModes.Normal;
+            ev.TimerBar = UIKit.Bar(card, "TimerBar", new Vector4(0.03f, 0.01f, 0.97f, 0.045f), UIStyle.Warn);
 
             ev.Panel = go;
             go.transform.SetAsLastSibling();
@@ -413,8 +416,18 @@ namespace Navigator.Editor
 
             hud.DamageIndicatorDamaged  = UIKit.Image(p, "DamageOverlay",   new Vector4(0, 0, 1, 1), new Color(1f, 0.55f, 0.1f, 0.12f)).gameObject;
             hud.DamageIndicatorCritical = UIKit.Image(p, "CriticalOverlay", new Vector4(0, 0, 1, 1), new Color(1f, 0.15f, 0.15f, 0.22f)).gameObject;
+            var vignette = VignetteSprite();
+            foreach (var o in new[] { hud.DamageIndicatorDamaged, hud.DamageIndicatorCritical })
+            {
+                var img = o.GetComponent<Image>();
+                img.sprite = vignette;
+                img.type   = UnityEngine.UI.Image.Type.Simple;
+            }
             hud.DamageIndicatorDamaged.SetActive(false);
             hud.DamageIndicatorCritical.SetActive(false);
+            hud.Vignette = UIKit.Image(p, "Vignette", new Vector4(0, 0, 1, 1), new Color(1f, 0.5f, 0.1f, 0f));
+            hud.Vignette.sprite = vignette;
+            hud.Vignette.type   = UnityEngine.UI.Image.Type.Simple;
 
             // Barra superior: posición · distancia · tiempo
             var top = UIKit.Card(p, "TopBar", new Vector4(0.03f, 0.905f, 0.97f, 0.985f), UIStyle.HudCard);
@@ -654,6 +667,39 @@ namespace Navigator.Editor
             importer.mipmapEnabled       = false;
             importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Sprite>(ArrowSpritePath);
+        }
+
+        // Transparent centre, soft coloured edges: tinted per effect (Burnout, damage)
+        static Sprite VignetteSprite()
+        {
+            const string path = GeneratedDir + "/Vignette.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+
+            Directory.CreateDirectory(GeneratedDir);
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var px = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                float r = Mathf.Sqrt(dx * dx + dy * dy) / Mathf.Sqrt(2f);
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.45f, 1f, r));
+                px[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType         = TextureImporterType.Sprite;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled       = false;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         static bool InTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)

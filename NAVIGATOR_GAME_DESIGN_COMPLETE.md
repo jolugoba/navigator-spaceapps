@@ -253,6 +253,17 @@ Llama, estela y luz en la tobera: **cian** al acelerar, **naranja** en boost, **
 Con menos del 15 % de combustible el motor **tose** (la llama se corta a ratos) y sin combustible se apaga
 y el HUD muestra **SIN COMBUSTIBLE**. Las naves rivales muestran su llama con los datos que llegan por red.
 
+### Efectos y sonido
+| Efecto | Qué comunica | Código |
+|---|---|---|
+| Polvo espacial que se estira en líneas | Velocidad (el polvo queda fijo en el espacio) | `SpaceDustFX` |
+| Campo de visión que se abre | Velocidad, boost (+6°) y Burnout (+12°) | `GyroCameraRig` |
+| Burbuja de energía azul / naranja | Escudo o invulnerabilidad / Burnout | `ShieldFX` |
+| Viñeta naranja pulsante / roja | Burnout activo / casco crítico | `CockpitHUD.Vignette` |
+| Ráfaga de partículas + aviso "+15% FUEL" | Recoger un pod | `PickupBurst`, `Powerup.Collected` |
+| Sacudida de cámara | Golpes, cuasi-colisiones | `GyroCameraRig.Shake` |
+| Sonido sintetizado (sin archivos) | Motor que sube con el empuje, explosiones, golpes, pods, alerta de anomalía, cuasi-colisión, Burnout, cuenta regresiva | `AudioFX` |
+
 ### Realidad aumentada — `AR/GyroCameraRig.cs`, `AR/CameraFeedBackground.cs`
 AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere ARCore/ARKit):
 - La **cámara trasera** se dibuja detrás de todo (`WebCamTexture`, maneja permisos, rotación y espejo).
@@ -265,16 +276,18 @@ AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere AR
 ---
 
 ### Operación en crucero — `UI/MissionEventsUI.cs`
-Dos anomalías por vuelo (al 30 % y 65 % del camino). El vuelo se congela y tienes 12 s para decidir;
-si no decides, control de misión elige la opción segura. **Tu diseño decide qué tan grave es cada una:**
+Dos anomalías por vuelo (al 30 % y 65 % del camino). Aparecen como **banner arriba de la pantalla sin
+pausar el juego** (en multijugador los rivales siguen volando, así que decidir rápido importa). Tienes 12 s;
+si no decides, control de misión elige la opción segura. "Modo seguro" y "esperar el enlace" **apagan los
+motores 5 s**: cuestan distancia real frente a los rivales. **Tu diseño decide qué tan grave es cada una:**
 
 | Evento | Opción A | Opción B | El diseño que te salva |
 |---|---|---|---|
-| Tormenta solar | Modo seguro: +10 s | Seguir: 50 % de perder un instrumento | Detector de partículas: la mides, +50 % de sus puntos |
+| Tormenta solar | Modo seguro: motores apagados 5 s | Seguir: 50 % de perder un instrumento | Detector de partículas: la mides, +50 % de sus puntos |
 | Campo de escombros | Maniobra: −8 % combustible | Atravesar: 60 % de −1 casco y −25 % | Margen de combustible |
 | Falla de instrumento | Reiniciar (necesita 20 W libres) | Apagarlo: se pierde | Margen de energía (RTG / reactor) |
 | Error de navegación | Corregir ya: −5 % | Corregir tarde: −15 % | Lección real: las TCM tempranas son baratas |
-| Apagón (conjunción solar) | Esperar: +12 s | Piloto automático: 40 % de percance | Antena de alta ganancia: sin demora |
+| Apagón (conjunción solar) | Esperar: motores apagados 5 s | Piloto automático: 40 % de percance | Antena de alta ganancia: sin demora |
 | Paneles debilitándose (solar lejos del Sol) | Apagar el instrumento que más consume | −30 W para la ciencia | Elegir RTG en vez de solar |
 
 Cada decisión y su consecuencia aparece en el informe final.

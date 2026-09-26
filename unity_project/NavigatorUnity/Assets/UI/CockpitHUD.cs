@@ -45,6 +45,9 @@ namespace Navigator.UI
         [Header("Posición en carrera")]
         public TMP_Text   RacePositionLabel; // "#1" "#2"
 
+        [Header("Viñeta de pantalla (Burnout / casco crítico)")]
+        public Image      Vignette;
+
         [Header("Avisos de impacto")]
         public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
 
@@ -63,6 +66,28 @@ namespace Navigator.UI
         private float _lowFuelFlash = 0f;
         private float _impactTimer  = 0f;
         private GyroCameraRig _rig;
+
+        void OnDestroy() => Powerup.Collected -= OnPodCollected;
+
+        void OnPodCollected(PowerupType type) => Flash("pod." + type, type switch
+        {
+            PowerupType.Fuel          => UIStyle.Good,
+            PowerupType.Boost         => UIStyle.Burnout,
+            PowerupType.Shield        => UIStyle.Accent,
+            PowerupType.EMP           => new Color(0.8f, 0.4f, 1f),
+            _                         => UIStyle.Gold,
+        }, 0f);
+
+        void UpdateVignette()
+        {
+            if (Vignette == null) return;
+            bool burn     = _burnout != null && _burnout.BurnoutActive;
+            bool critical = _collision != null && _collision.Lives == 1;
+            float pulse   = 0.5f + 0.5f * Mathf.Sin(Time.time * (burn ? 10f : 4f));
+            Color c = burn ? UIStyle.Burnout : UIStyle.Bad;
+            c.a = burn ? 0.35f + 0.25f * pulse : critical ? 0.2f + 0.2f * pulse : 0f;
+            Vignette.color = c;
+        }
 
         public void Flash(string key, Color color, float shake, string literal = null)
         {
@@ -103,6 +128,10 @@ namespace Navigator.UI
                 sev == CollisionSeverity.Light ? UIStyle.Text : sev == CollisionSeverity.Medium ? UIStyle.Warn : UIStyle.Bad,
                 sev == CollisionSeverity.Heavy ? 1.2f : sev == CollisionSeverity.Medium ? 0.7f : 0.3f));
             _rig = FindObjectOfType<GyroCameraRig>();
+            _burnout?.OnBurnoutStart.AddListener(() => AudioFX.Play(Sfx.Burnout));
+            _burnout?.OnNearMiss.AddListener(_ => { AudioFX.Play(Sfx.NearMiss, 0.7f); _rig?.Shake(0.15f); });
+            _collision?.OnDamaged.AddListener(_ => AudioFX.Play(Sfx.Hit));
+            Powerup.Collected += OnPodCollected;
             if (ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
         }
 
@@ -116,6 +145,8 @@ namespace Navigator.UI
             UpdateLowFuelFlash();
             UpdateNearMissCombo();
             UpdateTime();
+
+            UpdateVignette();
 
             if (_impactTimer > 0f)
             {

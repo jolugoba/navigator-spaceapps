@@ -174,7 +174,6 @@ namespace Navigator.UI
 
         void BeginDesign()
         {
-            Time.timeScale = 1f;
             Events?.Cancel();
 
             _rivalsArrived.Clear();
@@ -229,8 +228,11 @@ namespace Navigator.UI
             if (CountdownSubLabel != null)
                 CountdownSubLabel.text = Loc.F("count.sub", Loc.Planet(Mission.TargetPlanetId));
 
-            foreach (string l in new[] { "3", "2", "1", Loc.T("count.liftoff") })
+            string[] labels = { "3", "2", "1", Loc.T("count.liftoff") };
+            for (int i = 0; i < labels.Length; i++)
             {
+                string l = labels[i];
+                AudioFX.Play(i < 3 ? Sfx.Beep : Sfx.Go);
                 if (CountdownLabel != null) CountdownLabel.text = l;
                 yield return new WaitForSeconds(1f);
             }
@@ -359,11 +361,25 @@ namespace Navigator.UI
             if (_flightTimer >= MaxFlightTimeS) { FailMission("fail.timeout");  return; }
         }
 
-        // Cruise decisions (safe mode, waiting for a comm link) cost mission time
-        public void AddFlightTime(float seconds)
+        // Cruise decisions (safe mode, waiting for a comm link) switch the engines off for a while;
+        // the race keeps running, so it costs real distance to the rivals
+        public void LockThrust(float seconds)
         {
-            if (State == GameState.InFlight) _flightTimer += seconds;
+            if (State != GameState.InFlight) return;
+            if (_thrustLock != null) StopCoroutine(_thrustLock);
+            _thrustLock = StartCoroutine(ThrustLockRoutine(seconds));
         }
+
+        IEnumerator ThrustLockRoutine(float seconds)
+        {
+            SetControls(false);
+            HUD?.Flash(null, UIStyle.Warn, 0f, Loc.F("hud.safemode", seconds));
+            yield return new WaitForSeconds(seconds);
+            if (State == GameState.InFlight) SetControls(true);
+            _thrustLock = null;
+        }
+
+        private Coroutine _thrustLock;
 
         void RecordFlight(bool arrived)
         {
