@@ -94,10 +94,18 @@ namespace Navigator.Editor
             BuildClassroom(root.transform, root.AddComponent<ClassroomUI>());
             BuildCredits(root.transform, root.AddComponent<CreditsUI>());
             BuildHangar(root.transform, root.AddComponent<HangarUI>());
+            BuildSettings(root.transform, safe, root.AddComponent<SettingsUI>());
             gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
             gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
             gm.Events   = events;
             gm.Tutorial = tutor;
+
+            // Same sci-fi dressing for the screens built without UIKit.Panel: grid backdrop + intro
+            foreach (var name in new[] { "CampaignPanel", "HangarPanel", "CreditsPanel", "ClassroomPanel", "QuizPanel", "TutorialPanel", "SharePanel" })
+            {
+                var t = root.transform.Find(name);
+                if (t != null) UIKit.Dress(t.gameObject);
+            }
 
             gm.Lobby           = lobby;
             gm.MissionDesignUI = design;
@@ -181,6 +189,8 @@ namespace Navigator.Editor
                                          UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
             _creditsButton = UIKit.Button(p, "CreditsButton", "@credits.button", new Vector4(0.35f, 0.012f, 0.65f, 0.055f),
                                           new Color(0f, 0f, 0f, 0f), UIStyle.Muted, 24);
+            _settingsButton = UIKit.Button(p, "SettingsButton", "@set.button", new Vector4(0.67f, 0.012f, 0.92f, 0.055f),
+                                           new Color(0f, 0f, 0f, 0f), UIStyle.Muted, 24);
 
             lobby.Senda = gm.Senda;
             lobby.Sync  = gm.SyncService;
@@ -325,6 +335,13 @@ namespace Navigator.Editor
             safe.gameObject.AddComponent<SafeAreaFitter>();
             var card = UIKit.Card(UIKit.Column(safe), "Banner", new Vector4(0.03f, 0.655f, 0.97f, 0.84f), UIStyle.Card);
             card.GetComponent<Image>().raycastTarget = true;   // taps on the banner don't thrust
+            // Alert look: a warning-coloured frame that breathes, and the banner pops in when it appears
+            var alertRim = card.Find("Rim").GetComponent<Image>();   // the card's own frame, recoloured
+            alertRim.color = UIStyle.Warn;
+            alertRim.gameObject.AddComponent<UIPulse>().Speed = 6f;
+            card.gameObject.AddComponent<UIPopIn>().From = 0.8f;
+            var stripe = UIKit.Image(card, "AlertStripe", new Vector4(0f, 0.05f, 0.012f, 0.95f), UIStyle.Warn);
+            stripe.gameObject.AddComponent<UIPulse>().Speed = 6f;
 
             UIKit.Text(card, "Tag", "@ev.header", 22, new Vector4(0.04f, 0.83f, 0.66f, 0.97f), TextAlignmentOptions.Left, UIStyle.Warn, FontStyles.Bold);
             ev.TimerLabel = UIKit.Text(card, "Timer", "", 22, new Vector4(0.6f, 0.83f, 0.96f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
@@ -438,7 +455,36 @@ namespace Navigator.Editor
         static Button _campaignButton;
         static Button _teacherButton;
         static Button _creditsButton;
+        static Button _settingsButton;
         static Button _hangarButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
+
+        // Settings: one row per option, the button shows the current value
+        static void BuildSettings(Transform root, RectTransform safe, SettingsUI ui)
+        {
+            var panel = UIKit.Panel(root, safe, "SettingsPanel", UIStyle.Backdrop);
+            var p = panel.content;
+            ui.Panel = panel.go;
+            ui.OpenButton = _settingsButton;
+            UIKit.Text(p, "Title", "@set.title", 60, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+
+            string[] keys = { "set.lang", "set.sound", "set.vibration", "set.motion" };
+            var buttons = new Button[keys.Length];
+            for (int i = 0; i < keys.Length; i++)
+            {
+                float top = 0.86f - i * 0.15f;
+                var card = UIKit.Card(p, "Row_" + keys[i], new Vector4(0.05f, top - 0.13f, 0.95f, top), UIStyle.Card);
+                UIKit.Text(card, "Label", "@" + keys[i], 34, new Vector4(0.05f, 0.5f, 0.6f, 0.92f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+                UIKit.Text(card, "Hint", "@" + keys[i] + ".hint", 24, new Vector4(0.05f, 0.08f, 0.6f, 0.5f), TextAlignmentOptions.TopLeft, UIStyle.Muted);
+                buttons[i] = UIKit.Button(card, "Value", "", new Vector4(0.64f, 0.22f, 0.95f, 0.78f), UIStyle.ButtonIdle, UIStyle.Text, 32, FontStyles.Bold);
+            }
+            ui.LanguageButton  = buttons[0];
+            ui.SoundButton     = buttons[1];
+            ui.VibrationButton = buttons[2];
+            ui.MotionButton    = buttons[3];
+            ui.BackButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.08f, 0.06f, 0.92f, 0.15f), UIStyle.Accent, UIStyle.Ink, 40, FontStyles.Bold);
+            panel.go.transform.SetAsLastSibling();
+            panel.go.SetActive(false);
+        }
 
         // World map: Earth at the bottom, eight worlds zig-zagging up to Neptune
         static void BuildCampaign(Transform root, CampaignUI camp)
@@ -492,7 +538,14 @@ namespace Navigator.Editor
                 node.Planet.sprite = UIKit.KnobSprite;
                 node.Planet.color  = CampaignUI.PlanetColor(Campaign.Missions[i].Planet);
                 node.Button = point.gameObject.AddComponent<Button>();
-                node.Button.targetGraphic = node.Planet;
+                node.Button.targetGraphic = node.Planet;   // (CampaignUI animates its scale)
+                // A slow orbit ring around each world
+                var orbit = MapPoint(map, $"Orbit_{i + 1}", at, 150f).gameObject.AddComponent<Image>();
+                orbit.sprite = UIKit.RingSprite;
+                orbit.color  = new Color(node.Planet.color.r, node.Planet.color.g, node.Planet.color.b, 0.35f);
+                orbit.raycastTarget = false;
+                orbit.transform.SetSiblingIndex(point.GetSiblingIndex());   // behind the planet
+                orbit.gameObject.AddComponent<UISpin>().DegreesPerSecond = (i % 2 == 0 ? 12f : -12f);
 
                 // Name on the open side of the screen
                 bool left = xs[i % xs.Length] > 0.5f;
@@ -667,6 +720,8 @@ namespace Navigator.Editor
             // ── Toast (always on top) ─────────────────────────────────────────
             var box = UIKit.Image(root, "ClassToast", new Vector4(0.05f, 0.86f, 0.95f, 0.93f), new Color(0f, 0f, 0f, 0.75f));
             box.raycastTarget = false;
+            UIKit.Rim(box, UIStyle.Gold);
+            box.gameObject.AddComponent<UIPopIn>();
             ui.Toast = UIKit.Text(box.transform, "Text", "", 30, new Vector4(0.03f, 0f, 0.97f, 1f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
             ui.ToastBox = box.gameObject;
             var toast = box;
@@ -749,11 +804,16 @@ namespace Navigator.Editor
             hud.Vignette = UIKit.Image(p, "Vignette", new Vector4(0, 0, 1, 1), new Color(1f, 0.5f, 0.1f, 0f));
             hud.Vignette.sprite = vignette;
             hud.Vignette.type   = UnityEngine.UI.Image.Type.Simple;
+            // Whole-screen flash on hits (red), shields (cyan) and pods; fades in ~0.3 s
+            hud.HitFlash = UIKit.Image(p, "HitFlash", new Vector4(0, 0, 1, 1), new Color(1f, 1f, 1f, 0f));
+            hud.HitFlash.sprite = vignette;
+            hud.HitFlash.type   = UnityEngine.UI.Image.Type.Simple;
 
             // Barra superior: posición · distancia · tiempo
             var top = UIKit.Card(p, "TopBar", new Vector4(0.02f, 1f, 0.98f, 1f), UIStyle.HudCard);
             top.pivot = new Vector2(0.5f, 1f);
             top.offsetMin = new Vector2(0f, -86f); top.offsetMax = new Vector2(0f, -10f);
+            var topGlitch = top.gameObject.AddComponent<UIGlitch>();
             hud.RacePositionLabel = UIKit.Text(top, "Position", "#1", 52, new Vector4(0.04f, 0f, 0.26f, 1f),
                                                TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
             hud.DistanceLabel = UIKit.Text(top, "Distance", "", 36, new Vector4(0.26f, 0f, 0.74f, 1f),
@@ -784,13 +844,22 @@ namespace Navigator.Editor
             hud.NearMissComboObj.SetActive(false);
             hud.LowFuelWarning = UIKit.Text(p, "LowFuel", "LOW FUEL", 44, new Vector4(0.05f, 0.3f, 0.95f, 0.34f),
                                             TextAlignmentOptions.Center, UIStyle.Warn, FontStyles.Bold).gameObject;
+            hud.LowFuelWarning.AddComponent<UIPulse>().Speed = 8f;
             hud.LowFuelWarning.SetActive(false);
 
-            hud.ImpactLabel = UIKit.Text(p, "Impact", "", 50, new Vector4(0.04f, 0.47f, 0.96f, 0.54f),
+            // Alert banner: dark plate with a coloured glowing frame, pops in with a bounce
+            var banner = UIKit.Image(p, "ImpactBanner", new Vector4(0.05f, 0.462f, 0.95f, 0.548f), new Color(0.02f, 0.03f, 0.08f, 0.75f));
+            hud.ImpactRim    = UIKit.Rim(banner, UIStyle.Warn);
+            hud.ImpactBanner = banner.gameObject;
+            banner.gameObject.AddComponent<UIPopIn>();
+            var bannerGlitch = banner.gameObject.AddComponent<UIGlitch>();
+            hud.ImpactLabel = UIKit.Text(banner.rectTransform, "Impact", "", 44, new Vector4(0.03f, 0.05f, 0.97f, 0.95f),
                                          TextAlignmentOptions.Center, UIStyle.Warn, FontStyles.Bold);
 
             // Bottom-centre cluster, fixed size, between the joystick (left) and the buttons (right)
             var bottom = UIKit.Pin(p, "BottomCluster", new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(500f, 190f));
+            // Display parts jolt on hits (not the touch controls: a moving joystick would jerk the aim)
+            hud.Glitch = new[] { topGlitch, bannerGlitch, bottom.gameObject.AddComponent<UIGlitch>() };
             UIKit.Text(bottom, "ControlsHint", "@hud.controls", 18,
                        new Vector4(0f, 0.84f, 1f, 1f), TextAlignmentOptions.Center, UIStyle.Muted);
 
@@ -830,18 +899,20 @@ namespace Navigator.Editor
             var zone = area.gameObject.AddComponent<Image>();
             zone.color = new Color(1f, 1f, 1f, 0f);   // invisible but still catches touches
             zone.raycastTarget = true;
-            var ring = UIKit.Image(area, "Base", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(1f, 1f, 1f, 0.12f));
-            ring.sprite = UIKit.KnobSprite;
+            var ring = UIKit.Image(area, "Base", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.4f, 0.85f, 1f, 0.35f));
+            ring.sprite = UIKit.RingSprite;    // ring with ticks and arrows, turns toward the push
             ring.type   = UnityEngine.UI.Image.Type.Simple;
-            ring.rectTransform.sizeDelta = new Vector2(200, 200);
-            var knob = UIKit.Image(ring.rectTransform, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.55f));
-            knob.sprite = UIKit.KnobSprite;
+            ring.rectTransform.sizeDelta = new Vector2(210, 210);
+            var knob = UIKit.Image(ring.rectTransform, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.4f, 0.85f, 1f, 0.35f));
+            knob.sprite = UIKit.StickSprite;   // glowing disc
             knob.type   = UnityEngine.UI.Image.Type.Simple;
-            knob.rectTransform.sizeDelta = new Vector2(84, 84);
+            knob.rectTransform.sizeDelta = new Vector2(90, 90);
             var stick = area.gameObject.AddComponent<VirtualJoystick>();
             stick.Base  = ring.rectTransform;
             stick.Knob  = knob.rectTransform;
             stick.Range = 80f;
+            stick.BaseGraphic = ring;
+            stick.KnobGraphic = knob;
 
             // Right-hand column of sci-fi buttons (slanted, glowing outline, segmented bar), bottom to top:
             // THRUST (blue, a bit taller: the thumb rests there), BOOST (red), FIRE (orange), SCAN (green)
@@ -887,6 +958,7 @@ namespace Navigator.Editor
             info.offsetMin = new Vector2(0f, -400f); info.offsetMax = new Vector2(0f, -150f);
             info.GetComponent<Image>().raycastTarget = false;
             hud.InfoCard  = info.gameObject;
+            info.gameObject.AddComponent<UIPopIn>().From = 0.85f;
             hud.InfoTitle = UIKit.Text(info, "Title", "", 34, new Vector4(0.04f, 0.74f, 0.96f, 0.96f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
             hud.InfoBody  = UIKit.Text(info, "Body", "", 26, new Vector4(0.04f, 0.05f, 0.96f, 0.74f), TextAlignmentOptions.TopLeft, UIStyle.Text);
 
@@ -927,6 +999,9 @@ namespace Navigator.Editor
         // gauge along the bottom. White, so each button is tinted by its Image colour.
         static void SciFi(Image img)
         {
+            // The slanted plate carries its own outline: drop the rectangular frame
+            var rim = img.transform.Find("Rim");
+            if (rim != null) Object.DestroyImmediate(rim.gameObject);
             img.sprite = SciFiButtonSprite();
             img.type   = UnityEngine.UI.Image.Type.Simple;
             img.preserveAspect = false;
@@ -1041,6 +1116,7 @@ namespace Navigator.Editor
             SciFi(img);
             var hold = img.gameObject.AddComponent<HoldButton>();
             hold.Target = img;
+            img.gameObject.AddComponent<UIPress>().Pressed = 0.94f;   // stays squashed while held
             return hold;
         }
 
@@ -1286,6 +1362,139 @@ namespace Navigator.Editor
         public static Sprite KnobSprite => _knob    ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
         static Sprite CheckSprite   => _check   ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
 
+        // ── Sci-fi skin: generated once into Assets/UI/Generated (delete a PNG to regenerate it) ──
+        // Signed distance to the chamfered box (top-left and bottom-right corners cut), negative inside
+        static float ChamferDist(float x, float y, float w, float h, float m, float c)
+        {
+            float d = Mathf.Max(Mathf.Max(m - x, x - (w - m)), Mathf.Max(m - y, y - (h - m)));
+            d = Mathf.Max(d, ((m + c) - x + y - (h - m)) * 0.7071f);   // top-left cut
+            d = Mathf.Max(d, (x - (w - m - c) - y + m) * 0.7071f);     // bottom-right cut
+            return d;
+        }
+
+        public static Sprite GenSprite(string file, int w, int h, System.Func<float, float, float> alpha,
+                                       Vector4 border = default, bool repeat = false)
+        {
+            string path = "Assets/UI/Generated/" + file;
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                px[y * w + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha(x + 0.5f, y + 0.5f)));
+            tex.SetPixels(px);
+            tex.Apply();
+            Directory.CreateDirectory("Assets/UI/Generated");
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.textureType = TextureImporterType.Sprite;
+            ti.alphaIsTransparency = true;
+            ti.mipmapEnabled = false;
+            ti.spriteBorder = border;
+            ti.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+            ti.spriteMeshType = SpriteMeshType.FullRect;
+            ti.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        const int FrameN = 64;
+        static readonly Vector4 FrameBorder = new(22, 22, 22, 22);
+
+        // Solid body of cards and buttons (tinted by the Image colour)
+        static Sprite _frame, _rim, _grid, _ring, _stick;
+        public static Sprite FrameSprite => _frame ??= GenSprite("Frame.png", FrameN, FrameN, (x, y) =>
+            Mathf.Clamp01(0.5f - ChamferDist(x, y, FrameN, FrameN, 1f, 14f)), FrameBorder);
+
+        // Glowing outline drawn on top of the body, with brighter corner brackets
+        public static Sprite RimSprite => _rim ??= GenSprite("Rim.png", FrameN, FrameN, (x, y) =>
+        {
+            float d = ChamferDist(x, y, FrameN, FrameN, 1f, 14f);
+            float line = Mathf.Clamp01(1f - Mathf.Abs(d + 1.5f) / 1.3f);
+            float glow = d < 0f ? 0.35f * Mathf.Exp(d / 4f) : 0f;
+            bool corner = (x < 20f && y < 20f) || (x > FrameN - 20f && y > FrameN - 20f);
+            float bracket = corner && d > -5f && d < -2.5f ? 0.9f : 0f;   // inner L at the square corners
+            return Mathf.Max(line, glow, bracket) * Mathf.Clamp01(0.5f - d);
+        }, FrameBorder);
+
+        // Faint tiled grid behind every screen
+        public static Sprite GridSprite => _grid ??= GenSprite("Grid.png", 64, 64, (x, y) =>
+        {
+            bool line = x < 1.5f || y < 1.5f;
+            bool dot  = x < 3.5f && y < 3.5f;
+            return dot ? 1f : line ? 0.45f : 0f;
+        }, default, true);
+
+        // Joystick base: ring with 24 ticks and 4 arrows; knob: glowing disc with a ring
+        public static Sprite RingSprite => _ring ??= GenSprite("StickRing.png", 256, 256, (x, y) =>
+        {
+            float u = x / 128f - 1f, v = y / 128f - 1f, r = Mathf.Sqrt(u * u + v * v);
+            float a = Mathf.Atan2(v, u);
+            float ring  = Mathf.Clamp01(1f - Mathf.Abs(r - 0.92f) / 0.025f);
+            float inner = Mathf.Clamp01(1f - Mathf.Abs(r - 0.62f) / 0.012f) * 0.5f;
+            float fill  = r < 0.92f ? 0.10f + 0.12f * r : 0f;
+            float m15   = Mathf.Repeat(a * Mathf.Rad2Deg, 15f);
+            float tick  = r > 0.76f && r < 0.86f && Mathf.Min(m15, 15f - m15) < 1.6f ? 0.8f : 0f;
+            float arrow = 0f;
+            for (int k = 0; k < 4; k++)
+            {
+                float ang = Mathf.Abs(Mathf.DeltaAngle(a * Mathf.Rad2Deg, k * 90f));
+                if (r > 0.66f && r < 0.74f && ang < (0.74f - r) * 110f) arrow = 1f;
+            }
+            return Mathf.Max(ring, inner, fill, tick, arrow) * (r < 0.96f ? 1f : 0f);
+        });
+
+        public static Sprite StickSprite => _stick ??= GenSprite("StickKnob.png", 128, 128, (x, y) =>
+        {
+            float u = x / 64f - 1f, v = y / 64f - 1f, r = Mathf.Sqrt(u * u + v * v);
+            float ring = Mathf.Clamp01(1f - Mathf.Abs(r - 0.86f) / 0.06f);
+            float core = r < 0.8f ? 0.55f + 0.45f * (1f - r / 0.8f) : 0f;
+            float halo = r < 1f ? 0.25f * (1f - r) : 0f;
+            return Mathf.Max(ring, core, halo);
+        });
+
+        // Outline colour for a body colour: dark bodies get the cyan accent, bright ones a lighter tint
+        static Color RimFor(Color body)
+        {
+            float lum = 0.3f * body.r + 0.59f * body.g + 0.11f * body.b;
+            if (lum < 0.3f) return new Color(UIStyle.Accent.r, UIStyle.Accent.g, UIStyle.Accent.b, 0.55f);
+            var c = Color.Lerp(body, Color.white, 0.45f); c.a = 0.95f;
+            return c;
+        }
+
+        // Adds the glowing outline as the first child (under labels, over the body)
+        public static Image Rim(Image body, Color? color = null)
+        {
+            var rim = Stretch(body.rectTransform, "Rim").gameObject.AddComponent<Image>();
+            rim.sprite = RimSprite;
+            rim.type   = UnityEngine.UI.Image.Type.Sliced;
+            rim.pixelsPerUnitMultiplier = 1f;
+            rim.color  = color ?? RimFor(body.color);
+            rim.raycastTarget = false;
+            rim.transform.SetAsFirstSibling();
+            return rim;
+        }
+
+        // Grid behind the content (only on screens with an opaque backdrop) and the intro animation
+        public static void Dress(GameObject go)
+        {
+            if (go.GetComponent<UIPanelIntro>() != null) return;
+            var content = go.transform.Find("Content") as RectTransform;
+            var bg = go.GetComponent<Image>();
+            if (bg != null && bg.color.a > 0.5f)
+            {
+                var grid = Stretch(go.transform, "Grid").gameObject.AddComponent<Image>();
+                grid.sprite = GridSprite;
+                grid.type   = UnityEngine.UI.Image.Type.Tiled;
+                grid.color  = new Color(UIStyle.Accent.r, UIStyle.Accent.g, UIStyle.Accent.b, 0.05f);
+                grid.raycastTarget = false;
+                grid.transform.SetAsFirstSibling();
+            }
+            go.AddComponent<UIPanelIntro>().Content = content;
+        }
+
         public struct PanelParts { public GameObject go; public RectTransform content; }
 
         // Full-screen backdrop (under the notch too) with content inside the safe area
@@ -1297,8 +1506,16 @@ namespace Navigator.Editor
             bg.color = backdrop;
             bg.raycastTarget = true;   // blocks taps from reaching the flight controls
 
+            // Faint cyan grid, then content that settles in each time the screen opens
+            var grid = Stretch(go.transform, "Grid").gameObject.AddComponent<Image>();
+            grid.sprite = GridSprite;
+            grid.type   = UnityEngine.UI.Image.Type.Tiled;
+            grid.color  = new Color(UIStyle.Accent.r, UIStyle.Accent.g, UIStyle.Accent.b, 0.05f);
+            grid.raycastTarget = false;
+
             var content = Stretch(go.transform, "Content");
             content.gameObject.AddComponent<SafeAreaFitter>();
+            go.AddComponent<UIPanelIntro>().Content = content;
             return new PanelParts { go = go, content = Column(content) };
         }
 
@@ -1361,9 +1578,9 @@ namespace Navigator.Editor
 
         public static void Rounded(Image img, Color c)
         {
-            img.sprite = RoundedSprite;
+            img.sprite = FrameSprite;   // chamfered sci-fi plate (was a rounded box)
             img.type   = UnityEngine.UI.Image.Type.Sliced;
-            img.pixelsPerUnitMultiplier = 0.35f;   // bigger corner radius at 1080p
+            img.pixelsPerUnitMultiplier = 1f;
             img.color  = c;
         }
 
@@ -1387,6 +1604,7 @@ namespace Navigator.Editor
         {
             var img = Image(parent, name, a, c);
             if (!rounded) { img.sprite = null; img.type = UnityEngine.UI.Image.Type.Simple; }
+            else Rim(img);
             return img.rectTransform;
         }
 
@@ -1405,6 +1623,7 @@ namespace Navigator.Editor
             var bg = rt.gameObject.AddComponent<Image>();
             Rounded(bg, UIStyle.ButtonIdle);
             bg.raycastTarget = true;
+            Rim(bg);
 
             var area = Rect(rt, "Text Area", new Vector4(0f, 0f, 1f, 1f));
             area.offsetMin = new Vector2(18f, 4f);
@@ -1488,6 +1707,8 @@ namespace Navigator.Editor
             btn.colors = cb;
             var t = Text(rt, "Label", label, size, new Vector4(0.04f, 0f, 0.96f, 1f), TextAlignmentOptions.Center, fg, style);
             t.textWrappingMode = TextWrappingModes.NoWrap;
+            if (bg.a > 0.05f) Rim(img);   // text-only links stay plain
+            rt.gameObject.AddComponent<UIPress>();
             return btn;
         }
 
@@ -1564,6 +1785,8 @@ namespace Navigator.Editor
             bg.raycastTarget = true;
             var toggle = rt.gameObject.AddComponent<Toggle>();
             toggle.targetGraphic = bg;
+            Rim(bg);
+            rt.gameObject.AddComponent<UIPress>().Pressed = 0.96f;
 
             var box = Image(rt, "Box", Vector4.zero, UIStyle.BarTrack);
             box.rectTransform.anchorMin = box.rectTransform.anchorMax = new Vector2(0f, 0.5f);
@@ -1610,6 +1833,7 @@ namespace Navigator.Editor
         public static RectTransform Section(RectTransform content, string title, float height)
         {
             var card = Image(content, title.TrimStart('@'), Vector4.zero, UIStyle.Card);
+            Rim(card);
             var le = card.gameObject.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.minHeight       = height;

@@ -29,6 +29,7 @@ namespace Navigator.Game
             public Transform T;
             public float     Radius;
             public Vector3   Spin;
+            public Vector3   Velocity;          // only after a laser shove: no drag in space
             public bool      NearMissCounted;
             public bool      Hit;
         }
@@ -100,6 +101,7 @@ namespace Navigator.Game
             {
                 if (rock.T == null) continue;
                 rock.T.Rotate(rock.Spin * dt, Space.Self);
+                if (rock.Velocity != Vector3.zero) rock.T.position += rock.Velocity * dt;
                 if (rock.Hit) continue;
 
                 float dist = Vector3.Distance(shipPos, rock.T.position);
@@ -119,6 +121,20 @@ namespace Navigator.Game
                     _burnout?.RegisterNearMissAsteroid();
                 }
             }
+        }
+
+        // A laser impulse J on a rock: Δv = J / m with m ∝ r³ (same density) — pebbles fly, boulders barely move
+        public bool Push(Transform t, Vector3 impulse)
+        {
+            foreach (var rock in _rocks)
+            {
+                if (rock.T != t) continue;
+                float mass = rock.Radius * rock.Radius * rock.Radius;
+                rock.Velocity += impulse / Mathf.Max(1f, mass);
+                rock.Spin     += Random.insideUnitSphere * (impulse.magnitude / Mathf.Max(1f, mass)) * 20f;
+                return true;
+            }
+            return false;
         }
 
         void OnHit(Rock rock)

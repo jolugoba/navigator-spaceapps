@@ -58,7 +58,7 @@ namespace Navigator.AR
         private float _shake;
 
         // Impact feedback: amount in game units, decays in ~0.4 s
-        public void Shake(float amount) => _shake = Mathf.Max(_shake, amount);
+        public void Shake(float amount) { if (Navigator.Core.FxPrefs.Motion) _shake = Mathf.Max(_shake, amount); }
         private float _mouseYaw, _mousePitch;
         private bool  _useGyro;
 

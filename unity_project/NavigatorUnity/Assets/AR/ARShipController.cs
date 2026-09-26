@@ -47,6 +47,10 @@ namespace Navigator.AR
         private float      _bank, _turn;
         private float      _lastRollKey = -1f;
         private int        _lastRollDir;
+        // Knock: a damped spring on the attitude (pitch, yaw, roll in degrees) — hits jolt the
+        // ship and the laser kicks the nose up; the spring brings it back to where you aim
+        private Vector3    _knock, _knockVel;
+        private CollisionSystem _collision;
 
         void Awake()
         {
@@ -54,6 +58,28 @@ namespace Navigator.AR
             _rb = GetComponent<Rigidbody>();
             if (_rb != null) _rb.freezeRotation = true;   // rotation comes from the player's aim
             _aim = transform.rotation;
+            _collision = GetComponent<CollisionSystem>();
+            _collision?.OnDamaged.AddListener(OnDamaged);
+            _collision?.OnBlocked.AddListener(() => Knock(4f));
+            ShipTools.Fired += OnFired;
+        }
+
+        void OnDestroy() => ShipTools.Fired -= OnFired;
+
+        void OnDamaged(CollisionSeverity sev)
+        {
+            Knock(sev == CollisionSeverity.Heavy ? 28f : sev == CollisionSeverity.Medium ? 16f : 7f);
+            if (sev != CollisionSeverity.Light) Haptics.Buzz();
+        }
+
+        void OnFired() { if (ControlsEnabled) _knockVel.x -= 45f; }   // nose kicks up
+
+        // Random jolt of `degrees` (mostly roll and yaw, like being shoved from the side)
+        public void Knock(float degrees)
+        {
+            if (!Navigator.Core.FxPrefs.Motion) degrees *= 0.3f;
+            var r = Random.insideUnitSphere;
+            _knockVel += new Vector3(r.x * 0.6f, r.y, r.z * 1.6f) * degrees * 9f;
         }
 
         void Update()
@@ -66,6 +92,7 @@ namespace Navigator.AR
                 _aim = transform.rotation;   // start the next flight from wherever the ship was placed
                 _roll = _rollTarget = 0f;
                 _bank = _turn = 0f;
+                _knock = _knockVel = Vector3.zero;
                 return;
             }
             HandleInput();
@@ -84,7 +111,11 @@ namespace Navigator.AR
             _aim = Quaternion.Slerp(_aim, look, t);
             // Lean into turns like a plane; roll never changes the heading
             _bank = Mathf.Lerp(_bank, -_turn * MaxBank, 1f - Mathf.Exp(-BankSharpness * Time.fixedDeltaTime));
-            Quaternion next = _aim * Quaternion.Euler(0f, 0f, _roll + _bank);
+            // Spring back from any knock: x'' = −k·x − c·x'
+            float dt = Time.fixedDeltaTime;
+            _knockVel += (-_knock * 90f - _knockVel * 11f) * dt;
+            _knock    += _knockVel * dt;
+            Quaternion next = _aim * Quaternion.Euler(_knock.x, _knock.y, _roll + _bank + _knock.z);
 
             if (_rb != null) _rb.MoveRotation(next);
             else             transform.rotation = next;

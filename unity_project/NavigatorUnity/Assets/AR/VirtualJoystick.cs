@@ -7,6 +7,7 @@
 
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Navigator.AR
 {
@@ -19,6 +20,13 @@ namespace Navigator.AR
         [Range(0f, 0.5f)] public float DeadZone  = 0.12f;
         [Range(1f, 3f)]   public float Exponent  = 1.5f;
         [Range(0f, 0.2f)] public float Smoothing = 0.05f;   // seconds
+
+        [Header("Look")]
+        public Graphic BaseGraphic;   // brightens while held
+        public Graphic KnobGraphic;
+        public Color   IdleColor   = new(0.4f, 0.85f, 1f, 0.35f);
+        public Color   ActiveColor = new(0.4f, 0.9f, 1f, 0.95f);
+        private float  _glow;
 
         // -1..1 on each axis; x = turn, y = climb
         public Vector2 Value { get; private set; }
@@ -54,7 +62,16 @@ namespace Navigator.AR
         {
             if (e.pointerId != _pointerId) return;
             Vector2 v = Vector2.ClampMagnitude(Local(e) - _origin, Range);
-            if (Knob != null) Knob.anchoredPosition = v;
+            // The ring turns to face the push, so its arrow shows the direction you steer
+            if (Base != null && v.sqrMagnitude > 25f)
+                Base.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg - 90f);
+            if (Knob != null)
+            {
+                // The knob is a child of the ring: undo the ring's turn so it sits under the thumb
+                Vector2 local = Base != null ? (Vector2)(Quaternion.Inverse(Base.localRotation) * v) : v;
+                Knob.anchoredPosition = local;
+                Knob.rotation = Quaternion.identity;
+            }
 
             // Dead zone so a resting thumb doesn't drift, then a soft curve for fine aiming
             Vector2 n = v / Range;
@@ -76,6 +93,23 @@ namespace Navigator.AR
             Value = _pointerId == NoPointer || Smoothing <= 0f
                 ? _raw
                 : Vector2.SmoothDamp(Value, _raw, ref _velocity, Smoothing, Mathf.Infinity, Time.unscaledDeltaTime);
+
+            // Visuals: glow while held; on release the knob and ring glide home instead of snapping
+            float dt = Time.unscaledDeltaTime;
+            _glow = Mathf.MoveTowards(_glow, Active ? 1f : 0f, dt * 6f);
+            if (BaseGraphic != null) BaseGraphic.color = Color.Lerp(IdleColor, ActiveColor, _glow);
+            if (KnobGraphic != null) KnobGraphic.color = Color.Lerp(IdleColor, Color.white, _glow);
+            if (Knob != null) Knob.localScale = Vector3.one * (1f + 0.15f * _glow);
+            if (!Active)
+            {
+                float k = 1f - Mathf.Exp(-18f * dt);
+                if (Knob != null) Knob.anchoredPosition = Vector2.Lerp(Knob.anchoredPosition, Vector2.zero, k);
+                if (Base != null)
+                {
+                    Base.anchoredPosition = Vector2.Lerp(Base.anchoredPosition, _restPos, k);
+                    Base.localRotation    = Quaternion.Slerp(Base.localRotation, Quaternion.identity, k);
+                }
+            }
         }
 
         Vector2 Local(PointerEventData e)
@@ -87,9 +121,7 @@ namespace Navigator.AR
         void Release()
         {
             _pointerId = NoPointer;
-            _raw = Value = _velocity = Vector2.zero;
-            if (Knob != null) Knob.anchoredPosition = Vector2.zero;
-            if (Base != null) Base.anchoredPosition = _restPos;
+            _raw = Value = _velocity = Vector2.zero;   // steering stops at once; the knob glides back in Update
         }
     }
 }
