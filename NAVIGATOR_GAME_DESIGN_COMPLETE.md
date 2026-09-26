@@ -253,6 +253,17 @@ Llama, estela y luz en la tobera: **cian** al acelerar, **naranja** en boost, **
 Con menos del 15 % de combustible el motor **tose** (la llama se corta a ratos) y sin combustible se apaga
 y el HUD muestra **SIN COMBUSTIBLE**. Las naves rivales muestran su llama con los datos que llegan por red.
 
+### Efectos y sonido
+| Efecto | Qué comunica | Código |
+|---|---|---|
+| Polvo espacial que se estira en líneas | Velocidad (el polvo queda fijo en el espacio) | `SpaceDustFX` |
+| Campo de visión que se abre | Velocidad, boost (+6°) y Burnout (+12°) | `GyroCameraRig` |
+| Burbuja de energía azul / naranja | Escudo o invulnerabilidad / Burnout | `ShieldFX` |
+| Viñeta naranja pulsante / roja | Burnout activo / casco crítico | `CockpitHUD.Vignette` |
+| Ráfaga de partículas + aviso "+15% FUEL" | Recoger un pod | `PickupBurst`, `Powerup.Collected` |
+| Sacudida de cámara | Golpes, cuasi-colisiones | `GyroCameraRig.Shake` |
+| Sonido sintetizado (sin archivos) | Motor que sube con el empuje, explosiones, golpes, pods, alerta de anomalía, cuasi-colisión, Burnout, cuenta regresiva | `AudioFX` |
+
 ### Realidad aumentada — `AR/GyroCameraRig.cs`, `AR/CameraFeedBackground.cs`
 AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere ARCore/ARKit):
 - La **cámara trasera** se dibuja detrás de todo (`WebCamTexture`, maneja permisos, rotación y espejo).
@@ -265,16 +276,18 @@ AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere AR
 ---
 
 ### Operación en crucero — `UI/MissionEventsUI.cs`
-Dos anomalías por vuelo (al 30 % y 65 % del camino). El vuelo se congela y tienes 12 s para decidir;
-si no decides, control de misión elige la opción segura. **Tu diseño decide qué tan grave es cada una:**
+Dos anomalías por vuelo (al 30 % y 65 % del camino). Aparecen como **banner arriba de la pantalla sin
+pausar el juego** (en multijugador los rivales siguen volando, así que decidir rápido importa). Tienes 12 s;
+si no decides, control de misión elige la opción segura. "Modo seguro" y "esperar el enlace" **apagan los
+motores 5 s**: cuestan distancia real frente a los rivales. **Tu diseño decide qué tan grave es cada una:**
 
 | Evento | Opción A | Opción B | El diseño que te salva |
 |---|---|---|---|
-| Tormenta solar | Modo seguro: +10 s | Seguir: 50 % de perder un instrumento | Detector de partículas: la mides, +50 % de sus puntos |
+| Tormenta solar | Modo seguro: motores apagados 5 s | Seguir: 50 % de perder un instrumento | Detector de partículas: la mides, +50 % de sus puntos |
 | Campo de escombros | Maniobra: −8 % combustible | Atravesar: 60 % de −1 casco y −25 % | Margen de combustible |
 | Falla de instrumento | Reiniciar (necesita 20 W libres) | Apagarlo: se pierde | Margen de energía (RTG / reactor) |
 | Error de navegación | Corregir ya: −5 % | Corregir tarde: −15 % | Lección real: las TCM tempranas son baratas |
-| Apagón (conjunción solar) | Esperar: +12 s | Piloto automático: 40 % de percance | Antena de alta ganancia: sin demora |
+| Apagón (conjunción solar) | Esperar: motores apagados 5 s | Piloto automático: 40 % de percance | Antena de alta ganancia: sin demora |
 | Paneles debilitándose (solar lejos del Sol) | Apagar el instrumento que más consume | −30 W para la ciencia | Elegir RTG en vez de solar |
 
 Cada decisión y su consecuencia aparece en el informe final.
@@ -481,11 +494,26 @@ de puntaje para 1, 2 y 3 estrellas (● ○ ○). Con 1 estrella se desbloquea l
 Cada meta se verificó con un diseño real posible (por ejemplo, Venus en órbita exige 7,500 m/s: solo con motor iónico).
 Al terminar, el marcador muestra las estrellas y los botones **Reintentar** (con tu diseño) y **Siguiente misión**.
 
-## 10c. Multijugador de hasta 4
+## 10c. Multijugador sin límite de jugadores
+No hay tope de jugadores (pensado para un aula entera). La frecuencia de sincronización baja sola con el tamaño
+de la sala (20 Hz con hasta 5 jugadores, mínimo 4 Hz) para que el tráfico total no crezca. El marcador muestra
+los primeros 6 y tu lugar, y no espera más de 90 s a quien se haya ido.
 Al conectarse, cada celular comparte su lista de jugadores en `lobbyInfo` y los demás se conectan a los que les falten:
 una red en malla sin anfitrión. Un nuevo jugador puede escanear el QR de **cualquier** celular ya conectado.
 Cada nave sale en su carril, la posición de llegada cuenta a todos los rivales y el marcador muestra la clasificación
 completa, esperando el puntaje final de todos.
+
+## 10d. ¿Dónde está esta noche? — `UI/SkyFinderUI.cs`, `Network/NasaHorizons.cs`
+Desde el lobby o al terminar una misión: GPS + brújula + **NASA JPL Horizons** calculan dónde está el planeta
+**en tu cielo, ahora mismo** (consulta topocéntrica con tu latitud y longitud). La cámara muestra el cielo real,
+una flecha guía hasta el planeta y un aro lo marca. Dice azimut y dirección (N, NE…), altura sobre el horizonte,
+distancia en UA, cuántos minutos tarda su luz, si es de día (vuelve al atardecer), si está bajo el horizonte y
+cómo se ve a simple vista (Venus: la "estrella" más brillante; Neptuno: necesitas telescopio).
+
+## 10e. Reto compartible — `Core/Challenge.cs`, `UI/ShareChallengeUI.cs`
+Al terminar una misión: **COMPARTIR RETO** genera un QR y un código `NAVC1:…` (se copia para pegarlo en cualquier chat).
+Quien lo recibe lo escanea con el mismo botón *Escanear QR* del lobby, o toca **PEGAR RETO**. Vuela el mismo
+destino y objetivo con **lo que gastó el retador como presupuesto máximo**, y debe superar su puntaje.
 
 ## 10b. Idiomas — `Core/Loc.cs`
 Todo el juego está en **inglés por defecto** y en **español**; el botón de idioma del lobby cambia

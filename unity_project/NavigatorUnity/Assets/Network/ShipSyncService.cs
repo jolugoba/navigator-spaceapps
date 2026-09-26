@@ -37,7 +37,11 @@ namespace Navigator.Network
         // ── Send our ship state to all peers (call every 50ms) ────────────────
         public void Broadcast(ShipStateNet state)
         {
-            if (Time.unscaledTime - _lastSend < 1f / SendHz) return;
+            // Every phone talks to every phone: in a full classroom, send less often so the
+            // total traffic stays flat (20 Hz with up to 5 players, 4 Hz floor for big rooms)
+            int peers = _senda != null ? _senda.ConnectedPeers.Count : 0;
+            float hz  = Mathf.Max(4f, SendHz * Mathf.Min(1f, 4f / Mathf.Max(1, peers)));
+            if (Time.unscaledTime - _lastSend < 1f / hz) return;
             _lastSend = Time.unscaledTime;
 
             string json = $"{{\"nodeId\":\"{state.NodeId}\"," +

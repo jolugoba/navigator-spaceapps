@@ -16,6 +16,9 @@ namespace Navigator.Game
     {
         public PowerupType Type;
 
+        // HUD listens to show "+15% FUEL", "SHIELD 10 s"…
+        public static event System.Action<PowerupType> Collected;
+
         [Header("Animación")]
         public float BobAmplitude = 0.15f;  // metros de subida/bajada
         public float BobSpeed     = 1.2f;   // ciclos por segundo
@@ -98,6 +101,9 @@ namespace Navigator.Game
                     Debug.Log($"[Powerup] Gravity assist +{GravityAssistImpulse} u/s");
                     break;
             }
+
+            AudioFX.Play(Sfx.Pickup);
+            Collected?.Invoke(Type);
 
             // Efecto visual de recolección
             if (CollectFX != null)

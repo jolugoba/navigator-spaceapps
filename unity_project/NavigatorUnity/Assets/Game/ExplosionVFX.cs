@@ -75,6 +75,7 @@ namespace Navigator.Game
 
         public static ExplosionVFX Spawn(GameObject prefab, Vector3 position, bool isTakedown = false)
         {
+            AudioFX.Play(isTakedown ? Sfx.Burnout : Sfx.Explosion);
             if (prefab == null) return null;
             var go  = Instantiate(prefab, position, Quaternion.identity);
             var vfx = go.GetComponent<ExplosionVFX>();

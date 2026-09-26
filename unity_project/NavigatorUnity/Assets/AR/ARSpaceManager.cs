@@ -113,7 +113,7 @@ namespace Navigator.AR
                 ? Mathf.Max(0.3f, Mathf.Abs(au - 1f))
                 : 1f;
 
-        private GameObject GetPlanetPrefab(string id) => id switch
+        public GameObject GetPlanetPrefab(string id) => id switch
         {
             "mercury" => PlanetMercury,
             "venus"   => PlanetVenus,

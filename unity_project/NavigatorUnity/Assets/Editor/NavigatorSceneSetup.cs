@@ -51,6 +51,8 @@ namespace Navigator.Editor
             cam.farClipPlane    = 6000f;   // the planet sits up to ~3000 units away
             cam.fieldOfView     = 60f;
             var rig = EnsureComp<GyroCameraRig>(mainCamGO);
+            EnsureComp<AudioFX>(mainCamGO);
+            EnsureComp<SpaceDustFX>(mainCamGO).ParticleMaterial = ParticleMaterial();
 
             var feedGO = GetOrCreate("CameraFeed");
             var feed   = EnsureComp<CameraFeedBackground>(feedGO);
@@ -88,6 +90,7 @@ namespace Navigator.Editor
             var thruster  = EnsureComp<ThrusterFX>(ship);
             thruster.ParticleMaterial = ParticleMaterial();
             thruster.ShipLength       = NavigatorAssignModels.ShipSize;
+            EnsureComp<ShieldFX>(ship).BubbleMaterial = ParticleMaterial();
 
             shipCtrl.Physics      = physics;
             shipCtrl.IsLocalPlayer = true;
@@ -185,8 +188,7 @@ namespace Navigator.Editor
         {
             string path = $"{FxDir}/Pod_{type}.prefab";
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            // Pods saved while Powerup lived inside PowerupSystem.cs lost their script: rebuild them
-            if (existing != null && existing.GetComponent<Powerup>() != null) return existing;
+            // Generated assets: always rebuilt so fixes (script moves, new FX) reach old projects
             if (existing != null) AssetDatabase.DeleteAsset(path);
 
             Directory.CreateDirectory(FxDir);
@@ -199,9 +201,48 @@ namespace Navigator.Editor
             p.Type        = type;
             p.PodRenderer = r;
             p.BobAmplitude = 1.5f;
+            p.CollectFX    = PickupBurstPrefab();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(pod, path);
             Object.DestroyImmediate(pod);
+            return prefab;
+        }
+
+        static GameObject PickupBurstPrefab()
+        {
+            string path = $"{FxDir}/PickupBurst.prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+
+            Directory.CreateDirectory(FxDir);
+            var go = new GameObject("PickupBurst");
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.duration        = 0.8f;
+            main.loop            = false;
+            main.startLifetime   = new ParticleSystem.MinMaxCurve(0.4f, 0.8f);
+            main.startSpeed      = new ParticleSystem.MinMaxCurve(6f, 18f);
+            main.startSize       = new ParticleSystem.MinMaxCurve(0.4f, 1.2f);
+            main.startColor      = new ParticleSystem.MinMaxGradient(new Color(0.4f, 0.9f, 1f), Color.white);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.stopAction      = ParticleSystemStopAction.Destroy;
+            var emission = ps.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 60) });
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius    = 1f;
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            go.GetComponent<ParticleSystemRenderer>().sharedMaterial = ParticleMaterial();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
+            Object.DestroyImmediate(go);
             return prefab;
         }
 

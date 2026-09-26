@@ -1,6 +1,7 @@
 // Navigator 2.0 — MissionEventsUI.cs
 // Mission operations during cruise: real anomalies that force a decision with limited resources.
 // Two events per flight (at 30% and 65% of the route), picked from what fits the design.
+// Shown as a banner at the top: the flight never pauses, so rivals aren't advantaged.
 // The design decides how bad each one is: redundancy, power margin, antenna and instruments pay off here.
 // Guacalita Inc. — SAL / Claude
 
@@ -25,9 +26,11 @@ namespace Navigator.UI
         public Button     OptionB;
         public TMP_Text   OptionALabel;
         public TMP_Text   OptionBLabel;
+        public Image      TimerBar;       // drains while mission control waits for you
 
         [Header("Reglas")]
         public float   DecisionSeconds = 12f;
+        public const float SafeModeSeconds = 5f;   // engines off while the probe protects itself
         public float[] Triggers = { 0.30f, 0.65f };
 
         public bool Active => _current != Kind.None;
@@ -72,15 +75,15 @@ namespace Navigator.UI
             _current = Kind.None;
             _plan.Clear();
             if (Panel != null) Panel.SetActive(false);
-            Time.timeScale = 1f;
         }
 
         void Update()
         {
             if (Active)
             {
-                _timeLeft -= Time.unscaledDeltaTime;
+                _timeLeft -= Time.deltaTime;
                 if (TimerLabel != null) TimerLabel.text = Loc.F("ev.timer", Mathf.CeilToInt(Mathf.Max(0f, _timeLeft)));
+                if (TimerBar   != null) TimerBar.fillAmount = Mathf.Clamp01(_timeLeft / DecisionSeconds);
                 if (_timeLeft <= 0f) Resolve(true);   // no decision = mission control plays safe
                 return;
             }
@@ -119,9 +122,7 @@ namespace Navigator.UI
             if (OptionALabel != null) OptionALabel.text = a;
             if (OptionBLabel != null) OptionBLabel.text = b;
             if (Panel != null) Panel.SetActive(true);
-
-            // The flight freezes while mission control decides
-            Time.timeScale = 0f;
+            AudioFX.Play(Sfx.Alert);
         }
 
         float PowerMargin => _d.EffectivePowerW - _d.PowerUsedW;
@@ -141,7 +142,7 @@ namespace Navigator.UI
                     bool detector = _d.Instruments.Contains(ScienceInstrument.ParticleDetector);
                     if (optionA)
                     {
-                        GameManager.Instance?.AddFlightTime(10f);
+                        GameManager.Instance?.LockThrust(SafeModeSeconds);
                         result = Loc.T("ev.SolarStorm.ra");
                     }
                     else if (detector)
@@ -181,7 +182,7 @@ namespace Navigator.UI
 
                 case Kind.CommBlackout:
                     if (_d.Antenna == AntennaType.HighGain) { _o.GoodCalls++; result = Loc.T("ev.CommBlackout.rhigh"); }
-                    else if (optionA) { GameManager.Instance?.AddFlightTime(12f); result = Loc.T("ev.CommBlackout.ra"); }
+                    else if (optionA) { GameManager.Instance?.LockThrust(SafeModeSeconds); result = Loc.T("ev.CommBlackout.ra"); }
                     else if (Random.value < 0.4f) { col?.ApplyDamage(CollisionSeverity.Medium); result = Loc.T("ev.CommBlackout.rhit"); }
                     else result = Loc.T("ev.lucky");
                     break;
@@ -205,7 +206,6 @@ namespace Navigator.UI
 
             _current = Kind.None;
             if (Panel != null) Panel.SetActive(false);
-            Time.timeScale = 1f;
         }
 
         string LoseRandomInstrument(ScienceInstrument? except)
