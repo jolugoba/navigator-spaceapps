@@ -1,83 +1,80 @@
 // Navigator 2.0 — tools/optimize_models.mjs
-// Shrinks the Meshy .glb models so the phone app stays light: fewer polygons, smaller textures.
-// Meshy exports 4–126 MB per model; a pod or a moon on a phone screen needs a fraction of that.
+// Shrinks the Meshy .glb models so the phone app stays light, keeping how they look:
+//   · textured models: 4096 px textures → 1024 (planets 2048; metal/roughness 512). Geometry untouched.
+//   · untextured high-poly models (Meshy exports up to 5.5 million triangles): simplified to a
+//     phone-sized count with a strict error limit (0.15 % of the model size), so the silhouette
+//     and panels stay put.
+// Result on the 2026 set: 1,387 MB → 133 MB. No glTF extensions are used: glTFast reads them as-is.
 //
-//   node tools/optimize_models.mjs            (from the repo root; needs Node 18+, uses npx)
-//   node tools/optimize_models.mjs --dry      (only lists what it would do)
+//   cd tools && npm install && node optimize_models.mjs
 //
-// Originals are copied first to unity_project/models_original/ (ignored by git), so nothing
-// is lost: to undo, copy a file back. Output uses no glTF extensions, so glTFast reads it as-is.
-// After running: open Unity, let it re-import, then Navigator → Setup Scene.
+// Only *_FINAL.glb files are touched. Originals are copied to unity_project/models_original/
+// (ignored by git) the first time, so nothing is lost; running it again is safe.
+// Afterwards: open Unity, let it re-import, then Navigator → Setup Scene.
 // Guacalita Inc. — SAL / Claude
 
-import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { NodeIO } from '@gltf-transform/core';
+import { dedup, prune, weld, simplify, textureCompress } from '@gltf-transform/functions';
+import { MeshoptSimplifier } from 'meshoptimizer';
+import sharp from 'sharp';
+import { readdirSync, statSync, copyFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repo    = join(dirname(fileURLToPath(import.meta.url)), '..');
-const models  = join(repo, 'unity_project', 'NavigatorUnity', 'Assets', 'Models');
-const backups = join(repo, 'unity_project', 'models_original');
-const dry     = process.argv.includes('--dry');
-const MB      = 1024 * 1024;
+const repo   = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root   = join(repo, 'unity_project', 'NavigatorUnity', 'Assets', 'Models');
+const backup = join(repo, 'unity_project', 'models_original');
+const io = new NodeIO();
+await MeshoptSimplifier.ready;
 
-// How much detail each kind of model needs on a phone screen
-function profile(name) {
-  if (/^(PD|MN)-/.test(name))            return { texture: 512,  ratio: 0.15, minMB: 2 };   // pods, moons: small on screen
-  if (/^(OB|LV)-/.test(name))            return { texture: 1024, ratio: 0.25, minMB: 3 };   // probes, telescopes, asteroids
-  if (/^PL-/.test(name))                 return { texture: 2048, ratio: 0.5,  minMB: 6 };   // planets fill the screen on arrival
-  if (/^NV-/.test(name))                 return { texture: 1024, ratio: 0.5,  minMB: 6 };   // ships: always close to the camera
-  return                                        { texture: 1024, ratio: 0.3,  minMB: 4 };
+// Triangle budget and texture size per kind of model (by the Meshy file prefix)
+function cfg(n) {
+  if (/^PD-/.test(n))          return { tris: 60000,  tex: 512 };    // pods: small on screen
+  if (/^MN-/.test(n))          return { tris: 50000,  tex: 1024 };   // moons
+  if (/^OB-10|^OB-01/.test(n)) return { tris: 50000,  tex: 1024 };   // asteroids
+  if (/^PL-/.test(n))          return { tris: 80000,  tex: 2048 };   // planets fill the screen on arrival
+  return                              { tris: 150000, tex: 1024 };   // ships, probes, launcher, the rest
 }
 
-function* glbs(dir) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const p = join(dir, entry.name);
-    if (entry.isDirectory()) yield* glbs(p);
-    else if (entry.name.toLowerCase().endsWith('.glb')) yield p;
+const tris = d => {
+  let t = 0;
+  for (const m of d.getRoot().listMeshes()) for (const p of m.listPrimitives()) {
+    const i = p.getIndices();
+    t += (i ? i.getCount() : p.getAttribute('POSITION').getCount()) / 3;
+  }
+  return t;
+};
+function* walk(d) {
+  for (const e of readdirSync(d, { withFileTypes: true })) {
+    const p = join(d, e.name);
+    if (e.isDirectory()) yield* walk(p);
+    else if (p.endsWith('_FINAL.glb')) yield p;
   }
 }
 
-// Git LFS pointer files (LFS not pulled) are ~130 bytes of text, not models
-function isLfsPointer(path) {
-  return statSync(path).size < 1024;
+let before = 0, after = 0;
+for (const f of walk(root)) {
+  const name = f.split(/[\\/]/).pop(), c = cfg(name), size = statSync(f).size;
+  if (size < 1024) { console.log(`skip ${name}: Git LFS pointer (run "git lfs pull" first)`); continue; }
+  let doc;
+  try { doc = await io.read(f); } catch { console.log(`skip ${name}: broken or incomplete file, download it again`); continue; }
+  const t0 = tris(doc);
+
+  const bk = join(backup, relative(root, f));
+  mkdirSync(dirname(bk), { recursive: true });
+  if (!existsSync(bk)) copyFileSync(f, bk);
+
+  const steps = [dedup(), weld()];
+  if (t0 > c.tris) steps.push(simplify({ simplifier: MeshoptSimplifier, ratio: c.tris / t0, error: 0.0015, lockBorder: false }));
+  steps.push(
+    textureCompress({ encoder: sharp, resize: [512, 512],     slots: /metallicRoughness|occlusion/, quality: 85 }),
+    textureCompress({ encoder: sharp, resize: [c.tex, c.tex], slots: /baseColor|normal|emissive/,   quality: 85 }),
+    prune());
+  await doc.transform(...steps);
+  await io.write(f, doc);
+
+  const s2 = statSync(f).size;
+  before += size; after += s2;
+  console.log(`${name.padEnd(28)} ${(size / 1048576).toFixed(1).padStart(6)} → ${(s2 / 1048576).toFixed(1).padStart(5)} MB   triangles ${(t0 / 1000).toFixed(0)}k → ${(tris(doc) / 1000).toFixed(0)}k`);
 }
-
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-let before = 0, after = 0, done = 0;
-
-for (const file of glbs(models)) {
-  const name = file.split(/[\\/]/).pop();
-  const size = statSync(file).size;
-  const cfg  = profile(name);
-  if (isLfsPointer(file)) { console.log(`skip  ${name}: LFS pointer (run "git lfs pull" first)`); continue; }
-  if (size < cfg.minMB * MB) continue;
-
-  console.log(`${dry ? 'would' : 'opt  '} ${name}  ${(size / MB).toFixed(1)} MB  (textures ≤${cfg.texture}px, keep ${cfg.ratio * 100}% vertices)`);
-  if (dry) continue;
-
-  const backup = join(backups, relative(models, file));
-  mkdirSync(dirname(backup), { recursive: true });
-  if (!existsSync(backup)) copyFileSync(file, backup);
-
-  const tmp = file + '.tmp.glb';
-  const r = spawnSync(npx, ['-y', '@gltf-transform/cli@4', 'optimize', file, tmp,
-    '--compress', 'false',                   // no Draco/meshopt: glTFast would need extra packages
-    '--texture-compress', 'auto',            // keep PNG/JPEG, just re-encoded
-    '--texture-size', String(cfg.texture),
-    '--simplify', 'true', '--simplify-ratio', String(cfg.ratio), '--simplify-error', '0.002',
-  ], { stdio: 'inherit', shell: process.platform === 'win32' });
-
-  if (r.status !== 0 || !existsSync(tmp)) {
-    console.error(`FAILED ${name} (original untouched)`);
-    if (existsSync(tmp)) unlinkSync(tmp);
-    continue;
-  }
-  unlinkSync(file);
-  renameSync(tmp, file);
-  const out = statSync(file).size;
-  before += size; after += out; done++;
-  console.log(`      → ${(out / MB).toFixed(1)} MB`);
-}
-
-if (!dry) console.log(`\n${done} models: ${(before / MB).toFixed(0)} MB → ${(after / MB).toFixed(0)} MB. Originals in ${relative(repo, backups)}/`);
+console.log(`TOTAL ${(before / 1048576).toFixed(0)} MB → ${(after / 1048576).toFixed(0)} MB`);

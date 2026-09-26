@@ -1,0 +1,12 @@
+{
+  "name": "navigator-tools",
+  "private": true,
+  "type": "module",
+  "description": "Model optimizer for Navigator (run: npm install, then node optimize_models.mjs)",
+  "dependencies": {
+    "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/functions": "4.1.1",
+    "meshoptimizer": "^0.22.0",
+    "sharp": "^0.33.5"
+  }
+}
