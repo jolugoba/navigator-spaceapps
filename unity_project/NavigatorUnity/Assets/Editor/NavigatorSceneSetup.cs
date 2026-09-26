@@ -64,6 +64,7 @@ namespace Navigator.Editor
             var sync   = EnsureComp<ShipSyncService>(gmGO);
             var chat   = EnsureComp<P2PChatSystem>(gmGO);
             var remote = EnsureComp<RemoteShipManager>(gmGO);
+            EnsureComp<ShipCatalog>(gmGO);   // hangar, filled by Assign Models
 
             // ── Nave local ────────────────────────────────────────────────────
             var ship = GetOrCreate("LocalShip");

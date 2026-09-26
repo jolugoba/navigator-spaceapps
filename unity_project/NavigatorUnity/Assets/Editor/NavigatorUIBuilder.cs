@@ -93,6 +93,7 @@ namespace Navigator.Editor
             root.AddComponent<ClassroomSession>();
             BuildClassroom(root.transform, root.AddComponent<ClassroomUI>());
             BuildCredits(root.transform, root.AddComponent<CreditsUI>());
+            BuildHangar(root.transform, root.AddComponent<HangarUI>());
             gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
             gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
             gm.Events   = events;
@@ -174,6 +175,8 @@ namespace Navigator.Editor
                                                 UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
             _teacherButton = UIKit.Button(p, "TeacherButton", "@class.button", new Vector4(0.03f, 0.962f, 0.3f, 0.996f),
                                           UIStyle.ButtonIdle, UIStyle.Gold, 26, FontStyles.Bold);
+            _hangarButton = UIKit.Button(p, "HangarButton", "@hangar.button", new Vector4(0.33f, 0.962f, 0.67f, 0.996f),
+                                         UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
             _creditsButton = UIKit.Button(p, "CreditsButton", "@credits.button", new Vector4(0.35f, 0.012f, 0.65f, 0.055f),
                                           new Color(0f, 0f, 0f, 0f), UIStyle.Muted, 24);
 
@@ -424,7 +427,8 @@ namespace Navigator.Editor
 
         static Button _campaignButton;
         static Button _teacherButton;
-        static Button _creditsButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
+        static Button _creditsButton;
+        static Button _hangarButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
 
         // World map: Earth at the bottom, eight worlds zig-zagging up to Neptune
         static void BuildCampaign(Transform root, CampaignUI camp)
@@ -521,6 +525,42 @@ namespace Navigator.Editor
             var rt = UIKit.Rect(parent, name, new Vector4(at.x, at.y, at.x, at.y));
             rt.sizeDelta = new Vector2(size, size);
             return rt;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // HANGAR: elegir nave
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildHangar(Transform root, HangarUI ui)
+        {
+            var go = UIKit.Stretch(root, "HangarPanel").gameObject;
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.02f, 0.03f, 0.08f, 0.97f);
+            bg.raycastTarget = true;
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = UIKit.Column(safe);
+
+            UIKit.Text(p, "Title", "@hangar.title", 56, new Vector4(0.05f, 0.925f, 0.7f, 0.98f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            ui.BackButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.72f, 0.93f, 0.95f, 0.975f), UIStyle.ButtonIdle, UIStyle.Text, 28);
+
+            // Turntable view (square, as wide as the column allows)
+            var frame = UIKit.Rect(p, "PreviewFrame", new Vector4(0.05f, 0.44f, 0.95f, 0.91f));
+            ui.Preview = UIKit.Raw(frame, "Preview", new Vector4(0f, 0f, 1f, 1f));
+            ui.Preview.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+
+            ui.PrevButton = UIKit.Button(p, "Prev", "<", new Vector4(0.05f, 0.36f, 0.25f, 0.43f), UIStyle.ButtonIdle, UIStyle.Text, 48, FontStyles.Bold);
+            ui.CounterLabel = UIKit.Text(p, "Counter", "", 28, new Vector4(0.27f, 0.36f, 0.73f, 0.43f), TextAlignmentOptions.Center, UIStyle.Muted);
+            ui.NextButton = UIKit.Button(p, "Next", ">", new Vector4(0.75f, 0.36f, 0.95f, 0.43f), UIStyle.ButtonIdle, UIStyle.Text, 48, FontStyles.Bold);
+
+            ui.NameLabel = UIKit.Text(p, "Name", "", 44, new Vector4(0.05f, 0.28f, 0.95f, 0.35f), TextAlignmentOptions.Center, UIStyle.Accent, FontStyles.Bold);
+            ui.DescLabel = UIKit.Text(p, "Desc", "", 28, new Vector4(0.06f, 0.14f, 0.94f, 0.28f), TextAlignmentOptions.Top, UIStyle.Text);
+            ui.ChooseButton = UIKit.Button(p, "Choose", "@hangar.choose", new Vector4(0.05f, 0.03f, 0.95f, 0.12f), UIStyle.Accent, UIStyle.Ink, 40, FontStyles.Bold);
+
+            ui.Panel = go;
+            ui.OpenButton = _hangarButton;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
         }
 
         // ══════════════════════════════════════════════════════════════════════

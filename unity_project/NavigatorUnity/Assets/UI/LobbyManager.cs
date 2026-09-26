@@ -14,6 +14,7 @@ using UnityEngine.Android;
 using UnityEngine.UI;
 using TMPro;
 using Navigator.Core;
+using Navigator.Game;
 using ZXing;
 using ZXing.QrCode;
 using ZXing.Common;
@@ -248,6 +249,7 @@ namespace Navigator.UI
         void SetupNameInput()
         {
             GameManager.PlayerNameChanged += OnNameChanged;
+            ShipCatalog.SelectionChanged += OnShipChanged;
             if (NameInput == null) return;
             NameInput.characterLimit = GameManager.MaxNameLength;
             NameInput.SetTextWithoutNotify(GameManager.Instance != null ? GameManager.Instance.CustomPlayerName : "");
@@ -268,6 +270,12 @@ namespace Navigator.UI
             ClassroomSession.Instance?.OnNameChanged();
         }
 
+        // A new hull in the hangar: rivals update the ship they see
+        void OnShipChanged(int index)
+        {
+            if (Senda != null && Senda.Initialized && Senda.ConnectedPeers.Count > 0) BroadcastLobbyInfo();
+        }
+
         void OnPeerConnected(string nodeId)
         {
             _peersConnected = Senda.ConnectedPeers.Count;
@@ -280,7 +288,7 @@ namespace Navigator.UI
             // Share who we know so everyone connects to everyone (full mesh, no host)
             string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : Loc.T("player.default");
             string peers  = string.Join(";", Senda.ConnectedPeers);
-            string lobbyJson = $"{{\"name\":\"{myName}\",\"nodeId\":\"{Senda.NodeId}\",\"peers\":\"{peers}\"}}";
+            string lobbyJson = $"{{\"name\":\"{myName}\",\"nodeId\":\"{Senda.NodeId}\",\"peers\":\"{peers}\",\"ship\":{ShipCatalog.Selected}}}";
             Senda.Broadcast(Navigator.Network.NavMsg.Build(
                 Navigator.Network.NavMsgType.lobbyInfo,
                 Senda.NodeId,
@@ -324,6 +332,7 @@ namespace Navigator.UI
         {
             Loc.Changed -= OnLanguageChanged;
             GameManager.PlayerNameChanged -= OnNameChanged;
+            ShipCatalog.SelectionChanged -= OnShipChanged;
             if (_cam != null) _cam.Stop();
         }
     }

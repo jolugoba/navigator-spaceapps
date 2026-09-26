@@ -62,6 +62,29 @@ namespace Navigator.Editor
                 assigned++;
             }
 
+            // ── Hangar: every NV-xx ship the player can pick ──────────────────
+            var catalog = Object.FindFirstObjectByType<ShipCatalog>();
+            if (catalog != null)
+            {
+                var models = new System.Collections.Generic.List<GameObject>();
+                var yaws   = new System.Collections.Generic.List<float>();
+                for (int i = 1; i <= MaxShips; i++)
+                {
+                    string id = $"NV-{i:00}";
+                    var glb = LoadOptionalGLB(id);
+                    if (glb == null) break;   // the hangar is NV-01 … the last consecutive one
+                    var probe = (GameObject)PrefabUtility.InstantiatePrefab(glb);
+                    yaws.Add(ModelFit.AlignLongAxisToForward(probe, NoseFlip(id)));
+                    Object.DestroyImmediate(probe);
+                    models.Add(glb);
+                }
+                catalog.Models   = models.ToArray();
+                catalog.Yaw      = yaws.ToArray();
+                catalog.ShipSize = ShipSize;
+                EditorUtility.SetDirty(catalog);
+                assigned += models.Count;
+            }
+
             // ── Planetas ──────────────────────────────────────────────────────
             var sm = Object.FindFirstObjectByType<ARSpaceManager>();
             if (sm != null)
@@ -118,6 +141,20 @@ namespace Navigator.Editor
 
         // Which end is the nose can't be measured; "Flip Ship Nose" toggles it and remembers
         static float NoseFlip(string model) => EditorPrefs.GetBool("Navigator.NoseFlip." + model, false) ? 180f : 0f;
+
+        const int MaxShips = 20;
+
+        // A hangar ship flying backwards (engine glow in front): pick it in the game's hangar,
+        // then use this menu; it remembers the flip for that model only
+        [MenuItem("Navigator/Flip Nose of Ship Selected in Hangar")]
+        public static void FlipSelectedShip()
+        {
+            int index = PlayerPrefs.GetInt("navigator.ship", 0);
+            string id = $"NV-{index + 1:00}";
+            EditorPrefs.SetBool("Navigator.NoseFlip." + id, !EditorPrefs.GetBool("Navigator.NoseFlip." + id, false));
+            int n = Assign();
+            Debug.Log($"[Navigator] Nariz de {id} girada 180° ({n} modelos reasignados). Guarda la escena.");
+        }
 
         [MenuItem("Navigator/Flip Ship Nose 180°")]
         public static void FlipNose()
