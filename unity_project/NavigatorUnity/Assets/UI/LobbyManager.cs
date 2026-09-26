@@ -45,35 +45,29 @@ namespace Navigator.UI
 
         void Start()
         {
-            if (Senda != null && !Senda.Initialized) Senda.Init();
-
-            bool online = Senda != null && Senda.Initialized;
-            if (online)
-            {
-                ShowMyQR(Senda.NodeId);
-                Senda.OnPeerConnected.AddListener(OnPeerConnected);
-                Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
-            }
-            else if (MyNodeIdLabel != null)
-            {
-                MyNodeIdLabel.text = "Red P2P no disponible — puedes jugar solo";
-            }
-
-            if (ScanButton != null)
-            {
-                ScanButton.onClick.AddListener(ToggleScan);
-                ScanButton.interactable = online;
-            }
-            if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
-
-            // Solo play is always allowed so the game can be demoed on one phone
+            // Buttons first: nothing below may leave the lobby without a working "play" button
             if (StartGameButton != null)
             {
                 StartGameButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.OnLobbyReady(); });
                 StartGameButton.interactable = true;
             }
-
+            if (ScanButton != null) ScanButton.onClick.AddListener(ToggleScan);
+            if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
             UpdateConnectedLabel();
+
+            if (Senda != null && !Senda.Initialized) Senda.Init();
+            bool online = Senda != null && Senda.Initialized;
+            if (ScanButton != null) ScanButton.interactable = online;
+
+            if (!online)
+            {
+                if (MyNodeIdLabel != null) MyNodeIdLabel.text = "Red P2P no disponible — puedes jugar solo";
+                return;
+            }
+
+            Senda.OnPeerConnected.AddListener(OnPeerConnected);
+            Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
+            ShowMyQR(Senda.NodeId);
         }
 
         void ShowMyQR(string nodeId)
@@ -82,34 +76,38 @@ namespace Navigator.UI
             if (MyNodeIdLabel != null)
                 MyNodeIdLabel.text = nodeId[..Mathf.Min(20, nodeId.Length)] + "…";
 
-            Texture2D qrTex = GenerateQR(nodeId, 256);
-            if (MyQRImage != null) MyQRImage.texture = qrTex;
+            try
+            {
+                if (MyQRImage != null) MyQRImage.texture = GenerateQR(nodeId, 256);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Lobby] No se pudo generar el QR: {e}");
+                if (MyNodeIdLabel != null) MyNodeIdLabel.text = nodeId;   // still shareable by hand
+            }
         }
 
-        // Genera textura QR usando BarcodeWriterPixelData (API estándar ZXing.Net)
+        // QR from ZXing's bit matrix: dark modules black, light modules white.
+        // ZXing's row 0 is the top; Unity's texture row 0 is the bottom, so rows are flipped.
         private static Texture2D GenerateQR(string content, int size)
         {
-            var writer = new BarcodeWriterPixelData
+            var hints = new System.Collections.Generic.Dictionary<EncodeHintType, object>
             {
-                Format  = BarcodeFormat.QR_CODE,
-                Options = new QrCodeEncodingOptions { Width = size, Height = size, Margin = 1 }
+                { EncodeHintType.MARGIN, 2 },
+                { EncodeHintType.CHARACTER_SET, "UTF-8" },
             };
-            var pd  = writer.Write(content);
-            int w   = pd.Width, h = pd.Height;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            BitMatrix m = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints);
+            int w = m.Width, h = m.Height;
 
-            // Convierte int[] ARGB → Color32[] — w*h es el tamaño canónico del buffer
-            var c32 = new Color32[w * h];
-            for (int i = 0; i < c32.Length; i++)
-            {
-                int p = i < pd.Pixels.Length ? pd.Pixels[i] : 0;
-                c32[i] = new Color32(
-                    (byte)((p >> 16) & 0xFF),
-                    (byte)((p >> 8)  & 0xFF),
-                    (byte)( p        & 0xFF),
-                    (byte)((p >> 24) & 0xFF));
-            }
-            tex.SetPixels32(c32);
+            var px = new Color32[w * h];
+            var dark  = new Color32(0, 0, 0, 255);
+            var light = new Color32(255, 255, 255, 255);
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                px[(h - 1 - y) * w + x] = m[x, y] ? dark : light;
+
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            tex.SetPixels32(px);
             tex.Apply();
             return tex;
         }
