@@ -23,15 +23,11 @@ namespace Navigator.Game
         public UnityEvent<float> OnFuelChanged  = new();  // fraction 0-1
         public UnityEvent        OnLowFuelWarning = new(); // < 15%
 
-        // ── Drain rates per engine (fraction/second at full thrust) ───────────
-        // Ion uses way less fuel, chemical burns fast, nuclear moderate
-        private static float DrainRate(EngineType engine) => engine switch
-        {
-            EngineType.Chemical => 0.00025f,
-            EngineType.Ion      => 0.00004f,   // 6x more efficient
-            EngineType.Nuclear  => 0.00012f,
-            _                   => 0.00025f,
-        };
+        // ── Burn time from the design's ΔV margin ─────────────────────────────
+        // Exactly the minimum ΔV = BaseBurnTimeS of full thrust; double the ΔV = double the time
+        [Header("Tiempo de empuje")]
+        public float BaseBurnTimeS = 45f;
+        public float BurnTimeS { get; private set; } = 45f;
 
         private bool _lowFuelWarned = false;
         private bool _empty         = false;
@@ -56,6 +52,8 @@ namespace Navigator.Game
         {
             MaxFuelKg    = design.FuelMassKg;
             Engine       = design.Engine;
+            float minDv  = MissionDesign.MinDeltaV.TryGetValue(design.TargetPlanetId, out var d) ? d : 5600f;
+            BurnTimeS    = BaseBurnTimeS * Mathf.Clamp(design.DeltaVms / minDv, 0.25f, 4f);
             FuelFraction = 1f;
             _empty       = false;
             _lowFuelWarned = false;
@@ -67,8 +65,7 @@ namespace Navigator.Game
         {
             if (_empty) return;
 
-            float rate  = DrainRate(Engine);
-            float usage = thrustMain * rate * (boosting ? 2.2f : 1f) * dt;
+            float usage = thrustMain / Mathf.Max(1f, BurnTimeS) * (boosting ? 2.2f : 1f) * dt;
             FuelFraction = Mathf.Max(0f, FuelFraction - usage);
 
             OnFuelChanged.Invoke(FuelFraction);

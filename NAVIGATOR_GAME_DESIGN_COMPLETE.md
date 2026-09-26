@@ -1,562 +1,419 @@
-﻿# NAVIGATOR 2.0 — Game Design Document Completo
+# NAVIGATOR 2.0 — Documento de Diseño del Juego
 **Guacalita Inc. — NASA Space Apps Challenge 2026**
-**Plataforma: Unity 6 LTS + AR Foundation + Senda P2P**
-**Actualizado: 2026-09-25**
+**Plataforma: Unity 6 (6000.6) · URP · AR por cámara + giroscopio · Senda P2P**
+**Validado contra el código: 2026-09-26**
+
+> Este documento es la **fuente de verdad**. Cada número de aquí sale del código en
+> `unity_project/NavigatorUnity/Assets/`. Si cambias un valor en el código, cámbialo aquí.
+> Los documentos anteriores (`NAVIGATOR_BURNOUT_P2P.md`, `NAVIGATOR_FISICA_REAL.md`,
+> `NAVIGATOR_RACING_MECHANICS.md`, `NAVIGATOR_UNITY_PLAN.md`) son notas de diseño históricas.
 
 ---
 
-## 1. CONCEPTO
+## 1. Concepto
 
-> **"Mario Kart con física NASA real, en tu sala de estar, jugando contra alguien al otro lado del mundo sin servidor."**
+> **"Mario Kart con física de la NASA, en tu sala, contra alguien al otro lado del mundo, sin servidor."**
 
-Navigator es un juego AR multijugador donde dos jugadores diseñan naves espaciales reales
-(Tsiolkovsky, presupuesto, masa, potencia), las pilotan en su espacio físico real con AR,
-se dan choques Burnout-style, y despliegan instrumentos científicos al llegar al planeta.
+Dos jugadores diseñan una sonda espacial con restricciones reales (presupuesto, masa, energía,
+ΔV de Tsiolkovsky), la pilotan en realidad aumentada con el celular, compiten por llegar primero
+al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científicos para sumar puntos.
 
 ### Respuesta al reto NASA Space Apps
 
-| Requisito del reto | Cómo lo resuelve Navigator |
-|---|---|
-| Mission objectives | flyby / orbit / landing — elige en MissionDesignUI |
-| Spacecraft design | motor + potencia + antena + combustible |
-| Scientific instruments | 8 instrumentos con masa/potencia/puntos reales |
-| Launch vehicles | Falcon 9 / Heavy / SLS / Starship limitan masa total |
-| Budgets | límite $1,000M — IsBudgetOk() en MissionDesign.cs |
-| Power | solar (ley cuadrado inverso) / RTG / reactor nuclear |
-| Mass | masa total ≤ capacidad del lanzador seleccionado |
-| Communications | kbps por antena + retardo de luz (AU × 8.317 min) |
-| Orbital constraints | ΔV Tsiolkovsky vs ΔV mínimo por planeta |
-| Engineering trade-offs | más motor = menos instrumentos = menos ciencia |
-| Evaluate success | score = llegada + ciencia + fuel + takedowns |
-| Concept to operation | diseño → AR vuelo → llegada → ciencia → resultado |
+| Requisito del reto | Cómo lo resuelve Navigator | Código |
+|---|---|---|
+| Objetivos de misión | Destino (7 planetas) + objetivo (sobrevuelo / órbita / aterrizaje) | `MissionDesignUI` |
+| Diseño de nave | Motor, combustible, energía, antena, lanzador, instrumentos | `MissionDesign` |
+| Instrumentos científicos | 8 instrumentos con masa, potencia, costo y puntos | `MissionDesign`, `ScienceOpsUI` |
+| Vehículos de lanzamiento | Falcon 9 / Falcon Heavy / SLS / Starship limitan la masa | `LaunchCapacityKg` |
+| Presupuesto | Límite de $1,000M | `IsBudgetOk` |
+| Energía | Solar (ley del cuadrado inverso) / RTG / reactor | `EffectivePowerW` |
+| Masa | Masa húmeda ≤ capacidad del lanzador | `IsMassOk` |
+| Comunicaciones | Tasa de datos por antena + retardo de señal por planeta | `AntennaDataRateKbps`, `CommDelayLabel` |
+| Restricciones orbitales | ΔV de Tsiolkovsky ≥ ΔV mínimo del planeta, o no despega | `HasDeltaV` |
+| Trade-offs de ingeniería | Más combustible = más masa = lanzador más caro = menos instrumentos | todo el diseño |
+| Evaluar el éxito | Puntaje = llegada + ciencia + combustible + takedowns + gravity assist | `MissionScore` |
+| Del concepto a la operación | Diseño → lanzamiento → vuelo AR → llegada → ciencia → resultado | `GameManager` |
 
 ### Diferenciador
 ```
-Otros equipos: sliders en pantalla → simulación en 2D
-Navigator:     misión en AR en tu celular (la ves en tu espacio físico)
+Otros equipos: sliders en pantalla → simulación 2D
+Navigator:     la misión vuela en tu cuarto (AR) y el planeta está en su dirección real del cielo
                + rival real conectado P2P sin servidor (Senda / Iroh)
-               + cifrado post-cuántico Dilithium-5
-               + física Tsiolkovsky + posiciones NASA Horizons reales
+               + posiciones reales de NASA JPL Horizons
+               + la ecuación de Tsiolkovsky decide si puedes despegar y cuánto puedes acelerar
 ```
 
 ---
 
-## 2. FLUJO COMPLETO DEL JUEGO
+## 2. Flujo del juego — `UI/GameManager.cs`
 
 ```
-┌─────────────┐
-│   LOBBY     │  Dos jugadores se conectan por QR code P2P
-│  LobbyUI    │  Se muestra código QR de la sesión (ZXing)
-│             │  Rival escanea → conexión Iroh directa
-└──────┬──────┘
-       │ OnLobbyReady()
-┌──────▼──────┐
-│  MISSION    │  Cada jugador diseña SU PROPIA nave
-│  DESIGN     │  Planeta destino, motor, lanzador, instrumentos
-│ MissionDUI  │  Gauges en tiempo real: masa / presupuesto / ΔV / potencia
-└──────┬──────┘
-       │ OnLaunchConfirmed()
-┌──────▼──────┐
-│  CUENTA     │  "3 - 2 - 1 - ¡GO!"
-│ REGRESIVA   │  Ambas naves aparecen en AR
-└──────┬──────┘
-       │ StartFlight()
-┌──────▼──────┐
-│   VUELO     │  Pilotaje en AR con giroscopio
-│  IN-FLIGHT  │  Combustible real, Burnout, colisiones, pods
-│  HUD activo │  Brújula hacia planeta, comms delay
-└──────┬──────┘
-       │ EnterScienceOps() al llegar
-┌──────▼──────┐
-│  CIENCIA    │  Despliegue de instrumentos
-│ ScienceOps  │  Cada instrumento escanea en tiempo real (6-30s)
-│             │  Potencia limitada: no todos pueden operar juntos
-└──────┬──────┘
-       │ OnMissionComplete()
-┌──────▼──────┐
-│ SCOREBOARD  │  Animación reveal de scores
-│ ScoreboardUI│  Local vs Rival, victoria/derrota/empate
-└─────────────┘
+LOBBY ──────────► DISEÑO ─────────► CUENTA ATRÁS ──► VUELO ─────────► CIENCIA ───────► SCOREBOARD
+QR P2P o          MissionDesignUI   3·2·1·¡DESPEGUE!  HUD + AR          ScienceOpsUI      ScoreboardUI
+"Jugar solo"      botón LANZAR      (planeta se       llega al planeta  "COMPLETAR        "Jugar otra vez"
+                  (solo si válido)  ubica aquí)       │                  MISIÓN"           vuelve a DISEÑO
+                                                      └─ nave destruida / tiempo agotado ─► SCOREBOARD (fallida)
 ```
+
+| Estado | Entra con | Qué pasa |
+|---|---|---|
+| `Lobby` | inicio de escena | Se muestra tu QR (NodeId de Iroh). El botón dice **JUGAR SOLO** sin rival o **¡DESPEGAR!** con rival. |
+| `MissionDesign` | `OnLobbyReady()` | Se enciende la cámara trasera de fondo. Diseñas la nave. **LANZAR** solo se activa si el diseño es válido. |
+| `Countdown` | `OnLaunchConfirmed()` | Se coloca el planeta (dirección de respaldo al instante; NASA Horizons la refina si hay GPS). 4 s. |
+| `InFlight` | `StartFlight()` | Se fija la ruta, se reparten pods y asteroides, se activan los controles. |
+| `ScienceOps` | llegada | Distancia al planeta < radio (60) + 40 unidades. Se anuncia la llegada al rival. |
+| `Scoreboard` | `OnMissionComplete()` o misión fallida | Se envía tu puntaje. Si el rival sigue jugando, muestra "Esperando al rival…". |
+
+**Misión fallida:** 0 vidas de casco o 240 s sin llegar (`MaxFlightTimeS`). Solo cuentan los takedowns.
 
 ---
 
-## 3. MISIÓN — DISEÑO DE NAVE
+## 3. Diseño de misión — `Core/MissionDesign.cs`
 
-### Archivo: `Core/MissionDesign.cs`
+### Nave base
+- Bus de la nave: **500 kg**, consume **80 W**
+- Presupuesto máximo: **$1,000M**
+- Combustible: slider de 100 a 5,000 kg; cuesta $1M por cada 1,000 kg
 
-#### Planetas disponibles y sus datos reales
-```
-Planeta     ΔV mínimo   Distancia   Retardo comms   Dificultad
-Mercurio    5.5 km/s    0.7 AU      5.8 min         Media
-Venus       3.5 km/s    0.3 AU      2.5 min         Fácil
-Marte       3.6 km/s    1.5 AU      12.5 min        Fácil (demo)
-Júpiter     6.3 km/s    5.2 AU      43 min          Difícil
-Saturno     7.0 km/s    9.6 AU      80 min          Difícil
-Urano       7.5 km/s    19.2 AU     160 min         Experto
-Neptuno     7.9 km/s    30 AU       250 min         Experto
-```
+### Planetas
 
-#### Motores disponibles
-```
-Motor           Isp(s)  Empuje(kN)  Masa(kg)   Costo($M)  Tipo
-IonThruster     3000    0.09        50         120        Eléctrico
-ChemLox         450     1000        1200       80         Químico
-NuclearThermal  900     500         2000       400        Nuclear
-SolarSail       N/A     0.001       200        60         Solar
-```
+| Planeta | ΔV mínimo | Distancia al Sol | Retardo de señal (ida) | Eficiencia solar | Viaje en juego* |
+|---|---|---|---|---|---|
+| Mercurio | 10,900 m/s | 0.39 AU | 3–13 min | 657 % | 1,434 u |
+| Venus | 6,500 m/s | 0.72 AU | 2–14 min | 193 % | 1,364 u |
+| Marte | 5,600 m/s | 1.52 AU | 3–22 min | 43 % | 1,416 u |
+| Júpiter | 9,100 m/s | 5.20 AU | 35–52 min | 3.7 % | 1,815 u |
+| Saturno | 10,400 m/s | 9.54 AU | 68–84 min | 1.1 % | 2,077 u |
+| Urano | 15,900 m/s | 19.19 AU | 156–172 min | 0.27 % | 2,480 u |
+| Neptuno | 16,000 m/s | 30.07 AU | 245–260 min | 0.11 % | 2,818 u |
 
-#### Fórmula Tsiolkovsky (en código)
+\* Viaje = `1200 + 300 × √(distancia Tierra–planeta en AU)`. Sin GPS se usa la distancia media
+`|AU − 1|`; con NASA Horizons se usa la distancia real de hoy (`ARSpaceManager`).
+
+### Motores
+
+| Motor | Isp | Masa | Costo | Empuje | Referencia NASA |
+|---|---|---|---|---|---|
+| Químico | 450 s | 850 kg | $80M | ×1.00 | Space Shuttle, SLS |
+| Iónico | 3,000 s | 220 kg | $140M | ×0.55 | Sonda Dawn |
+| Nuclear | 900 s | 1,200 kg | $320M | ×1.40 | Programa NERVA |
+
+### Energía
+
+| Sistema | Potencia nominal | Masa | Costo | Nota |
+|---|---|---|---|---|
+| Solar | 280 W × (1 AU / d)² | 180 kg | $40M | Inútil más allá de Marte (aviso < 5 %) |
+| RTG | 500 W constantes | 55 kg | $110M | Voyager, Cassini, New Horizons |
+| Reactor | 1,200 W constantes | 350 kg | $250M | Kilopower |
+
+### Antenas
+
+| Antena | Datos | Masa | Costo |
+|---|---|---|---|
+| Baja ganancia | 0.5 kbps | 8 kg | $15M |
+| Media ganancia | 100 kbps | 35 kg | $55M |
+| Alta ganancia | 6 Mbps | 95 kg | $120M |
+
+### Lanzadores
+
+| Lanzador | Capacidad | Costo |
+|---|---|---|
+| Falcon 9 | 3,500 kg | $67M |
+| Falcon Heavy | 8,000 kg | $150M |
+| SLS | 22,000 kg | $2,000M (excede el presupuesto solo) |
+| Starship | 100,000 kg | $100M |
+
+### Instrumentos científicos
+
+| Instrumento | Masa | Potencia | Costo | Puntos | Escaneo |
+|---|---|---|---|---|---|
+| Cámara gran angular | 12 kg | 15 W | $25M | 800 | 8 s |
+| Cámara teleobjetivo | 18 kg | 25 W | $45M | 1,200 | 12 s |
+| Espectrómetro UV | 28 kg | 40 W | $70M | 1,800 | 20 s |
+| Mapeador infrarrojo | 35 kg | 60 W | $85M | 2,200 | 25 s |
+| Magnetómetro | 8 kg | 5 W | $30M | 1,000 | 6 s |
+| Detector de partículas | 22 kg | 30 W | $55M | 1,400 | 18 s |
+| Radio ciencia | 5 kg | 10 W | $20M | 600 | 5 s |
+| Radar altímetro | 42 kg | 80 W | $65M | 1,600 | 30 s |
+| **Los 8** | **170 kg** | **265 W** | **$395M** | **10,600** | |
+
+### Las ecuaciones (código real)
 ```csharp
-// MissionDesign.cs
-public float ComputeDeltaV()
-{
-    float isp  = EngineIspTable[Engine];
-    float g0   = 9.80665f;
-    float wet  = DryMassKg + FuelMassKg;
-    float dry  = DryMassKg;
-    return isp * g0 * Mathf.Log(wet / dry);  // m/s
-}
+public float DryMassKg => SpacecraftBusKg + EngineMassKg[Engine] + PowerMassKg[Power]
+                        + AntennaMassKg[Antenna] + Instruments.Sum(i => InstrumentMassKg[i]);
+public float WetMassKg => DryMassKg + FuelMassKg;
 
-public bool IsDeltaVOk()
-{
-    float required = PlanetMinDeltaV[TargetPlanetId] * 1000f; // km/s → m/s
-    return ComputeDeltaV() >= required;
-}
+// Tsiolkovsky: ΔV = Isp × g₀ × ln(m_húmeda / m_seca)
+public float DeltaVms => EngineIspS[Engine] * 9.80665f * Mathf.Log(WetMassKg / DryMassKg);
+
+// Solar: ley del cuadrado inverso
+public float EffectivePowerW => Power == PowerSystem.Solar
+    ? PowerOutputW[Power] * (1f / (au * au))
+    : PowerOutputW[Power];
+
+public bool IsBudgetOk => TotalCostM <= 1000f;
+public bool IsMassOk   => WetMassKg  <= LaunchCapacityKg[LaunchVeh];
+public bool IsPowerOk  => BusPowerW + Σ InstrumentPowerW <= EffectivePowerW;
+public bool HasDeltaV  => DeltaVms >= MinDeltaV[TargetPlanetId];
+public bool IsValid    => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV;   // LANZAR
 ```
 
-#### Sistema de restricciones en tiempo real
-```csharp
-public bool IsBudgetOk()  => TotalCostM <= BudgetLimitM;
-public bool IsMassOk()    => TotalMassKg <= LauncherCapacityKg[Launcher];
-public bool IsPowerOk()   => TotalPowerW <= PowerSourceWatts * SolarEfficiency(TargetPlanetId);
-public bool IsDesignOk()  => IsBudgetOk() && IsMassOk() && IsPowerOk() && IsDeltaVOk();
-```
+### Diseño por defecto (Marte, válido desde el inicio)
+Químico · 4,500 kg de combustible · Solar · antena media · Falcon Heavy · cámara gran angular · sobrevuelo
+→ masa seca 1,577 kg · ΔV **5,953 m/s** (≥ 5,600) · costo $354.5M · energía 95 W de 121 W disponibles.
 
-#### Trade-off central del diseño
-```
-Más combustible  → mayor ΔV → llega más lejos
-                 → mayor masa → necesita lanzador más caro
-                 → menos presupuesto para instrumentos
-                 → más pesado → coste mayor
-
-Más instrumentos → más ciencia → más puntos
-                 → más masa → necesita más combustible
-                 → más potencia → necesita fuente más cara
-
-Esta tensión ES el juego de diseño.
-```
+### Los trade-offs que el jugador descubre
+- **Venus con motor químico** solo llega aligerando la nave: con solar y antena media se queda en
+  ~6,300 m/s (< 6,500); con RTG + antena baja + 1 instrumento alcanza ~6,650 m/s.
+- **Urano y Neptuno (≥ 15,900 m/s)** solo con motor iónico; el nuclear se queda en 11,300–11,900 m/s.
+- **Solar en Júpiter o más lejos** entrega 10 W o menos: no alcanza ni para el bus. RTG o reactor.
+- **SLS** cuesta $2,000M: nunca cabe en el presupuesto. Starship es la opción para naves pesadas.
+- **Iónico** tiene muchísimo ΔV pero empuje ×0.55: la nave es más lenta y el rival te puede ganar.
+- El objetivo (sobrevuelo / órbita / aterrizaje) hoy es informativo: se muestra en la pantalla de ciencia.
 
 ---
 
-## 4. VUELO — FÍSICA Y CONTROLES
+## 4. Vuelo
 
-### Archivo: `Core/PhysicsEngine.cs`
+### Controles — `AR/ARShipController.cs`
+| Celular | Editor | Acción |
+|---|---|---|
+| Apuntar el celular | clic derecho + arrastrar, flechas | La nave gira hacia donde miras |
+| 1 dedo en pantalla | clic izquierdo o W | Empuje |
+| 2 dedos o doble toque | Espacio | Boost (tope de velocidad ×1.5, gasta ×2.2) |
 
-#### Modelo de propulsión
+### Física — `Core/PhysicsEngine.cs`, `Game/ShipController.cs`
+```
+Empuje:     40 u/s² × multiplicador del motor (×2.2 con boost)
+Arrastre:   0.5 (arcade: si sueltas, frenas → hay que seguir empujando)
+Velocidad:  tope 80 u/s · ×1.5 con boost · ×2.5 en modo Burnout
+Gravedad:   a = μ / r² hacia el planeta (μ Marte = 190,000; Júpiter = 1,265,000)
+Llegada:    a menos de radio del planeta (60) + 40 unidades
+```
+
+### Combustible — `Game/FuelSystem.cs`
+El ΔV del diseño se convierte en **segundos de empuje**:
 ```csharp
-// PhysicsEngine.cs
-public void Tick(float dt)
-{
-    if (!_thrusting) return;
-
-    float isp      = EngineIspTable[_config.Engine];
-    float exhaustV = isp * 9.80665f;                    // m/s
-    float fuelBurn = (_config.ThrustN / exhaustV) * dt; // kg/s * dt
-
-    _fuelKg    -= fuelBurn;
-    float mass  = Mathf.Max(_dryMassKg, _fuelKg + _dryMassKg);
-    Vector3 acc = transform.forward * (_config.ThrustN / mass);
-
-    ShipRb.AddForce(acc, ForceMode.Acceleration);
-}
+BurnTimeS = 45 s × clamp(ΔV_diseño / ΔV_mínimo, 0.25, 4)
+consumo por segundo = empuje / BurnTimeS × (2.2 si boost)
 ```
+Diseñar justo al mínimo te da 45 s de empuje a fondo; el doble de ΔV, 90 s. **Sin combustible no hay
+empuje** (`ShipController` lo bloquea): la nave frena por el arrastre y la misión falla por tiempo.
 
-#### Degradación solar de potencia
-```csharp
-public float SolarEfficiency(string planetId)
-{
-    // Ley del cuadrado inverso: P ∝ 1/d²
-    float au = PlanetDistanceAU[planetId];
-    return 1f / (au * au);  // Marte: 1/2.25, Júpiter: 1/27
-}
-```
-
-#### Controles AR (giroscopio)
-```
-ShipController.cs + ARShipController.cs:
-  Input: giroscopio del celular (Input.gyro.attitude)
-  Pitch: inclinar el teléfono arriba/abajo
-  Yaw:   girar el teléfono derecha/izquierda
-  Roll:  rotar el teléfono
-  Throttle: slider en pantalla (0-100%)
-  Boost:    botón en pantalla → activa BurnoutSystem
-```
+### Realidad aumentada — `AR/GyroCameraRig.cs`, `AR/CameraFeedBackground.cs`
+AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere ARCore/ARKit):
+- La **cámara trasera** se dibuja detrás de todo (`WebCamTexture`, maneja permisos, rotación y espejo).
+- La **cámara virtual gira igual que el celular** (giroscopio) y persigue a la nave desde 7 u atrás y 1.6 u arriba.
+- Con GPS, `ARCompassTracker` pide a **NASA JPL Horizons** el azimut y la altura reales del planeta y
+  alinea el "adelante" del juego con el **norte verdadero** (brújula): el planeta está donde está en el cielo.
+- Sin GPS o sin internet: el planeta aparece al frente, 20° arriba.
+- El HUD muestra una flecha hacia el planeta cuando no está en pantalla.
 
 ---
 
-## 5. BURNOUT — SISTEMA DE BOOST
+## 5. Burnout — `Game/BurnoutSystem.cs`
 
-### Archivos: `Game/BurnoutSystem.cs`, `Game/CollisionSystem.cs`
+### Cómo se llena la barra
+| Acción | Carga | Dónde se detecta |
+|---|---|---|
+| Near-miss con asteroide | +8 % × combo | `AsteroidField` (pasar a < radio + 7 u sin tocar) |
+| Near-miss con nave rival | +12 % × combo | método disponible, aún sin detector |
+| Takedown frontal / lateral / trasero | +35 % / +25 % / +20 % | `CollisionSystem` |
+| Takedown en cadena | +100 % (Burnout inmediato) | `CollisionSystem` |
+| Gravity assist (pod) | +20 % | `Powerup` |
+| Volar con < 5 % de combustible | +5 % por segundo | `ShipController` |
+| Volar en boost | +0.8 % por segundo | `ShipController` |
+| Pod Boost | barra al 100 % | `Powerup` |
 
-#### Barra de Boost — cómo se llena
-```
-ACCIÓN                              BOOST GANADO
-───────────────────────────────────────────────
-Near-miss asteroide   (<3m sin tocar) → +8%
-Near-miss nave rival  (<5m sin tocar) → +12%
-Atravesar escombros                  → +15%
-Takedown exitoso (destruir rival)    → +35% instantáneo
-Ir al límite de combustible (<5%)    → +5% continuo
-Gravity assist (slingshot)           → +20%
-───────────────────────────────────────────────
-Barra llena = BURNOUT MODE (10 segundos)
-```
+Combo de near-miss: ×1.5 desde 3, ×2 desde 5, ×3 desde 10 (se reinicia tras 3 s sin near-miss).
+La barra se descarga 2 % por segundo si no arriesgas.
 
-#### Burnout Mode
-```
-Efectos cuando la barra llega a 100%:
-  → Velocidad ×2.5
-  → Invencibilidad total a colisiones
-  → Exhaust cambia a blanco cegador (shader)
-  → Trail de luz en el espacio AR
-  → Vignette de fuego en bordes de pantalla
-  → Rival ve tu nave con aura de fuego
-
-Estrategia: guardar el burnout para la recta final
-Riesgo:     en Burnout gastas combustible ×3
-```
-
-#### Código clave
-```csharp
-// BurnoutSystem.cs
-public void AddGain(float amount)
-{
-    if (_suppressTimer > 0f) return;      // EMP del rival
-    _bar = Mathf.Min(1f, _bar + amount);
-    if (_bar >= 1f && !BurnoutActive) ActivateBurnout();
-}
-
-public void ActivateBurnout()
-{
-    BurnoutActive = true;
-    _burnoutTimer = BurnoutDurationS;     // 10s
-    OnBurnoutStart?.Invoke();
-}
-
-public void SuppressFor(float seconds)   // Pod EMP del rival
-{
-    _suppressTimer = Mathf.Max(_suppressTimer, seconds);
-}
-
-public void ForceFullBar()               // Pod Boost propio
-{
-    _bar = 1f;
-    ActivateBurnout();
-}
-```
+### Modo Burnout (barra al 100 %)
+- Dura **10 s**
+- Tope de velocidad **×2.5**
+- **Inmune al daño** de choques y asteroides
+- EMP del rival lo cancela y bloquea la carga durante 5 s (`SuppressFor`)
 
 ---
 
-## 6. COLISIONES — FÍSICA REAL
+## 6. Colisiones — `Game/CollisionSystem.cs`
 
-### Archivo: `Game/CollisionSystem.cs`
-
-#### Conservación de momento lineal
+### Conservación del momento (choque elástico)
 ```csharp
-// Colisión elástica — la nave más pesada (más fuel) domina
-public void ResolveShipCollision(CollisionSystem other, float relSpeed)
-{
-    float m1 = WetMass;   // DryMassKg + FuelMassKg
-    float m2 = other.WetMass;
-    Vector3 v1 = _rb.linearVelocity;
-    Vector3 v2 = other._rb.linearVelocity;
-
-    // Resultado elástico para cada cuerpo
-    Vector3 vf1 = ((m1 - m2) * v1 + 2f * m2 * v2) / (m1 + m2);
-    Vector3 vf2 = ((m2 - m1) * v2 + 2f * m1 * v1) / (m1 + m2);
-
-    _rb.linearVelocity       = vf1;
-    other._rb.linearVelocity = vf2;
-}
+Vector3 vf1 = ((m1 - m2) * v1 + 2f * m2 * v2) / (m1 + m2);
+Vector3 vf2 = ((m2 - m1) * v2 + 2f * m1 * v1) / (m1 + m2);
 ```
+La masa es la masa real del diseño (seca + combustible): **la nave más pesada gana el choque**.
 
-#### Sistema de daño
-```
-Severidad    Condición         Efecto
-──────────────────────────────────────────────
-Light        relSpeed < 20m/s  Sin vidas perdidas, rebote
-Medium       20-50 m/s         -10% combustible (fuga)
-Heavy        > 50 m/s          -1 vida, -25% combustible
-──────────────────────────────────────────────
-Vidas: 3 → 2 → 1 → Destruido
+### Daño
+| Severidad | Velocidad relativa | Efecto |
+|---|---|---|
+| Leve | < 20 u/s | Solo rebote |
+| Media | 20–50 u/s | −10 % de combustible |
+| Fuerte | ≥ 50 u/s | −1 casco y −25 % de combustible |
 
-DamageState: Perfect | Damaged | Critical | Destroyed
-```
+- Casco: 3 → 2 → 1 → destruida (misión fallida). 3 s de invulnerabilidad tras cada golpe.
+- Chocar con un asteroide cuenta como daño medio.
 
-#### Takedown — la recompensa de la agresividad
+### Takedown
 ```csharp
-// Takedown cuando m1 > m2 × 2 en colisión Heavy
 bool isTakedown = severity == CollisionSeverity.Heavy && m1 > m2 * 2f;
-if (isTakedown)
-{
-    TakedownType type = DetermineTakedownType(v1, v2);
-    // Frontal / Lateral / Trasero
-    _burnout?.RegisterTakedown(type);  // +35% boost bar
-    other._burnout?.SuppressFor(5f);   // rival suprimido 5s (EMP)
-}
+if (isTakedown) _burnout?.RegisterTakedown(DetermineTakedownType(v1, v2));
 ExplosionVFX.Spawn(ExplosionPrefab, impactPoint, isTakedown);
 ```
+Tipo según el ángulo entre velocidades: frontal (de frente), trasero (misma dirección), lateral (resto).
 
 ---
 
-## 7. POWERUPS — PODS EN EL ESPACIO
+## 7. Espacio: pods y asteroides
 
-### Archivo: `Game/PowerupSystem.cs`
+### Pods — `Game/PowerupSystem.cs`
+8 pods entre el 15 % y el 85 % de la ruta, desviados hasta 60 u. Reaparecen 12 s después de recogerlos.
+Secuencia: combustible, boost, combustible, escudo, boost, gravity assist, EMP, gravity assist.
 
-```
-Pod         Efecto                          Duración
-───────────────────────────────────────────────────
-Fuel        +15% combustible               Instantáneo
-Boost       Barra de burnout → 100%        Instantáneo
-Shield      Invencible a colisiones        10 segundos
-EMP         Rival: suprime barra burnout   5 segundos
-GravityAsst +500 m/s en dirección planeta  Instantáneo
-───────────────────────────────────────────────────
-```
+| Pod | Color | Efecto |
+|---|---|---|
+| Combustible | verde | +15 % de combustible |
+| Boost | naranja | Barra de Burnout al 100 % |
+| Escudo | azul | Invulnerable 10 s |
+| EMP | violeta | Se envía por la red: el rival pierde el Burnout y no carga durante 5 s |
+| Gravity assist | amarillo | +60 u/s en tu dirección, +20 % de Burnout, +200 pts |
 
-#### Spawn
-```csharp
-// PowerupSystem.cs
-// 8 pods distribuidos en esfera de 15-60m
-// Se respawnean al ser recogidos (coroutine)
-void SpawnAll()
-{
-    foreach (var type in SpawnSequence)  // array en Inspector
-    {
-        Vector3 pos = Random.onUnitSphere * Random.Range(15f, 60f);
-        var go = Instantiate(PodPrefabFor(type), pos, Quaternion.identity);
-        go.GetComponent<Powerup>().Type = type;
-    }
-}
-```
+### Asteroides — `Game/AsteroidField.cs`
+40 asteroides (modelo `OB-01_Asteroid_FINAL`) de radio 3–9 u entre el 12 % y el 88 % de la ruta.
+Pasar cerca = near-miss. Tocar uno = daño medio y explosión.
 
 ---
 
-## 8. SCIENCE OPS — AL LLEGAR AL PLANETA
+## 8. Ciencia en el planeta — `UI/ScienceOpsUI.cs`
 
-### Archivo: `UI/ScienceOpsUI.cs`
-
-#### Instrumentos disponibles
-```
-ID   Instrumento          Masa(kg)  Potencia(W)  Puntos  Scan(s)
-────────────────────────────────────────────────────────────────
-CAM  Cámara científica    15        25           500     6
-SPE  Espectrómetro        20        40           800     12
-MAG  Magnetómetro         10        15           400     8
-RAD  Radiómetro           12        20           450     10
-GEO  Sismógrafo           25        35           700     15
-ATM  Sensor atmosférico   8         10           300     6
-GRA  Gravímetro           18        30           600     20
-PAR  Analizador partículas 30       50           1000    30
-────────────────────────────────────────────────────────────────
-```
-
-#### Restricción de potencia en tiempo real
-```csharp
-// ScienceOpsUI.cs
-bool CanActivate(InstrumentId id)
-{
-    float used = _activeInstruments.Sum(i => PowerW[i]);
-    return used + PowerW[id] <= _design.EffectivePowerW;
-}
-// Si no hay potencia → instrumento no arranca
-// Jugador debe priorizar: ¿cuál instrumento vale más por vatio?
-```
-
-#### Delay de comunicaciones
-```
-Planeta    Retardo real       En juego
-──────────────────────────────────────
-Marte      12.5 min           12.5 s (factor 60)
-Júpiter    43 min             43 s
-Saturno    80 min             80 s
-Neptuno    250 min            250 s
-
-Impacto: datos llegan tarde → menos puntos por turno
-La antena de alta ganancia reduce este efecto
-```
+- Cada instrumento escanea durante su tiempo (tabla de la sección 3) y al terminar suma sus puntos.
+- **Restricción de energía en vivo:** un instrumento solo avanza si queda energía para él + el bus (80 W).
+  Con poca energía los instrumentos esperan su turno → el diseño de energía se nota aquí.
+- La pantalla muestra planeta, posición de llegada, objetivo, retardo de señal, gravedad superficial y atmósfera.
+- **COMPLETAR MISIÓN** se habilita cuando todos los instrumentos terminan.
 
 ---
 
-## 9. SCORING — CÓMO SE CALCULA EL SCORE
-
-### Archivo: `Core/MissionScore.cs`
+## 9. Puntaje — `Core/MissionScore.cs`
 
 ```csharp
 public int TotalScore()
 {
-    // ArrivalBonus: 1st=×1.50, 2nd=×1.25, 3rd=×1.10, else=×1.00
+    // ArrivalBonus: 1.º ×1.50 · 2.º ×1.25 · 3.º ×1.10 · otro ×1.00
     int baseScore     = Mathf.RoundToInt(1000f * ArrivalBonus(ArrivalPosition));
     int scienceBonus  = SciencePoints;
-    int fuelBonus     = Mathf.RoundToInt(FuelFraction * 500f);  // 0-500 pts
+    int fuelBonus     = Mathf.RoundToInt(FuelFraction * 500f);
     int takedownBonus = TakedownCount * 150;
     int gravAssist    = GravityAssistUsed ? 200 : 0;
-
     return baseScore + scienceBonus + fuelBonus + takedownBonus + gravAssist;
 }
 ```
+Misión fallida: solo `TakedownCount × 150` (`GameManager.FinishMission`).
 
-#### Tabla de máximo teórico
-```
-Componente      Máximo
-────────────────────────
-Llegada #1      1500
-Ciencia (8 inst) ~5300
-Fuel 100%        500
-3 Takedowns      450
-Gravity assist   200
-────────────────────────
-TOTAL MÁXIMO    ~7950
-```
+### Máximo teórico
+| Componente | Máximo |
+|---|---|
+| Llegar primero | 1,500 |
+| Ciencia (los 8 instrumentos) | 10,600 |
+| Combustible al 100 % | 500 |
+| 3 takedowns | 450 |
+| Gravity assist | 200 |
+| **Total** | **~13,250** |
 
-#### ScoreboardUI — animación reveal
-```csharp
-// ScoreboardUI.cs — cuenta de 0 al total con ease-out cúbico
-IEnumerator AnimateScore(TMP_Text label, Image bar, int from, int to, float duration)
-{
-    float elapsed = 0f;
-    while (elapsed < duration)
-    {
-        elapsed += Time.deltaTime;
-        float ease = 1f - Mathf.Pow(1f - elapsed / duration, 3f);
-        label.text = Mathf.RoundToInt(Mathf.Lerp(from, to, ease)).ToString("N0");
-        yield return null;
-    }
-}
-```
+Los 8 instrumentos caben en un diseño real: químico + RTG + antena media + Falcon Heavy = $795M,
+6,110 kg, 345 W de 500 W, ΔV 5,886 m/s (alcanza Marte).
+
+### Scoreboard — `UI/ScoreboardUI.cs`
+Animación de conteo con ease-out cúbico. **Nunca declara ganador antes de tiempo:** si el rival sigue
+volando muestra "Esperando al rival…" hasta recibir su `missionEnd`. En modo solo muestra
+"MISIÓN CUMPLIDA" o "MISIÓN FALLIDA" con el motivo.
 
 ---
 
-## 10. MULTIJUGADOR P2P — SIN SERVIDOR
+## 10. Multijugador P2P sin servidor — `Network/`
 
-### Archivos: `Network/SendaBridge.cs`, `Network/ShipSyncService.cs`, `Network/P2PChatSystem.cs`
-
-#### Arquitectura
 ```
-Jugador A (celular)  ←──── Iroh P2P ────→  Jugador B (celular)
-                          Dilithium-5
-                        (post-cuántico)
-                       Sin servidor central
-                        Funciona offline
+Jugador A  ◄──── QUIC directo (Iroh) ────►  Jugador B
+            sin servidor central · el NodeId es la identidad
 ```
 
-#### Tipos de mensajes (NavMsg)
-```
-Tipo            Contenido               Frecuencia
-─────────────────────────────────────────────────
-shipState       pos/vel/throttle/fuel   20 Hz
-chat            texto                   on-demand
-powerup         tipo de pod recogido    on-demand
-arrival         posición de llegada     1 vez
-missionEnd      score final             1 vez
-```
+### Conexión
+1. A muestra su NodeId como QR (`LobbyManager`, ZXing).
+2. B lo escanea → `SendaBridge.ConnectToNode()`.
+3. B envía `lobbyInfo` (su nombre). A registra a B al recibir su primer mensaje y responde con el suyo.
 
-#### Sincronización de nave rival
-```csharp
-// ShipSyncService.cs — 20 Hz broadcast
-void Update()
-{
-    _timer += Time.deltaTime;
-    if (_timer < 1f / SyncHz) return;
-    _timer = 0f;
+### Mensajes (`NavMsgType`)
+| Tipo | Contenido | Frecuencia |
+|---|---|---|
+| `shipState` | posición, velocidad, rotación, empuje, boost, burnout, combustible, casco | 20 Hz |
+| `lobbyInfo` | nombre del jugador | al conectar |
+| `chatMsg` | texto | a demanda |
+| `shipEvent` | avisos del sistema; **EMP** (`"emp":5`) | a demanda |
+| `missionSync` | llegada al planeta (`"arrived":pos`) | 1 vez |
+| `missionEnd` | puntaje final | 1 vez |
 
-    var state = ShipStateNet.FromTransform(
-        NodeId, DisplayName, ship.transform, ship.Rb,
-        ship.Throttle, ship.Boosting, burnout.BurnoutActive,
-        ...
-    );
-    Senda.Broadcast(NavMsg.Build(NavMsgType.shipState, NodeId,
-        JsonUtility.ToJson(state)));
-}
-```
+- El remitente de cada mensaje lo pone la capa nativa (no el JSON), así que no se puede suplantar.
+- Ambos jugadores vuelan en el **mismo sistema de coordenadas** (salida en el origen, planeta en la
+  misma dirección), así que la nave rival aparece donde realmente está en la carrera.
+- La llamada nativa → C# es estática con `[MonoPInvokeCallback]` (requisito de IL2CPP en Android)
+  y encola en un `ConcurrentQueue` que se vacía en el hilo principal.
 
 ---
 
-## 11. ARQUITECTURA UNITY — ASSEMBLIES
+## 11. Arquitectura Unity
 
 ```
-Navigator.Core       MissionDesign, MissionScore, PhysicsEngine
-       ↓
-Navigator.Network    SendaBridge, ShipSyncService, P2PChatSystem
-       ↓
-Navigator.Game       ShipController, FuelSystem, BurnoutSystem,
-                     CollisionSystem, PowerupSystem, RemoteShipManager
-       ↓
-Navigator.AR         ARShipController, ARSpaceManager,
-                     ARSessionManager, ARCompassTracker
-       ↓
-Navigator.UI         GameManager, CockpitHUD, LobbyManager,
-                     MissionDesignUI, ScienceOpsUI, ScoreboardUI
-       ↓
-Navigator.Editor     NavigatorSceneSetup (solo Editor)
+Navigator.Core      MissionDesign, MissionScore, PhysicsEngine, ModelFit
+Navigator.Network   SendaBridge, ShipSyncService, P2PChatSystem, NasaHorizons           → Core
+Navigator.Game      ShipController, FuelSystem, BurnoutSystem, CollisionSystem,
+                    PowerupSystem, AsteroidField, RemoteShipManager,
+                    ShipCustomizer, ShipAnimator, ExplosionVFX                           → Core, Network
+Navigator.AR        ARShipController, GyroCameraRig, CameraFeedBackground,
+                    ARSpaceManager, ARCompassTracker, ARSessionManager                   → Core, Game, Network
+Navigator.UI        GameManager, LobbyManager, MissionDesignUI, CockpitHUD,
+                    ScienceOpsUI, ScoreboardUI, UIStyle, SafeAreaFitter                  → Core, Game, Network, AR
+Navigator.Editor    NavigatorSceneSetup, NavigatorUIBuilder, NavigatorAssignModels      (solo Editor)
 ```
 
-#### Setup automático de escena
-```
-Unity → Navigator → Setup Scene
-Crea y conecta automáticamente:
-  GameManager, AR Session, XR Origin, LocalShip (con todos los
-  componentes), ARCompassTracker, ARSpaceManager, ARSessionManager,
-  CockpitHUD, PowerupSystem, MissionScore,
-  MissionDesignUI, ScoreboardUI, ScienceOpsUI
-```
+### Herramientas de Editor (menú **Navigator**)
+| Menú | Qué hace |
+|---|---|
+| **Setup Scene** | Crea y conecta toda la escena, genera pods/explosión/etiqueta del rival, asigna modelos, construye la UI y agrega la escena al build. Se puede repetir sin duplicar nada. |
+| Build UI | Solo reconstruye la interfaz (los 6 paneles con todos sus botones conectados). |
+| Assign Models | Solo reasigna los GLB (prefiere las versiones `_FINAL`). |
 
 ---
 
-## 12. ASSETS 3D — GENERADOS CON MESHY AI
+## 12. Assets 3D — Meshy AI
 
-```
-Carpeta                 Contenido
-────────────────────────────────────────────────────────
-Assets/Models/Ships/    NV-01 nave jugador, NV-02 KRONOS,
-                        NV-03 cohete lanzador, NV-04 cápsula
-Assets/Models/Chars/    PJ-01 cadete, PJ-02 comandante,
-                        PJ-03 agente KRONOS, PJ-04 científico
-Assets/Models/Envs/     EN-01 cockpit, EN-02 tablero,
-                        EN-03 estación espacial, EN-04 base
-Assets/Models/Planets/  PL-01 Mercurio → PL-07 Neptuno
-Assets/Models/Objects/  OB-01 asteroide, OB-02 portal,
-                        OB-03 baliza, OB-04 satélite,
-                        OB-05-A/B escombros de nave
-Assets/Models/Instr/    IC-01 cámara, IC-02 antena,
-                        IC-03 magnetómetro
-────────────────────────────────────────────────────────
-51 GLBs, 596 MB, 24 con PBR 4K textura
-```
+Se importan con **glTFast** (`com.unity.cloud.gltfast` en el manifest). Sin él, Unity no carga los `.glb`.
+
+| Carpeta | Contenido | Uso en el juego |
+|---|---|---|
+| `Models/Ships/` | NV-01 (jugador), NV-02 KRONOS (rival), NV-03, NV-04 | NV-01 y NV-02, ajustadas a 3 u |
+| `Models/Planets/` | PL-01 Mercurio … PL-07 Neptuno | Destino, ajustado a 120 u de diámetro |
+| `Models/Objects/` | OB-01 asteroide, portal, baliza, satélite, restos | OB-01 en `AsteroidField` |
+| `Models/Characters/`, `Environments/`, `Instruments/` | personajes, cabina, instrumentos | aún sin uso |
 
 ---
 
-## 13. PASOS PARA TENER EL JUEGO CORRIENDO
+## 13. Cómo correrlo
 
-```
-1. Abrir NavigatorUnity en Unity 6 LTS
-2. Packages/manifest.json ya tiene todos los paquetes
-3. Instalar ZXing.Net.Unity desde Asset Store
-4. Los scripts ya están en Assets/ (no copiar unity_scripts/)
-5. Navigator → Setup Scene (menú Unity)
-6. Asignar en Inspector:
-   - LocalShip: prefab NV-01_FINAL.glb
-   - RemoteShipPrefab: NV-02_FINAL.glb
-   - ARSpaceManager: planetas PL-01..PL-07
-   - PowerupSystem: 5 prefabs de pods
-   - ExplosionPrefab: partículas Unity VFX
-7. Copiar senda_core.dll → Assets/Plugins/
-8. Build → Android (AR Core) o iOS (AR Kit)
-9. Correr en 2 celulares, escanear QR → conectados
-```
+1. Abrir `unity_project/NavigatorUnity` con **Unity 6000.6**. Package Manager instala glTFast y lo demás.
+2. **Window → TextMeshPro → Import TMP Essential Resources** (el setup lo pide si falta).
+3. Abrir `Assets/Scenes/SpaceFlight.unity`.
+4. **Navigator → Setup Scene** → Ctrl+S.
+5. **Play** en el Editor: "JUGAR SOLO" → LANZAR → clic izquierdo para acelerar, clic derecho para mirar.
+6. **Android:** File → Build Profiles → Android → Build. (IL2CPP, arm64, SDK mínimo 26; `libsenda_core.so` ya está en `Assets/Plugins/Android/libs/`.)
+7. Dos celulares: uno muestra su QR, el otro toca **Escanear QR**, y ambos **¡DESPEGAR!**.
+
+### Limitaciones conocidas
+- **iOS:** falta `libsenda_core.a` (estática, `__Internal`); sin ella el build de iOS no enlaza.
+- **Editor en macOS:** solo hay `senda_core.dll` (Windows); en Mac el juego funciona en modo solo.
+- Aún sin detector: near-miss con la nave rival. Sin efecto en el juego: el objetivo de misión y el retardo de señal (solo informativos).
 
 ---
 
 *Guacalita Inc. — Navigator 2.0 — NASA Space Apps Challenge 2026*
-*Diseñado y creado por SAL. Claude asistió en documentación e implementación.*

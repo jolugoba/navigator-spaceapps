@@ -1,7 +1,7 @@
-﻿// Navigator 2.0 â€” MissionDesignUI.cs
-// Pantalla de diseÃ±o de misiÃ³n â€” selecciÃ³n motor, combustible, instrumentos, lanzamiento
+// Navigator 2.0 — MissionDesignUI.cs
+// Pantalla de diseño de misión — selección motor, combustible, instrumentos, lanzamiento
 // Ported from Dart: navigator/lib/screens/mission_design_screen.dart
-// Guacalita Inc. â€” SAL / Claude
+// Guacalita Inc. — SAL / Claude
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,17 +14,17 @@ namespace Navigator.UI
 {
     public class MissionDesignUI : MonoBehaviour
     {
-        // â”€â”€ Panel principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        [Header("Panel raÃ­z")]
-        public GameObject Panel;          // activar/desactivar segÃºn estado
+        // ── Panel principal ────────────────────────────────────────────────────
+        [Header("Panel raíz")]
+        public GameObject Panel;          // activar/desactivar según estado
 
-        // â”€â”€ Planeta objetivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        [Header("SelecciÃ³n planeta")]
+        // ── Planeta objetivo ───────────────────────────────────────────────────
+        [Header("Selección planeta")]
         public Button[] PlanetButtons;    // orden: mercury, venus, mars, jupiter, saturn, uranus, neptune
         public TMP_Text PlanetLabel;
-        public TMP_Text CommDelayLabel;   // "Retraso seÃ±al: 3-22 min"
+        public TMP_Text CommDelayLabel;   // "Retraso señal: 3-22 min"
 
-        // â”€â”€ Motor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Motor ──────────────────────────────────────────────────────────────
         [Header("Motor")]
         public Button BtnChemical;
         public Button BtnIon;
@@ -32,19 +32,19 @@ namespace Navigator.UI
         public TMP_Text EngineFuelLabel;  // tipo de combustible
         public TMP_Text EngineNasaLabel;  // referencia NASA
 
-        // â”€â”€ Combustible â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Combustible ────────────────────────────────────────────────────────
         [Header("Combustible")]
         public Slider  FuelSlider;        // min=100, max=5000 (kg)
         public TMP_Text FuelValueLabel;   // "1,200 kg"
 
-        // â”€â”€ Delta-V â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Delta-V ────────────────────────────────────────────────────────────
         [Header("Delta-V")]
         public Image   DeltaVBar;         // fill amount 0-1
         public TMP_Text DeltaVLabel;      // "8,420 m/s"
         public TMP_Text DeltaVRequiredLabel; // "Requerido: 5,600 m/s"
         public TMP_Text DeltaVStatusLabel;   // "OK" / "INSUFICIENTE"
 
-        // â”€â”€ Sistema de potencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Sistema de potencia ────────────────────────────────────────────────
         [Header("Potencia")]
         public Button BtnSolar;
         public Button BtnRTG;
@@ -54,14 +54,14 @@ namespace Navigator.UI
         public TMP_Text PowerNasaLabel;
         public GameObject SolarWarning;   // advertencia solar < 5% en planetas exteriores
 
-        // â”€â”€ Antena â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Antena ────────────────────────────────────────────────────────────
         [Header("Antena")]
         public Button BtnLowGain;
         public Button BtnMediumGain;
         public Button BtnHighGain;
         public TMP_Text AntennaDataRateLabel; // "100 kbps"
 
-        // â”€â”€ VehÃ­culo de lanzamiento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Vehículo de lanzamiento ────────────────────────────────────────────
         [Header("Lanzador")]
         public Button BtnFalcon9;
         public Button BtnFalconHeavy;
@@ -69,37 +69,37 @@ namespace Navigator.UI
         public Button BtnStarship;
         public TMP_Text LaunchCapacityLabel; // "Capacidad: 8,000 kg"
 
-        // â”€â”€ Instrumentos cientÃ­ficos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Instrumentos científicos ───────────────────────────────────────────
         [Header("Instrumentos")]
         public Toggle[] InstrumentToggles; // orden igual al enum ScienceInstrument
         public TMP_Text InstrumentMassLabel;
         public TMP_Text InstrumentScienceLabel; // "4,200 pts ciencia posibles"
 
-        // â”€â”€ Resumen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Resumen ────────────────────────────────────────────────────────────
         [Header("Resumen")]
         public TMP_Text TotalMassLabel;    // "3,240 / 8,000 kg"
         public TMP_Text TotalCostLabel;    // "$420M / $1,000M"
-        public TMP_Text MassFractionLabel; // "FracciÃ³n masa: 0.37"
+        public TMP_Text MassFractionLabel; // "Fracción masa: 0.37"
         public Image    BudgetBar;
         public Image    MassBar;
 
-        // â”€â”€ Estado global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Estado global ──────────────────────────────────────────────────────
         [Header("Errores / Launch")]
         public TMP_Text ErrorLabel;       // primer error activo
         public Button   LaunchButton;     // se habilita solo cuando IsValid
 
-        // â”€â”€ Objetivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        [Header("Objetivo misiÃ³n")]
+        // ── Objetivo ──────────────────────────────────────────────────────────
+        [Header("Objetivo misión")]
         public Button BtnFlyby;
         public Button BtnOrbit;
         public Button BtnLanding;
 
-        // â”€â”€ Datos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Datos ─────────────────────────────────────────────────────────────
         private MissionDesign _design;
         private static readonly string[] _planetIds =
             { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
         private static readonly string[] _planetNames =
-            { "Mercurio", "Venus", "Marte", "Jupiter", "Saturno", "Urano", "Neptuno" };
+            { "Mercurio", "Venus", "Marte", "Júpiter", "Saturno", "Urano", "Neptuno" };
 
         void Awake()
         {
@@ -107,9 +107,23 @@ namespace Navigator.UI
             WireButtons();
         }
 
-        void Start() => Refresh();
+        void Start()
+        {
+            SyncControls();
+            Refresh();
+        }
 
-        // â”€â”€ Conecta todos los botones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Pushes _design into sliders/toggles without firing their listeners
+        void SyncControls()
+        {
+            if (FuelSlider != null) FuelSlider.SetValueWithoutNotify(_design.FuelMassKg);
+            var instValues = (ScienceInstrument[])System.Enum.GetValues(typeof(ScienceInstrument));
+            for (int i = 0; i < InstrumentToggles.Length && i < instValues.Length; i++)
+                if (InstrumentToggles[i] != null)
+                    InstrumentToggles[i].SetIsOnWithoutNotify(_design.Instruments.Contains(instValues[i]));
+        }
+
+        // ── Conecta todos los botones ──────────────────────────────────────────
 
         void WireButtons()
         {
@@ -173,7 +187,7 @@ namespace Navigator.UI
             LaunchButton?.onClick.AddListener(OnLaunch);
         }
 
-        // â”€â”€ Actualiza toda la UI segÃºn _design â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Actualiza toda la UI según _design ────────────────────────────────
 
         void Refresh()
         {
@@ -182,7 +196,13 @@ namespace Navigator.UI
             if (PlanetLabel != null)
                 PlanetLabel.text = pIdx >= 0 ? _planetNames[pIdx] : _design.TargetPlanetId;
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var delay))
-                CommDelayLabel.text = $"SeÃ±al: {delay}";
+                CommDelayLabel.text = $"Señal: {delay}";
+
+            for (int i = 0; i < PlanetButtons.Length && i < _planetIds.Length; i++)
+                SetButtonSelected(PlanetButtons[i], _design.TargetPlanetId == _planetIds[i]);
+            SetButtonSelected(BtnFlyby,   _design.Objective == "flyby");
+            SetButtonSelected(BtnOrbit,   _design.Objective == "orbit");
+            SetButtonSelected(BtnLanding, _design.Objective == "landing");
 
             // Motor
             SetButtonSelected(BtnChemical, _design.Engine == EngineType.Chemical);
@@ -204,7 +224,7 @@ namespace Navigator.UI
             if (DeltaVStatusLabel   != null)
             {
                 DeltaVStatusLabel.text  = _design.HasDeltaV ? "OK" : "INSUFICIENTE";
-                DeltaVStatusLabel.color = _design.HasDeltaV ? Color.green : Color.red;
+                DeltaVStatusLabel.color = _design.HasDeltaV ? UIStyle.Good : UIStyle.Bad;
             }
 
             // Potencia
@@ -249,64 +269,64 @@ namespace Navigator.UI
             float maxMass = MissionDesign.LaunchCapacityKg[_design.LaunchVeh];
             if (TotalMassLabel  != null) TotalMassLabel.text  = $"{_design.WetMassKg:N0} / {maxMass:N0} kg";
             if (TotalCostLabel  != null) TotalCostLabel.text  = $"${_design.TotalCostM:N0}M / $1,000M";
-            if (MassFractionLabel != null) MassFractionLabel.text = $"FracciÃ³n masa: {_design.MassFraction:F2}";
+            if (MassFractionLabel != null) MassFractionLabel.text = $"Fracción masa: {_design.MassFraction:F2}";
             if (BudgetBar != null) BudgetBar.fillAmount = Mathf.Clamp01(_design.TotalCostM / MissionDesign.BudgetLimitM);
             if (MassBar   != null) MassBar.fillAmount   = Mathf.Clamp01(_design.WetMassKg  / maxMass);
 
-            // Error + botÃ³n launch
+            // Error + botón launch
             bool valid = _design.IsValid;
             if (ErrorLabel != null)
             {
                 if (!_design.IsBudgetOk)     ErrorLabel.text = "Presupuesto excedido";
                 else if (!_design.IsMassOk)  ErrorLabel.text = "Nave demasiado pesada para el lanzador";
-                else if (!_design.IsPowerOk) ErrorLabel.text = "Consumo elÃ©ctrico supera la generaciÃ³n";
+                else if (!_design.IsPowerOk) ErrorLabel.text = "Consumo eléctrico supera la generación";
+                else if (!_design.HasDeltaV) ErrorLabel.text = "ΔV insuficiente: más combustible o mejor motor";
                 else                         ErrorLabel.text = "";
                 ErrorLabel.gameObject.SetActive(!valid);
             }
             if (LaunchButton != null) LaunchButton.interactable = valid;
 
-            // Colores barra Î”V: verde=ok, rojo=insuficiente
+            // Colores barra ΔV: verde=ok, rojo=insuficiente
             if (DeltaVBar != null)
-                DeltaVBar.color = _design.HasDeltaV ? Color.green : Color.red;
+                DeltaVBar.color = _design.HasDeltaV ? UIStyle.Good : UIStyle.Bad;
         }
 
-        // â”€â”€ Destaca el botÃ³n seleccionado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Destaca el botón seleccionado ──────────────────────────────────────
 
         void SetButtonSelected(Button btn, bool selected)
         {
             if (btn == null) return;
             var img = btn.GetComponent<Image>();
             if (img != null)
-                img.color = selected ? new Color(0.2f, 0.8f, 1f) : new Color(0.15f, 0.15f, 0.2f);
+                img.color = selected ? UIStyle.Accent : UIStyle.ButtonIdle;
+            var label = btn.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.color = selected ? UIStyle.Ink : UIStyle.Text;
         }
 
-        // â”€â”€ Lanzar misiÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Lanzar misión ──────────────────────────────────────────────────────
 
+        // The ship itself is configured by GameManager.StartFlight from GetDesign()
         void OnLaunch()
         {
-            var shipCtrl = GameObject.FindWithTag("LocalShip")?.GetComponent<ShipController>();
-            if (shipCtrl == null) return;
-
-            // Configura PhysicsEngine con los parÃ¡metros diseÃ±ados
-            if (shipCtrl.Physics != null)
-                shipCtrl.Physics.SetEngineConfig(_design.Engine);
-
-            // Configura FuelSystem â€” motor + combustible completo desde el diseÃ±o
-            var fuel = shipCtrl.GetComponent<FuelSystem>();
-            if (fuel != null)
-                fuel.InitFromDesign(_design);   // asigna Engine + MaxFuelKg + FuelFraction=1
-
-            Debug.Log($"[Mission] Lanzando a {_design.TargetPlanetId} â€” Î”V {_design.DeltaVms:N0} m/s");
-            if (Panel != null) Panel.SetActive(false);
+            if (!_design.IsValid) return;
+            Debug.Log($"[Mission] Lanzando a {_design.TargetPlanetId} — ΔV {_design.DeltaVms:N0} m/s");
+            GameManager.Instance?.OnLaunchConfirmed();
         }
 
-        // â”€â”€ API pÃºblica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        public static string PlanetDisplayName(string planetId)
+        {
+            int i = System.Array.IndexOf(_planetIds, planetId);
+            return i >= 0 ? _planetNames[i] : planetId;
+        }
+
+        // ── API pública ────────────────────────────────────────────────────────
 
         public MissionDesign GetDesign() => _design;
 
         public void Show(string planetId = "mars")
         {
             _design = MissionDesign.DefaultFor(planetId);
+            SyncControls();
             Refresh();
             if (Panel != null) Panel.SetActive(true);
         }

@@ -1,27 +1,19 @@
 // Navigator 2.0 — ARSpaceManager.cs
-// Places planets in real-world direction based on GPS + NASA Horizons data
-// Works in ANY location — indoors, outdoors, classroom, event
-// No AR Foundation required — uses gyroscope + Unity Camera directly
+// Coloca el planeta destino en su dirección real en el cielo (NASA Horizons + brújula)
+// o en una dirección fija si no hay GPS. El viaje empieza en el origen (0,0,0).
 // Guacalita Inc. — SAL / Claude
 
-using System.Collections;
 using UnityEngine;
+using Navigator.Core;
 
 namespace Navigator.AR
 {
-    public enum ARMode { Immersive, Portal, Table }
-
     public class ARSpaceManager : MonoBehaviour
     {
-        [Header("AR Mode")]
-        public ARMode Mode = ARMode.Immersive;
+        [Header("Cámara")]
+        public Camera ARCamera;
 
-        [Header("References")]
-        public GameObject Session;       // placeholder (no AR Foundation)
-        public Camera     CameraManager; // main camera
-        public Camera     ARCamera;
-
-        [Header("Planet prefabs (assign in Inspector)")]
+        [Header("Planet prefabs (Navigator → Assign Models)")]
         public GameObject PlanetMercury;
         public GameObject PlanetVenus;
         public GameObject PlanetMars;
@@ -30,72 +22,96 @@ namespace Navigator.AR
         public GameObject PlanetUranus;
         public GameObject PlanetNeptune;
 
-        [Header("Scale in AR (meters per AU)")]
-        public float MetersPerAU = 0.5f;
-
-        private Vector3 _targetPlanetDir;
-        private string  _targetPlanetId;
-        private float   _targetPlanetAU;
+        [Header("Escala del viaje (unidades de juego)")]
+        public float BaseJourney      = 1200f;  // distancia mínima de viaje
+        public float JourneyPerSqrtAU = 300f;   // más lejos en AU = viaje más largo
+        public float PlanetDiameter   = 120f;
+        public float SpinDegPerSec    = 4f;
 
         [HideInInspector] public Transform ShipAnchor;
 
-        void Start()
+        // Once the flight starts the route is fixed; late Horizons answers are ignored
+        [HideInInspector] public bool Locked;
+
+        public string  TargetPlanetId  { get; private set; }
+        public Vector3 LaunchPoint     => Vector3.zero;
+        public Vector3 TargetPosition  { get; private set; } = new(0f, 0f, 1400f);
+        public float   JourneyDistance { get; private set; } = 1400f;
+        public float   PlanetRadius    => PlanetDiameter * 0.5f;
+        public bool    HasTarget       => _planet != null;
+
+        private GameObject _planet;
+        private float      _distanceAU = 1f;
+
+        void Update()
         {
-            StartCoroutine(InitAR());
+            if (_planet != null)
+                _planet.transform.Rotate(Vector3.up, SpinDegPerSec * Time.deltaTime, Space.World);
         }
 
-        IEnumerator InitAR()
-        {
-            yield return new WaitUntil(() => Input.location.isEnabledByUser);
-            Input.location.Start();
-            yield return new WaitForSeconds(1f);
-
-            float lat = Input.location.lastData.latitude;
-            float lon = Input.location.lastData.longitude;
-            Debug.Log($"[ARSpace] GPS: {lat:F4}, {lon:F4}");
-        }
-
+        // Horizons: azimuth clockwise from north (+Z), altitude above the horizon
         public void SetPlanetDirection(string planetId, float azimuthDeg, float altitudeDeg, float distanceAU)
         {
-            _targetPlanetId = planetId;
-            _targetPlanetAU = distanceAU;
-
             float az  = azimuthDeg  * Mathf.Deg2Rad;
             float alt = altitudeDeg * Mathf.Deg2Rad;
-            _targetPlanetDir = new Vector3(
-                Mathf.Sin(az) * Mathf.Cos(alt),
-                Mathf.Sin(alt),
-                Mathf.Cos(az) * Mathf.Cos(alt)
-            ).normalized;
-
-            PlacePlanetInAR(planetId, _targetPlanetDir, distanceAU);
+            var dir = new Vector3(Mathf.Sin(az) * Mathf.Cos(alt), Mathf.Sin(alt), Mathf.Cos(az) * Mathf.Cos(alt));
+            Place(planetId, dir, distanceAU);
         }
 
         public void SetPlanetDirectionFallback(string planetId, Vector3 worldDir, float distanceAU)
         {
-            _targetPlanetId = planetId;
-            _targetPlanetAU = distanceAU;
-            _targetPlanetDir = worldDir.normalized;
-            PlacePlanetInAR(planetId, worldDir.normalized, distanceAU);
+            Place(planetId, worldDir, distanceAU);
         }
 
-        private void PlacePlanetInAR(string planetId, Vector3 direction, float distanceAU)
+        void Place(string planetId, Vector3 direction, float distanceAU)
         {
+            if (Locked) return;
+            if (direction.sqrMagnitude < 1e-6f) direction = Vector3.forward;
+
+            TargetPlanetId  = planetId;
+            _distanceAU     = Mathf.Max(0.1f, distanceAU);
+            JourneyDistance = BaseJourney + JourneyPerSqrtAU * Mathf.Sqrt(_distanceAU);
+            TargetPosition  = LaunchPoint + direction.normalized * JourneyDistance;
+
+            if (_planet != null) Destroy(_planet);
+            _planet = new GameObject($"Planet_{planetId}");
+            _planet.transform.position = TargetPosition;
+
             GameObject prefab = GetPlanetPrefab(planetId);
-            if (prefab == null) return;
+            GameObject model  = prefab != null
+                ? Instantiate(prefab, _planet.transform)
+                : FallbackSphere(planetId, _planet.transform);
+            model.transform.localPosition = Vector3.zero;
+            ModelFit.FitToSize(model, PlanetDiameter);
 
-            float dist3D = Mode == ARMode.Table
-                ? distanceAU * MetersPerAU
-                : 3f;
-
-            Camera cam = ARCamera != null ? ARCamera : Camera.main;
-            Vector3 worldPos = cam.transform.position + direction * dist3D;
-
-            var instance = Instantiate(prefab, worldPos, Quaternion.identity);
-            instance.name = $"Planet_{planetId}";
-
-            Debug.Log($"[ARSpace] {planetId} placed at {worldPos} ({distanceAU:F2} AU away)");
+            Debug.Log($"[ARSpace] {planetId} a {JourneyDistance:F0}u ({_distanceAU:F2} AU) dir {direction}");
         }
+
+        static GameObject FallbackSphere(string planetId, Transform parent)
+        {
+            var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(s.GetComponent<Collider>());
+            s.transform.SetParent(parent, false);
+            var r = s.GetComponent<Renderer>();
+            if (r != null) r.material.color = planetId switch
+            {
+                "mercury" => new Color(0.6f, 0.58f, 0.55f),
+                "venus"   => new Color(0.9f, 0.75f, 0.45f),
+                "mars"    => new Color(0.8f, 0.35f, 0.2f),
+                "jupiter" => new Color(0.85f, 0.7f, 0.55f),
+                "saturn"  => new Color(0.9f, 0.82f, 0.6f),
+                "uranus"  => new Color(0.6f, 0.85f, 0.9f),
+                "neptune" => new Color(0.3f, 0.45f, 0.9f),
+                _         => Color.gray,
+            };
+            return s;
+        }
+
+        // Average Earth–planet distance, used when Horizons is unavailable
+        public static float ApproxEarthDistanceAU(string planetId) =>
+            MissionDesign.PlanetAU.TryGetValue(planetId, out var au)
+                ? Mathf.Max(0.3f, Mathf.Abs(au - 1f))
+                : 1f;
 
         private GameObject GetPlanetPrefab(string id) => id switch
         {
@@ -109,7 +125,15 @@ namespace Navigator.AR
             _         => null,
         };
 
-        public Vector3 DirectionToTarget => _targetPlanetDir;
-        public float   DistanceToTarget  => _targetPlanetAU;
+        Vector3 From => ShipAnchor != null ? ShipAnchor.position : LaunchPoint;
+
+        public Vector3 DirectionToTarget => (TargetPosition - From).normalized;
+
+        // Remaining distance in AU, proportional to how much of the route is left
+        public float DistanceToTarget =>
+            _distanceAU * Mathf.Clamp01(Vector3.Distance(From, TargetPosition) / Mathf.Max(1f, JourneyDistance));
+
+        public float Progress01 =>
+            1f - Mathf.Clamp01(Vector3.Distance(From, TargetPosition) / Mathf.Max(1f, JourneyDistance));
     }
 }

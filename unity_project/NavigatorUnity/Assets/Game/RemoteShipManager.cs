@@ -26,8 +26,12 @@ namespace Navigator.Game
         [Header("Efectos")]
         public ParticleSystem BurnoutParticlesPrefab; // exhaust blanco Burnout
 
-        [Header("Cámara AR (para transformar posiciones)")]
+        [Header("Cámara AR (las etiquetas miran hacia ella)")]
         public Camera ARCamera;
+
+        [Header("Escala")]
+        public float ShipSize        = 3f;    // mismo tamaño que la nave local
+        public float CollisionRadius = 1.6f;
 
         // ── Runtime ────────────────────────────────────────────────────────────
         private ShipSyncService _sync;
@@ -37,8 +41,29 @@ namespace Navigator.Game
         {
             _sync = GetComponent<ShipSyncService>();
             if (_sync != null)
+            {
                 _sync.OnRemoteUpdate.AddListener(OnRemoteUpdate);
+                _sync.OnRemoteName.AddListener(OnRemoteName);
+            }
         }
+
+        private readonly Dictionary<string, string> _names = new();
+
+        void OnRemoteName(string nodeId, string name)
+        {
+            _names[nodeId] = name;
+            if (_ships.TryGetValue(nodeId, out var inst) && inst.NameTag != null)
+            {
+                var label = inst.NameTag.GetComponentInChildren<TMP_Text>();
+                if (label != null) label.text = name;
+            }
+        }
+
+        public string NameOf(string nodeId) =>
+            _names.TryGetValue(nodeId, out var n) ? n : Short(nodeId);
+
+        static string Short(string id) =>
+            string.IsNullOrEmpty(id) ? "Rival" : id[..System.Math.Min(8, id.Length)];
 
         // ── Recibe posiciones del otro jugador (cada 50ms vía Senda) ──────────
 
@@ -51,12 +76,15 @@ namespace Navigator.Game
 
                 if (!_ships.TryGetValue(nodeId, out var instance))
                 {
-                    instance = SpawnRemoteShip(nodeId, state.DisplayName ?? nodeId[..8]);
+                    string name = _names.TryGetValue(nodeId, out var n) ? n
+                                : state.DisplayName ?? Short(nodeId);
+                    instance = SpawnRemoteShip(nodeId, name);
                     _ships[nodeId] = instance;
                 }
 
                 // Guarda el estado objetivo — Update() interpola suavemente
-                instance.TargetPosition = MissionToARPosition(state.Position);
+                // Both players fly in the same world frame (origin = launch point)
+                instance.TargetPosition = state.Position;
                 instance.TargetRotation = Quaternion.Euler(state.Pitch, state.Yaw, state.Roll);
                 instance.Boosting       = state.Boosting;
                 instance.BurnoutActive  = state.BurnoutActive;
@@ -95,12 +123,35 @@ namespace Navigator.Game
 
         RemoteShipInstance SpawnRemoteShip(string nodeId, string displayName)
         {
-            var root = Instantiate(RemoteShipPrefab);
-            root.name = $"RemoteShip_{nodeId[..8]}";
-            root.tag  = "RemoteShip";
+            GameObject root;
+            if (RemoteShipPrefab != null)
+            {
+                root = new GameObject();
+                var model = Instantiate(RemoteShipPrefab, root.transform);
+                Navigator.Core.ModelFit.FitToSize(model, ShipSize);
+            }
+            else
+            {
+                root = new GameObject();
+                var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                Destroy(capsule.GetComponent<Collider>());
+                capsule.transform.SetParent(root.transform, false);
+                capsule.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                capsule.transform.localScale    = new Vector3(1f, ShipSize * 0.5f, 1f);
+            }
+            root.name = $"RemoteShip_{Short(nodeId)}";
+            if (TagExists("RemoteShip")) root.tag = "RemoteShip";
+
+            // Kinematic proxy so the local ship's collisions (takedowns) register
+            var col = root.AddComponent<SphereCollider>();
+            col.radius = CollisionRadius;
+            var rb = root.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity  = false;
+            root.AddComponent<CollisionSystem>();
 
             // Personalizar con colores del rival (se actualizan con lobbyInfo)
-            var customizer = root.GetComponent<ShipCustomizer>();
+            var customizer = root.GetComponentInChildren<ShipCustomizer>();
             if (customizer != null)
                 customizer.SetPrimary(new Color(0.1f, 0.1f, 0.1f));  // negro KRONOS por defecto
 
@@ -109,7 +160,7 @@ namespace Navigator.Game
             if (NameTagPrefab != null)
             {
                 nameTag = Instantiate(NameTagPrefab, root.transform);
-                nameTag.transform.localPosition = new Vector3(0f, 1.5f, 0f);
+                nameTag.transform.localPosition = new Vector3(0f, ShipSize * 0.9f, 0f);
                 var label = nameTag.GetComponentInChildren<TMP_Text>();
                 if (label != null) label.text = displayName;
             }
@@ -119,7 +170,7 @@ namespace Navigator.Game
             if (BurnoutParticlesPrefab != null)
             {
                 burnoutFx = Instantiate(BurnoutParticlesPrefab, root.transform);
-                burnoutFx.transform.localPosition = new Vector3(0f, 0f, -1.2f); // detrás de la nave
+                burnoutFx.transform.localPosition = new Vector3(0f, 0f, -ShipSize * 0.5f); // detrás de la nave
                 burnoutFx.gameObject.SetActive(false);
             }
 
@@ -134,25 +185,10 @@ namespace Navigator.Game
             };
         }
 
-        // ── Coordenadas misión → espacio AR ───────────────────────────────────
-        // Ambos jugadores usan el planeta objetivo como "norte"
-        // Posición relativa en misión = posición relativa en AR
-        // Escala: 1 unidad de misión = 0.01m en AR (ajustable)
-
-        Vector3 MissionToARPosition(Vector3 missionPos)
+        static bool TagExists(string tag)
         {
-            if (ARCamera == null) return missionPos * 0.01f;
-
-            // El origen AR = posición inicial del jugador local
-            // La dirección "adelante" = dirección al planeta
-            Vector3 forward = ARCamera.transform.forward;
-            Vector3 right   = ARCamera.transform.right;
-            Vector3 up      = ARCamera.transform.up;
-
-            return ARCamera.transform.position
-                 + forward * missionPos.z * 0.008f
-                 + right   * missionPos.x * 0.008f
-                 + up      * missionPos.y * 0.008f;
+            try { GameObject.FindWithTag(tag); return true; }
+            catch (UnityException) { return false; }
         }
 
         // ── Limpieza ──────────────────────────────────────────────────────────
@@ -168,7 +204,7 @@ namespace Navigator.Game
                 if (_ships[nodeId].Root != null)
                     Destroy(_ships[nodeId].Root.gameObject);
                 _ships.Remove(nodeId);
-                Debug.Log($"[RemoteShip] {nodeId[..8]} desconectado — nave eliminada.");
+                Debug.Log($"[RemoteShip] {Short(nodeId)} desconectado — nave eliminada.");
             }
         }
 

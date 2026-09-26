@@ -2,6 +2,10 @@
 **Guacalita Inc. — Mario Kart con física NASA real**
 **Fecha: 2026-09-23**
 
+> **Nota:** documento de diseño histórico. Los valores y el comportamiento actuales del juego están en
+> [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md), validado contra el código.
+
+
 ---
 
 ## CONCEPTO CENTRAL

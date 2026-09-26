@@ -35,6 +35,16 @@ namespace Navigator.Core
             return baseScore + scienceBonus + fuelBonus + takedownBonus + gravAssist;
         }
 
+        public void Clear()
+        {
+            ArrivalPosition   = 0;
+            SciencePoints     = 0;
+            FuelFraction      = 1f;
+            FlightTimeS       = 0f;
+            TakedownCount     = 0;
+            GravityAssistUsed = false;
+        }
+
         public string Summary() =>
             $"Llegada #{ArrivalPosition} | Ciencia {SciencePoints}pt | " +
             $"Combustible {FuelFraction:P0} | Takedowns {TakedownCount} | TOTAL {TotalScore()}";

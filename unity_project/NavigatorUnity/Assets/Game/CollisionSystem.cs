@@ -23,6 +23,7 @@ namespace Navigator.Game
         private float      _invTimer;
         private Rigidbody  _rb;
         private BurnoutSystem _burnout;
+        private FuelSystem    _fuel;
 
         public Rigidbody ShipRb => _rb;
 
@@ -30,6 +31,7 @@ namespace Navigator.Game
         {
             _rb      = GetComponent<Rigidbody>();
             _burnout = GetComponent<BurnoutSystem>();
+            _fuel    = GetComponent<FuelSystem>();
         }
 
         void Update()
@@ -44,7 +46,8 @@ namespace Navigator.Game
         // Called by trigger/collision events
         void OnCollisionEnter(Collision col)
         {
-            if (IsInvincible) return;
+            // The remote proxy is kinematic; only the local ship resolves the hit
+            if (IsInvincible || _rb.isKinematic) return;
 
             var other = col.gameObject.GetComponent<CollisionSystem>();
             if (other != null) ResolveShipCollision(other, col.relativeVelocity.magnitude);
@@ -63,8 +66,8 @@ namespace Navigator.Game
             Vector3 vf1 = ((m1 - m2) * v1 + 2f * m2 * v2) / (m1 + m2);
             Vector3 vf2 = ((m2 - m1) * v2 + 2f * m1 * v1) / (m1 + m2);
 
-            _rb.linearVelocity       = vf1;
-            other._rb.linearVelocity = vf2;
+            _rb.linearVelocity = vf1;
+            if (!other._rb.isKinematic) other._rb.linearVelocity = vf2;
 
             // Apply damage based on relative speed
             CollisionSeverity severity = relSpeed < 20f
@@ -73,7 +76,8 @@ namespace Navigator.Game
                     ? CollisionSeverity.Medium
                     : CollisionSeverity.Heavy;
 
-            ApplyDamage(severity);
+            // Burnout mode = invincible
+            if (_burnout == null || !_burnout.BurnoutActive) ApplyDamage(severity);
             other.ApplyDamage(severity);
 
             // Determine takedown — faster lighter ship vs heavier slower = takedown
@@ -106,10 +110,12 @@ namespace Navigator.Game
                 case CollisionSeverity.Medium:
                     // Random instrument disabled — handled by ScienceOpsUI
                     FuelMassKg *= 0.90f;  // 10% fuel leak
+                    _fuel?.Leak(0.10f);
                     break;
                 case CollisionSeverity.Heavy:
                     Lives      = Mathf.Max(0, Lives - 1);
                     FuelMassKg *= 0.75f;  // 25% fuel leak
+                    _fuel?.Leak(0.25f);
                     break;
             }
         }

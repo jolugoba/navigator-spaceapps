@@ -14,22 +14,31 @@ namespace Navigator.Network
     {
         public UnityEvent<Dictionary<string, ShipStateNet>> OnRemoteUpdate = new();
         public UnityEvent<Dictionary<string, int>>          OnRemoteScore  = new();
+        public UnityEvent<string>                           OnRemoteArrived = new();  // nodeId
+        public UnityEvent<string, string>                   OnRemoteName    = new();  // nodeId, name
+
+        public float SendHz = 20f;
 
         private SendaBridge _senda;
-        private string      _nodeId;
+        private float       _lastSend;
         private readonly Dictionary<string, ShipStateNet> _remoteShips  = new();
         private readonly Dictionary<string, int>          _remoteScores = new();
+
+        // Read lazily: SendaBridge.Init() runs after this Awake
+        private string _nodeId => _senda != null ? _senda.NodeId : null;
 
         void Awake()
         {
             _senda  = GetComponent<SendaBridge>();
-            _nodeId = _senda != null ? _senda.NodeId : System.Guid.NewGuid().ToString()[..8];
             if (_senda != null) _senda.OnMessage.AddListener(OnNavMessage);
         }
 
         // ── Send our ship state to all peers (call every 50ms) ────────────────
         public void Broadcast(ShipStateNet state)
         {
+            if (Time.unscaledTime - _lastSend < 1f / SendHz) return;
+            _lastSend = Time.unscaledTime;
+
             string json = $"{{\"nodeId\":\"{state.NodeId}\"," +
                           $"\"px\":{state.PosX:F2},\"py\":{state.PosY:F2},\"pz\":{state.PosZ:F2}," +
                           $"\"vx\":{state.VelX:F2},\"vy\":{state.VelY:F2},\"vz\":{state.VelZ:F2}," +
@@ -49,12 +58,19 @@ namespace Navigator.Network
             _senda?.Broadcast(NavMsg.Build(NavMsgType.missionEnd, nodeId, json));
         }
 
+        public void BroadcastArrival(int position)
+        {
+            _senda?.Broadcast(NavMsg.Build(NavMsgType.missionSync, _nodeId,
+                $"{{\"arrived\":{position}}}"));
+        }
+
         // ── Receive ───────────────────────────────────────────────────────────
         private void OnNavMessage(NavMsg msg)
         {
-            if (msg.from == _nodeId) return; // ignore our own echoes
+            if (string.IsNullOrEmpty(msg.from) || msg.from == _nodeId) return;
+            if (!System.Enum.TryParse<NavMsgType>(msg.t, out var type)) return;
 
-            switch (System.Enum.Parse<NavMsgType>(msg.t))
+            switch (type)
             {
                 case NavMsgType.shipState:
                     var state = ParseShipState(msg.pl_json, msg.from);
@@ -69,6 +85,15 @@ namespace Navigator.Network
                     int score = ParseInt(msg.pl_json, "score");
                     _remoteScores[msg.from] = score;
                     OnRemoteScore.Invoke(new Dictionary<string, int>(_remoteScores));
+                    break;
+
+                case NavMsgType.missionSync:
+                    if (msg.pl_json.Contains("\"arrived\"")) OnRemoteArrived.Invoke(msg.from);
+                    break;
+
+                case NavMsgType.lobbyInfo:
+                    string name = ExtractValue(msg.pl_json, "name");
+                    if (!string.IsNullOrEmpty(name)) OnRemoteName.Invoke(msg.from, name);
                     break;
             }
         }

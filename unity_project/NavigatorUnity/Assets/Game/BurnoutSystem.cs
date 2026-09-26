@@ -152,6 +152,17 @@ namespace Navigator.Game
             if (type == TakedownType.Chain) TriggerBurnout();
         }
 
+        public void ResetState()
+        {
+            BurnoutActive   = false;
+            BurnoutBar      = 0f;
+            BurnoutTimeLeft = 0f;
+            NearMissCombo   = 0;
+            TakedownCount   = 0;
+            _suppressTimer  = 0f;
+            _comboTimer     = 0f;
+        }
+
         // ── Internal ──────────────────────────────────────────────────────────
 
         private void AddGain(float amount)

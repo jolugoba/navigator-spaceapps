@@ -264,7 +264,7 @@ namespace Navigator.Core
         public bool IsPowerOk   => PowerUsedW  <= EffectivePowerW;
         public bool HasDeltaV   => DeltaVms    >= (MinDeltaV.TryGetValue(TargetPlanetId, out var d) ? d : 5600f);
         public bool IsSolarViable => Power != PowerSystem.Solar || SolarEfficiency() >= 0.05f;
-        public bool IsValid     => IsBudgetOk && IsMassOk && IsPowerOk;
+        public bool IsValid     => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV;
 
         // Maps real fuelMassKg to game fuel units
         public float GameFuelMax => Mathf.Clamp(FuelMassKg / 1200f * 500f, 100f, 2000f);
@@ -274,7 +274,7 @@ namespace Navigator.Core
             TargetPlanetId = planetId,
             Objective      = "flyby",
             Engine         = EngineType.Chemical,
-            FuelMassKg     = 1200f,
+            FuelMassKg     = 4500f,   // enough ΔV for Mars with the chemical engine
             Instruments    = new() { ScienceInstrument.WideAngleCamera },
             Power          = PowerSystem.Solar,
             Antenna        = AntennaType.MediumGain,

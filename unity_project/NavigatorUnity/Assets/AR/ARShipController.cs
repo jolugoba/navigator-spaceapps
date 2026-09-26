@@ -1,11 +1,13 @@
 // Navigator 2.0 — ARShipController.cs
-// Controla la nave en el espacio AR con input táctil + giroscopio del celular
-// Funciona en cualquier lugar (cuarto, sala, evento) — sin ARCore/ARKit
+// Pilotaje AR: la nave gira hacia donde apuntas el celular (giroscopio vía GyroCameraRig)
+//   1 dedo en pantalla  → empuje
+//   2 dedos o doble toque → boost
+// Editor: clic izquierdo / W = empuje, Espacio = boost, clic derecho + arrastrar = mirar
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Navigator.Game;
-using Navigator.Core;
 
 namespace Navigator.AR
 {
@@ -14,92 +16,94 @@ namespace Navigator.AR
         [Header("Nave a controlar")]
         public ShipController Ship;
 
-        [Header("AR Camera")]
-        public Camera ARCamera;
+        [Header("AR")]
+        public Camera        ARCamera;
+        public GyroCameraRig Rig;
 
         [Header("Sensibilidad")]
-        public float TiltSensitivity   = 1.8f;
-        public float TouchThrottle     = 0.9f;
-        public float TapBoostDuration  = 0.3f;
+        public float TurnSharpness    = 3f;    // qué tan rápido la nave sigue tu mirada
+        public float TouchThrottle    = 1f;
+        public float TapBoostDuration = 0.6f;
 
-        private Quaternion _gyroRef;
-        private bool       _gyroCalibrated = false;
-        private float      _boostTimer     = 0f;
-        private int        _touchCount     = 0;
-        private float      _lastTapTime    = 0f;
-        private Vector3    _anchorOffset   = new(0f, 0f, 2f);
+        // Only true while in flight — GameManager toggles it
+        [HideInInspector] public bool ControlsEnabled;
 
-        void Start()
+        private Rigidbody _rb;
+        private float     _boostTimer;
+        private float     _lastTapTime = -1f;
+
+        void Awake()
         {
-            Input.gyro.enabled = true;
-            CalibrateGyro();
+            if (Ship == null) Ship = GetComponent<ShipController>();
+            _rb = GetComponent<Rigidbody>();
+            if (_rb != null) _rb.freezeRotation = true;   // rotation comes from the player's aim
         }
 
         void Update()
         {
-            HandleGyroSteering();
-            HandleTouchInput();
-            AnchorShipToARCamera();
-        }
-
-        void HandleGyroSteering()
-        {
-            if (!_gyroCalibrated) return;
-
-            Quaternion gyroRot = Input.gyro.attitude;
-            Quaternion deviceRot = new Quaternion(gyroRot.x, gyroRot.y, -gyroRot.z, -gyroRot.w);
-            Quaternion delta     = Quaternion.Inverse(_gyroRef) * deviceRot;
-
-            float pitch = delta.eulerAngles.x;
-            float yaw   = delta.eulerAngles.y;
-            if (pitch > 180f) pitch -= 360f;
-            if (yaw   > 180f) yaw   -= 360f;
-
-            if (Ship != null)
+            if (Ship == null) return;
+            if (!ControlsEnabled)
             {
-                Ship.SteerPitch = Mathf.Clamp(pitch / 90f * TiltSensitivity, -1f, 1f);
-                Ship.SteerYaw   = Mathf.Clamp(yaw   / 90f * TiltSensitivity, -1f, 1f);
+                Ship.ThrustMain = 0f;
+                Ship.Boosting   = false;
+                return;
             }
+            HandleInput();
         }
 
-        void HandleTouchInput()
+        void FixedUpdate()
         {
-            _touchCount = Input.touchCount;
-            bool thrusting = _touchCount >= 1;
-            bool boosting  = _touchCount >= 2 || _boostTimer > 0f;
+            if (Ship == null || !ControlsEnabled) return;
 
-            if (_touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Began)
+            Quaternion look = Rig != null ? Rig.LookRotation
+                            : ARCamera != null ? ARCamera.transform.rotation
+                            : transform.rotation;
+            float t = 1f - Mathf.Exp(-TurnSharpness * Time.fixedDeltaTime);
+            Quaternion next = Quaternion.Slerp(transform.rotation, look, t);
+
+            if (_rb != null) _rb.MoveRotation(next);
+            else             transform.rotation = next;
+
+            Ship.SteerPitch = 0f;
+            Ship.SteerYaw   = 0f;
+        }
+
+        void HandleInput()
+        {
+            int  fingers   = 0;
+            bool tapBegan  = false;
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                var touch = Input.GetTouch(i);
+                if (IsOverUI(touch.fingerId)) continue;
+                fingers++;
+                if (touch.phase == TouchPhase.Began) tapBegan = true;
+            }
+
+            bool mouseThrust = Application.isEditor &&
+                               ((Input.GetMouseButton(0) && !IsOverUI(-1)) || Input.GetKey(KeyCode.W));
+            bool keyBoost    = Application.isEditor && Input.GetKey(KeyCode.Space);
+
+            if (tapBegan)
             {
                 if (Time.time - _lastTapTime < 0.3f) _boostTimer = TapBoostDuration;
                 _lastTapTime = Time.time;
             }
             _boostTimer = Mathf.Max(0f, _boostTimer - Time.deltaTime);
 
-            if (Ship != null)
-            {
-                Ship.ThrustMain = thrusting ? TouchThrottle : 0f;
-                Ship.Boosting   = boosting;
-            }
+            bool thrusting = fingers >= 1 || mouseThrust;
+            bool boosting  = fingers >= 2 || _boostTimer > 0f || keyBoost;
+
+            Ship.ThrustMain = thrusting || boosting ? TouchThrottle : 0f;
+            Ship.Boosting   = boosting;
         }
 
-        void AnchorShipToARCamera()
-        {
-            Camera cam = ARCamera != null ? ARCamera : Camera.main;
-            if (cam == null || Ship == null) return;
-
-            Vector3 targetPos = cam.transform.position
-                              + cam.transform.TransformDirection(_anchorOffset);
-
-            transform.position = Vector3.Lerp(
-                transform.position, targetPos, Time.deltaTime * 8f);
-        }
+        static bool IsOverUI(int pointerId) =>
+            EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(pointerId);
 
         public void CalibrateGyro()
         {
-            Quaternion raw  = Input.gyro.attitude;
-            _gyroRef        = new Quaternion(raw.x, raw.y, -raw.z, -raw.w);
-            _gyroCalibrated = true;
-            Debug.Log("[ARShip] Giroscopio calibrado.");
+            if (Rig != null) Rig.Calibrate(true);
         }
     }
 }

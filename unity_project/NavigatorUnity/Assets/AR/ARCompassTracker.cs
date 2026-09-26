@@ -18,29 +18,20 @@ namespace Navigator.AR
         [Header("Planeta objetivo (de MissionDesign)")]
         public string TargetPlanetId = "mars";
 
-        [Header("Fallback si no hay GPS (dirección fija)")]
-        public Vector3 FallbackDirection = new(0f, 0f, 1f);  // norte
+        [Header("Fallback si no hay GPS (al frente y 20° arriba)")]
+        public Vector3 FallbackDirection = new(0f, 0.36f, 1f);
 
         // ── Runtime ────────────────────────────────────────────────────────────
         private float _latitude  = 4.7f;    // Bogotá por defecto
         private float _longitude = -74.0f;
         private bool  _gpsReady  = false;
-        private float _refreshTimer = 0f;
-        private const float RefreshIntervalS = 60f;  // refrescar posición cada 60s
+
+        public bool GpsReady => _gpsReady;
+        private Coroutine _fetch;
 
         void Start()
         {
             StartCoroutine(InitGPS());
-        }
-
-        void Update()
-        {
-            _refreshTimer += Time.deltaTime;
-            if (_refreshTimer >= RefreshIntervalS && _gpsReady)
-            {
-                _refreshTimer = 0f;
-                StartCoroutine(FetchPlanetDirection());
-            }
         }
 
         // ── GPS init ──────────────────────────────────────────────────────────
@@ -50,8 +41,7 @@ namespace Navigator.AR
             // Solicitar permiso de localización
             if (!Input.location.isEnabledByUser)
             {
-                Debug.LogWarning("[Compass] GPS desactivado. Usando dirección fallback.");
-                ApplyFallback();
+                Debug.LogWarning("[Compass] GPS desactivado. Se usará dirección fallback.");
                 yield break;
             }
 
@@ -67,8 +57,7 @@ namespace Navigator.AR
 
             if (Input.location.status != LocationServiceStatus.Running)
             {
-                Debug.LogWarning("[Compass] GPS timeout. Usando dirección fallback.");
-                ApplyFallback();
+                Debug.LogWarning("[Compass] GPS timeout. Se usará dirección fallback.");
                 yield break;
             }
 
@@ -76,16 +65,13 @@ namespace Navigator.AR
             _longitude = Input.location.lastData.longitude;
             _gpsReady  = true;
             Debug.Log($"[Compass] GPS listo: {_latitude:F4}, {_longitude:F4}");
-
-            // Primera consulta a Horizons
-            yield return StartCoroutine(FetchPlanetDirection());
         }
 
         // ── Consulta NASA Horizons ─────────────────────────────────────────────
 
         IEnumerator FetchPlanetDirection()
         {
-            if (Horizons == null) { ApplyFallback(); yield break; }
+            if (Horizons == null) yield break;
 
             yield return StartCoroutine(
                 Horizons.GetPlanetPosition(
@@ -107,15 +93,19 @@ namespace Navigator.AR
             SpaceManager?.SetPlanetDirectionFallback(
                 TargetPlanetId,
                 FallbackDirection.normalized,
-                1.5f);
+                ARSpaceManager.ApproxEarthDistanceAU(TargetPlanetId));
         }
 
         // ── Cambia el planeta objetivo en vuelo ───────────────────────────────
 
+        // Places the planet right away (fallback) and refines it with Horizons if GPS is up.
+        // Called at countdown start so Horizons has a few seconds before the route locks.
         public void SetTarget(string planetId)
         {
             TargetPlanetId = planetId;
-            _refreshTimer  = RefreshIntervalS;  // fuerza refresh inmediato
+            if (_fetch != null) StopCoroutine(_fetch);
+            ApplyFallback();
+            if (_gpsReady) _fetch = StartCoroutine(FetchPlanetDirection());
         }
     }
 }

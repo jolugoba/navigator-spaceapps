@@ -32,6 +32,9 @@ namespace Navigator.Game
         public float BobSpeed     = 1.2f;   // ciclos por segundo
         public float RotateSpeed  = 45f;    // grados/s eje Y
 
+        public const float GravityAssistImpulse = 60f;
+        public const int   EmpSeconds           = 5;
+
         [Header("Visual")]
         public Renderer PodRenderer;        // índice 0 = color del tipo
         public GameObject CollectFX;        // partículas al recoger
@@ -103,7 +106,7 @@ namespace Navigator.Game
 
                 case PowerupType.GravityAssist:
                     ApplyGravityAssist(shipObj);
-                    Debug.Log("[Powerup] Gravity assist +500 m/s");
+                    Debug.Log($"[Powerup] Gravity assist +{GravityAssistImpulse} u/s");
                     break;
             }
 
@@ -126,20 +129,23 @@ namespace Navigator.Game
         {
             var rb = shipObj.GetComponent<Rigidbody>();
             if (rb == null) return;
-            // +500 m/s en la dirección actual de vuelo
+            // Impulso gratis en la dirección de vuelo + carga de Burnout
             Vector3 dir = rb.linearVelocity.normalized;
             if (dir == Vector3.zero) dir = shipObj.transform.forward;
-            rb.linearVelocity += dir * 500f;
+            rb.linearVelocity += dir * GravityAssistImpulse;
+            shipObj.GetComponent<BurnoutSystem>()?.RegisterGravityAssist();
+
+            var score = FindObjectOfType<Navigator.Core.MissionScore>();
+            if (score != null) score.GravityAssistUsed = true;
         }
 
         void BroadcastEMP(GameObject shipObj)
         {
-            // Busca todas las naves remotas y congela su Burnout
-            foreach (var remote in FindObjectsByType<ShipController>(FindObjectsSortMode.None))
-            {
-                if (remote.IsLocalPlayer) continue;
-                remote.GetComponent<BurnoutSystem>()?.SuppressFor(5f);
-            }
+            // Each player simulates only their own ship, so the rival applies the EMP on receipt
+            var senda = FindObjectOfType<SendaBridge>();
+            if (senda == null || !senda.Initialized) return;
+            senda.Broadcast(NavMsg.Build(NavMsgType.shipEvent, senda.NodeId,
+                $"{{\"emp\":{EmpSeconds},\"name\":\"SISTEMA\",\"text\":\"EMP recibido: Burnout bloqueado {EmpSeconds}s\"}}"));
         }
 
         void ApplyColor()
@@ -184,9 +190,8 @@ namespace Navigator.Game
         public GameObject GravityAssistPodPrefab;
 
         [Header("Configuración de spawn")]
-        public int  MaxPodsActive = 8;           // pods simultáneos en la escena
-        public float SpawnRadiusMin = 15f;       // radio mínimo desde el origen
-        public float SpawnRadiusMax = 60f;       // radio máximo
+        public int   MaxPodsActive  = 8;         // pods simultáneos en la escena
+        public float RouteSpread    = 60f;       // desvío lateral máximo respecto a la ruta
         public float RespawnDelayS  = 12f;       // tiempo hasta respawn al recogerse uno
 
         [Header("Cámara AR (para calcular posiciones relativas)")]
@@ -203,11 +208,27 @@ namespace Navigator.Game
             PowerupType.Boost, PowerupType.GravityAssist, PowerupType.EMP, PowerupType.GravityAssist,
         };
 
-        void Start()
+        private Vector3 _routeFrom, _routeTo;
+        private bool    _hasRoute;
+
+        // Llamado al empezar el vuelo: reparte los pods entre la salida y el planeta
+        public void SpawnAlongRoute(Vector3 from, Vector3 to)
         {
-            // Llena los pods iniciales
+            ClearAll();
+            _routeFrom = from;
+            _routeTo   = to;
+            _hasRoute  = true;
+            _spawnIndex = 0;
             for (int i = 0; i < MaxPodsActive; i++)
                 SpawnNext();
+        }
+
+        public void ClearAll()
+        {
+            StopAllCoroutines();
+            foreach (var p in _active) if (p != null) Destroy(p);
+            _active.Clear();
+            _hasRoute = false;
         }
 
         void SpawnNext()
@@ -224,7 +245,8 @@ namespace Navigator.Game
 
             Vector3 pos = RandomSpawnPos();
             var pod = Instantiate(prefab, pos, Random.rotation);
-            pod.GetComponent<Powerup>().Type = type;
+            var powerup = pod.GetComponent<Powerup>();
+            if (powerup != null) powerup.Type = type;
             _active.Add(pod);
 
             Debug.Log($"[Powerups] Spawn {type} en {pos:F1}");
@@ -232,11 +254,14 @@ namespace Navigator.Game
 
         Vector3 RandomSpawnPos()
         {
-            // Posición aleatoria en la esfera de spawn, relativa a la cámara AR
-            Vector3 origin = ARCamera != null ? ARCamera.transform.position : Vector3.zero;
-            Vector3 dir    = Random.onUnitSphere;
-            float   dist   = Random.Range(SpawnRadiusMin, SpawnRadiusMax);
-            return origin + dir * dist;
+            if (!_hasRoute)
+            {
+                Vector3 origin = ARCamera != null ? ARCamera.transform.position : Vector3.zero;
+                return origin + Random.onUnitSphere * Random.Range(15f, RouteSpread);
+            }
+            // Entre el 15% y el 85% del trayecto, desviado a los lados
+            Vector3 onRoute = Vector3.Lerp(_routeFrom, _routeTo, Random.Range(0.15f, 0.85f));
+            return onRoute + Random.insideUnitSphere * RouteSpread;
         }
 
         public void OnPodCollected()
@@ -249,7 +274,7 @@ namespace Navigator.Game
         {
             yield return new WaitForSeconds(RespawnDelayS);
             _active.RemoveAll(p => p == null);
-            if (_active.Count < MaxPodsActive)
+            if (_hasRoute && _active.Count < MaxPodsActive)
                 SpawnNext();
         }
 

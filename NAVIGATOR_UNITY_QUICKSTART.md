@@ -1,205 +1,90 @@
-# NAVIGATOR 2.0 — Quickstart Unity 6
-**Guacalita Inc. | Todo preparado, solo copiar y abrir**
+# Navigator 2.0 — Guía rápida de Unity
+
+Del repositorio clonado a jugar en dos celulares. El diseño completo del juego está en
+[`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md).
 
 ---
 
-## PASO 1 — Crear proyecto Unity 6 LTS
+## 1. Requisitos
 
-1. Abrir Unity Hub → New Project
-2. Template: **Universal 3D (URP)**
-3. Nombre: `Navigator`
-4. Crear
+- **Unity 6000.6.3f1** con el módulo **Android Build Support** (OpenJDK + SDK/NDK)
+- **Git LFS** (`git lfs install` antes de clonar; los `.glb`, `.dll` y `.so` están en LFS)
+- Celulares Android 8.0+ (API 26) con giroscopio. **No** necesitan ARCore.
 
----
+## 2. Abrir el proyecto
 
-## PASO 2 — Copiar archivos preparados (antes de abrir Unity)
+1. Unity Hub → **Add** → `unity_project/NavigatorUnity`
+2. Al abrir, Package Manager descarga los paquetes de `Packages/manifest.json`, entre ellos
+   **glTFast** (importa los `.glb` de Meshy). La primera importación de los 51 modelos tarda unos minutos.
+3. **Window → TextMeshPro → Import TMP Essential Resources** → *Import TMP Essentials*.
 
-Desde `c:\laragonbk\www\dada\navigator\`:
+### Player Settings (ya vienen configurados; verificar si algo falla)
+| Ajuste | Valor |
+|---|---|
+| Active Input Handling | **Both** (el giroscopio usa `Input.gyro`) |
+| Default Orientation | **Portrait** (lo fija también *Setup Scene*) |
+| Scripting Backend (Android) | **IL2CPP** |
+| Target Architectures | **ARM64** |
+| Minimum API Level | **26** |
 
-```
-Copiar → al proyecto Unity:
-  Packages/manifest.json     →  [ProyectoUnity]/Packages/manifest.json   (reemplazar)
-  Assets/Plugins/            →  [ProyectoUnity]/Assets/Plugins/
-  unity_scripts/             →  [ProyectoUnity]/Assets/Scripts/
-```
+## 3. Crear la escena
 
-El `manifest.json` instala automáticamente:
-- AR Foundation 6.0.3
-- ARCore XR Plugin (Android)
-- ARKit XR Plugin (iOS)
-- URP 17.0.3
-- Input System 1.9.0
-- TextMeshPro 3.0.6 (estable)
-- UGUI 2.0.0
-- Newtonsoft.Json 3.2.1
+1. Abrir `Assets/Scenes/SpaceFlight.unity`
+2. Menú **Navigator → Setup Scene**
+3. **Ctrl+S**
 
----
+*Setup Scene* se puede repetir cuando quieras: reconstruye todo sin duplicar. Hace esto:
+- Cámara con `GyroCameraRig` (giroscopio + persecución) y `CameraFeedBackground` (cámara trasera de fondo)
+- Nave local con física, combustible, Burnout, colisiones y controles AR
+- Planeta destino, brújula + NASA Horizons, pods, asteroides, explosiones
+- Red P2P (Senda), naves rivales con etiqueta de nombre
+- Asigna los modelos GLB (`NV-01`, `NV-02`, `PL-01…07`, `OB-01`)
+- Construye la UI completa: Lobby, Diseño de misión, Cuenta atrás, HUD, Ciencia, Scoreboard
+- Agrega la escena a la lista de build
 
-## PASO 3 — Abrir Unity
+Si el diálogo final dice **"Modelos GLB asignados: 0"**, glTFast no está instalado:
+Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vuelve a ejecutar *Setup Scene*.
 
-Unity detecta los paquetes y los descarga (~5 min). Esperar que compile sin errores.
+## 4. Probar en el Editor
 
----
+**Play** → **JUGAR SOLO** → ajusta el diseño → **LANZAR MISIÓN**.
 
-## PASO 4 — Instalar ZXing (QR codes)
+| Tecla | Acción |
+|---|---|
+| Clic izquierdo o **W** | Acelerar |
+| **Espacio** | Boost |
+| Clic derecho + arrastrar, flechas | Mirar / girar la nave |
 
-Este paquete no está en Package Manager — se instala del Asset Store:
+En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
+En macOS no hay librería nativa para el Editor: se juega en modo solo.
 
-1. Window → Asset Store → buscar **ZXing.Net.Unity**
-2. Es gratuito — Import → importar todo
-3. Alternativa: descargar `.unitypackage` de github.com/Bunny83/Unity-ZXing
+## 5. Build Android
 
----
+1. **File → Build Profiles → Android → Switch Platform**
+2. **Build** (o *Build And Run* con el celular conectado por USB)
+3. `libsenda_core.so` ya está en `Assets/Plugins/Android/libs/{arm64-v8a, armeabi-v7a, x86_64}`
 
-## PASO 5 — Configurar XR Plug-in Management
+Unity agrega solo los permisos de **cámara** (`WebCamTexture`) y **ubicación** (`Input.location`).
 
-1. Edit → Project Settings → XR Plug-in Management
-2. Tab Android: activar **ARCore**
-3. Tab iOS: activar **ARKit**
+## 6. Jugar en dos celulares
 
----
+1. Ambos abren la app: cada uno ve su QR.
+2. El jugador B toca **Escanear QR** y apunta al QR de A.
+3. Cuando dice "2 jugador(es) conectados", ambos tocan **¡DESPEGAR!**.
+4. Cada uno diseña su nave → **LANZAR** → apunta el celular hacia el planeta y mantén el dedo en pantalla.
+5. Al llegar, espera a que terminen los instrumentos → **COMPLETAR MISIÓN** → Scoreboard.
 
-## PASO 6 — Configurar Build Settings Android
+Con GPS y datos móviles, el planeta aparece en su **dirección real en el cielo** (NASA JPL Horizons).
+Sin GPS aparece al frente, un poco arriba.
 
-1. File → Build Settings → Android → Switch Platform
-2. Player Settings:
-   - Company Name: `Guacalita`
-   - Package Name: `com.guacalita.navigator`
-   - Minimum API Level: **26** (Android 8.0)
-   - Target API Level: **34**
-   - Scripting Backend: **IL2CPP**
-   - Target Architectures: **ARM64**
-   - **Active Input Handling: Both** ← sin esto `Input.gyro` no compila con Input System 1.9
+## 7. Problemas comunes
 
----
-
-## PASO 7 — Copiar senda_core.dll
-
-```
-Desde: senda/native/senda_core/target/release/senda_core.dll
-  → Assets/Plugins/senda_core.dll
-
-Desde: senda/native/senda_core/target/aarch64-linux-android/release/libsenda_core.so
-  → Assets/Plugins/Android/libsenda_core.so
-```
-
----
-
-## PASO 8 — Setup automático de la escena ⚡
-
-1. Menu: **Navigator → Setup Scene**
-2. Guarda la escena como `SpaceFlight.unity`
-
-Esto crea automáticamente:
-- AR Session
-- XR Origin + Camera Offset + Main Camera con ARCameraBackground
-- LocalShip con todos los componentes conectados
-- GameManager con SendaBridge, ShipSyncService, P2PChatSystem
-- CockpitHUD Canvas WorldSpace
-- PowerupSystem
-- ARSessionManager, ARCompassTracker, ARSpaceManager
-
----
-
-## PASO 9 — Asignar en el Inspector (lo que falta después del setup)
-
-| Objeto | Campo | Asignar |
-|--------|-------|---------|
-| LocalShip → ShipAnimator | NozzlesLeft/Right | sub-mesh del modelo NV-01 |
-| LocalShip → ShipAnimator | WingLeft/Right | sub-mesh del modelo NV-01 |
-| LocalShip → ShipAnimator | ExhaustLeft/Right | ParticleSystem del modelo |
-| GameManager → RemoteShipManager | RemoteShipPrefab | prefab NV-02 KRONOS |
-| GameManager → RemoteShipManager | NameTagPrefab | Canvas prefab con TMP_Text |
-| PowerupSystem | FuelPodPrefab … | prefabs PW-01 a PW-05 |
-| ARSpaceManager | PlanetPrefabs | prefab PL-03 Marte |
-
----
-
-## PASO 10 — Escena Lobby.unity (conexión QR)
-
-1. File → New Scene → Save as `Lobby.unity`
-2. Crear Canvas (Screen Space Overlay)
-3. Añadir `LobbyManager.cs` a un GameObject
-4. Asignar: MyQRImage (RawImage), ScanButton, StartGameButton
-5. En OnClick de StartGameButton: cargar `SpaceFlight` con `SceneManager.LoadScene`
-
----
-
-## ESTRUCTURA FINAL DE SCRIPTS
-
-```
-Assets/Scripts/
-  Core/
-    MissionDesign.cs
-    MissionScore.cs
-    PhysicsEngine.cs
-    Navigator.Core.asmdef          ← compilación automática
-  Network/
-    SendaBridge.cs
-    ShipSyncService.cs             ← contiene ShipStateNet
-    P2PChatSystem.cs
-    NasaHorizons.cs
-    Navigator.Network.asmdef
-  Game/
-    ShipController.cs
-    CollisionSystem.cs
-    BurnoutSystem.cs
-    FuelSystem.cs
-    ShipCustomizer.cs
-    ShipAnimator.cs
-    RemoteShipManager.cs
-    PowerupSystem.cs               ← contiene Powerup + PowerupSystem
-    Navigator.Game.asmdef
-  AR/
-    ARSessionManager.cs
-    ARShipController.cs
-    ARCompassTracker.cs
-    ARSpaceManager.cs
-    Navigator.AR.asmdef
-  UI/
-    CockpitHUD.cs
-    LobbyManager.cs
-    MissionDesignUI.cs
-    ScienceOpsUI.cs
-    Navigator.UI.asmdef
-  Editor/
-    NavigatorSceneSetup.cs         ← Menu: Navigator → Setup Scene
-    Navigator.Editor.asmdef
-```
-
----
-
-## JERARQUÍA DE ESCENA (SpaceFlight.unity)
-
-```
-AR Session                    [ARSession]
-XR Origin
-  └─ Camera Offset
-       └─ Main Camera         [Camera] [ARCameraManager] [ARCameraBackground]
-GameManager
-  └─ SendaBridge
-  └─ ShipSyncService
-  └─ P2PChatSystem
-  └─ RemoteShipManager
-ARSessionManager
-ARCompassTracker
-ARSpaceManager
-LocalShip                     tag: LocalShip
-  └─ [Rigidbody]
-  └─ ShipController
-  └─ PhysicsEngine
-  └─ FuelSystem
-  └─ BurnoutSystem
-  └─ CollisionSystem
-  └─ ShipCustomizer
-  └─ ShipAnimator
-  └─ ARShipController
-CockpitHUD                    [Canvas WorldSpace]
-PowerupSystem
-MissionScore
-MissionDesignUI               [Canvas ScreenSpace — activar al inicio]
-```
-
----
-
-*Todos los scripts C# ya están escritos y auditados. Solo falta Unity + modelos Meshy.*
+| Síntoma | Causa / solución |
+|---|---|
+| Textos invisibles o cuadrados rosas | Falta TMP Essentials (paso 2.3) |
+| Planetas son esferas de colores | glTFast no instalado o `.glb` sin LFS (`git lfs pull`) |
+| Fondo negro en vez de la cámara | Permiso de cámara denegado: Ajustes → Apps → Navigator → Permisos |
+| "Red P2P no disponible" | Falta la librería nativa para esa plataforma; se puede jugar solo |
+| La nave no gira al mover el celular | El celular no tiene giroscopio |
+| El planeta está "detrás" | Sigue la flecha del HUD o gira sobre ti mismo |
+| iOS no compila | Falta `libsenda_core.a` (librería estática para `__Internal`) |

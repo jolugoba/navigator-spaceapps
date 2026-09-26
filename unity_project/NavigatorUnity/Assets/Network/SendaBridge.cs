@@ -179,7 +179,10 @@ namespace Navigator.Network
                 try
                 {
                     var msg = NavMsg.FromJson(item.json);
-                    if (msg != null) OnMessage.Invoke(msg);
+                    if (msg == null) continue;
+                    // The transport-level sender is authenticated; the JSON field is not
+                    if (!string.IsNullOrEmpty(item.from)) msg.from = item.from;
+                    OnMessage.Invoke(msg);
                 }
                 catch { /* malformed packet */ }
             }
@@ -187,6 +190,7 @@ namespace Navigator.Network
 
         void OnDestroy()
         {
+            if (!Initialized) return;   // native library may not be loadable (e.g. macOS Editor)
             SendaFFI.iroh_set_message_callback(null);
             SendaFFI.iroh_shutdown();
         }

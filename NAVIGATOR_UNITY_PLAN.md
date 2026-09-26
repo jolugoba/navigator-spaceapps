@@ -2,6 +2,10 @@
 **Guacalita Inc. — NASA Space Apps Challenge 2026 / Producto comercial**
 **Definido: 2026-09-22 · Revisado: 2026-09-26 — Unity pasa a ser la ÚNICA plataforma**
 
+> **Nota:** documento de diseño histórico. Los valores y el comportamiento actuales del juego están en
+> [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md), validado contra el código.
+
+
 > **Cambio de rumbo (2026-09-26):** todo NAVIGATOR se construye en Unity, incluida
 > la entrega para NASA Space Apps. La app Flutter (`lib/`, `android/`, `ios/`,
 > `pubspec.yaml`) queda como **referencia de lógica ya portada** y deja de

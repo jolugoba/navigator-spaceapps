@@ -7,6 +7,9 @@
 
 using System.Collections;
 using UnityEngine;
+#if UNITY_ANDROID
+using UnityEngine.Android;
+#endif
 using UnityEngine.UI;
 using TMPro;
 using ZXing;
@@ -23,12 +26,14 @@ namespace Navigator.UI
         public TMP_Text MyNameLabel;
 
         [Header("Escanear QR (Jugador B — Guest)")]
-        public Button  ScanButton;
+        public Button   ScanButton;
         public TMP_Text ScanStatusText;
+        public RawImage ScanPreview;      // muestra la cámara mientras escaneas
 
         [Header("Estado de la sesión")]
         public TMP_Text ConnectedPlayersText;
         public Button   StartGameButton;
+        public TMP_Text StartGameLabel;
 
         [Header("Componentes")]
         public Navigator.Network.SendaBridge      Senda;
@@ -40,21 +45,40 @@ namespace Navigator.UI
 
         void Start()
         {
-            if (!Senda.Initialized) Senda.Init();
+            if (Senda != null && !Senda.Initialized) Senda.Init();
 
-            ShowMyQR(Senda.NodeId);
+            bool online = Senda != null && Senda.Initialized;
+            if (online)
+            {
+                ShowMyQR(Senda.NodeId);
+                Senda.OnPeerConnected.AddListener(OnPeerConnected);
+                Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
+            }
+            else if (MyNodeIdLabel != null)
+            {
+                MyNodeIdLabel.text = "Red P2P no disponible — puedes jugar solo";
+            }
 
-            Senda.OnPeerConnected.AddListener(OnPeerConnected);
-            Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
+            if (ScanButton != null)
+            {
+                ScanButton.onClick.AddListener(ToggleScan);
+                ScanButton.interactable = online;
+            }
+            if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
 
-            ScanButton.onClick.AddListener(ToggleScan);
-            StartGameButton.interactable = false;
+            // Solo play is always allowed so the game can be demoed on one phone
+            if (StartGameButton != null)
+            {
+                StartGameButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.OnLobbyReady(); });
+                StartGameButton.interactable = true;
+            }
 
             UpdateConnectedLabel();
         }
 
         void ShowMyQR(string nodeId)
         {
+            if (string.IsNullOrEmpty(nodeId)) return;
             if (MyNodeIdLabel != null)
                 MyNodeIdLabel.text = nodeId[..Mathf.Min(20, nodeId.Length)] + "…";
 
@@ -97,27 +121,59 @@ namespace Navigator.UI
 
         void StartScan()
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
+            {
+                Permission.RequestUserPermission(Permission.Camera);
+                SetScanStatus("Permite el uso de la cámara y vuelve a tocar Escanear.");
+                return;
+            }
+#endif
             _scanning = true;
-            ScanButton.GetComponentInChildren<TMP_Text>().text = "Cancelar";
-            ScanStatusText.text = "Apunta la cámara al QR del otro jugador…";
+            SetScanButtonLabel("Cancelar");
+            SetScanStatus("Apunta la cámara al QR del otro jugador…");
 
-            _cam = new WebCamTexture { requestedFPS = 30 };
+            string device = null;
+            foreach (var d in WebCamTexture.devices)
+                if (!d.isFrontFacing) { device = d.name; break; }
+            _cam = device != null ? new WebCamTexture(device, 1280, 720, 30)
+                                  : new WebCamTexture { requestedFPS = 30 };
             _cam.Play();
+
+            if (ScanPreview != null)
+            {
+                ScanPreview.texture = _cam;
+                ScanPreview.gameObject.SetActive(true);
+            }
             StartCoroutine(ScanLoop());
         }
 
         void StopScan()
         {
             _scanning = false;
-            _cam?.Stop();
+            if (_cam != null) _cam.Stop();
             _cam = null;
-            ScanButton.GetComponentInChildren<TMP_Text>().text = "Escanear QR";
+            if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
+            SetScanButtonLabel("Escanear QR");
+        }
+
+        void SetScanStatus(string s) { if (ScanStatusText != null) ScanStatusText.text = s; }
+
+        void SetScanButtonLabel(string s)
+        {
+            var label = ScanButton != null ? ScanButton.GetComponentInChildren<TMP_Text>() : null;
+            if (label != null) label.text = s;
         }
 
         IEnumerator ScanLoop()
         {
             while (_scanning && _cam != null && _cam.isPlaying)
             {
+                // WebCamTexture reports 16x16 until the first real frame arrives
+                if (_cam.width <= 16) { yield return null; continue; }
+                if (ScanPreview != null)
+                    ScanPreview.rectTransform.localEulerAngles = new Vector3(0f, 0f, -_cam.videoRotationAngle);
+
                 Color32[] pixels = _cam.GetPixels32();
 
                 // Convierte Color32[] → byte[] RGBA
@@ -151,9 +207,9 @@ namespace Navigator.UI
 
         void ConnectToScanned(string remoteNodeId)
         {
-            ScanStatusText.text = "Conectando…";
+            SetScanStatus("Conectando…");
             bool ok = Senda.ConnectToNode(remoteNodeId);
-            ScanStatusText.text = ok
+            if (ScanStatusText != null) ScanStatusText.text = ok
                 ? $"Conectado a {remoteNodeId[..Mathf.Min(12, remoteNodeId.Length)]}…"
                 : "Error de conexión. Intenta de nuevo.";
         }
@@ -163,25 +219,25 @@ namespace Navigator.UI
             _peersConnected++;
             UpdateConnectedLabel();
 
-            string lobbyJson = $"{{\"name\":\"{MyNameLabel?.text ?? "Cadete"}\"," +
+            string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : "Cadete";
+            string lobbyJson = $"{{\"name\":\"{myName}\"," +
                                $"\"nodeId\":\"{Senda.NodeId}\"}}";
             Senda.Broadcast(Navigator.Network.NavMsg.Build(
                 Navigator.Network.NavMsgType.lobbyInfo,
                 Senda.NodeId,
                 lobbyJson));
-
-            StartGameButton.interactable = _peersConnected >= 1;
         }
 
         void OnPeerDisconnected(string nodeId)
         {
             _peersConnected = Mathf.Max(0, _peersConnected - 1);
             UpdateConnectedLabel();
-            StartGameButton.interactable = _peersConnected >= 1;
         }
 
         void UpdateConnectedLabel()
         {
+            if (StartGameLabel != null)
+                StartGameLabel.text = _peersConnected == 0 ? "JUGAR SOLO" : "¡DESPEGAR!";
             if (ConnectedPlayersText == null) return;
             ConnectedPlayersText.text = _peersConnected == 0
                 ? "Esperando jugadores…\nMuestra tu QR o escanea el de otro jugador"

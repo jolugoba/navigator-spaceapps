@@ -1,7 +1,7 @@
-﻿// Navigator 2.0 â€” CockpitHUD.cs
+// Navigator 2.0 — CockpitHUD.cs
 // HUD en vuelo: velocidad, combustible, distancia, barra Burnout, estado nave
 // Ported from Dart: navigator/lib/ui/hud_overlay.dart
-// Guacalita Inc. â€” SAL / Claude
+// Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +14,7 @@ namespace Navigator.UI
 {
     public class CockpitHUD : MonoBehaviour
     {
-        // â”€â”€ Referencias Inspector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Referencias Inspector ─────────────────────────────────────────────
         [Header("Velocidad")]
         public TMP_Text   SpeedLabel;       // "1,240 m/s"
         public Image      SpeedGaugeFill;   // gauge circular
@@ -22,7 +22,7 @@ namespace Navigator.UI
         [Header("Combustible")]
         public Image      FuelBar;          // barra horizontal
         public TMP_Text   FuelLabel;        // "72%"
-        public GameObject LowFuelWarning;   // "âš  COMBUSTIBLE BAJO" â€” parpadea
+        public GameObject LowFuelWarning;   // "⚠ COMBUSTIBLE BAJO" — parpadea
 
         [Header("Distancia al planeta")]
         public TMP_Text   DistanceLabel;    // "12.4 AU"
@@ -34,18 +34,23 @@ namespace Navigator.UI
         public TMP_Text   NearMissComboLabel;        // "x3 NEAR MISS!"
         public GameObject NearMissComboObj;
 
-        [Header("Estado nave (daÃ±o)")]
+        [Header("Estado nave (daño)")]
         public GameObject DamageIndicatorDamaged;   // panel naranja
         public GameObject DamageIndicatorCritical;  // panel rojo parpadeante
-        public TMP_Text   LivesLabel;               // "â™¥â™¥â™¥"
+        public TMP_Text   LivesLabel;               // "♥♥♥"
 
-        [Header("Retardo comunicaciÃ³n")]
-        public TMP_Text   CommDelayLabel;   // "Retraso seÃ±al: 22 min"
+        [Header("Retardo comunicación")]
+        public TMP_Text   CommDelayLabel;   // "Retraso señal: 22 min"
 
-        [Header("PosiciÃ³n en carrera")]
+        [Header("Posición en carrera")]
         public TMP_Text   RacePositionLabel; // "#1" "#2"
 
-        // â”€â”€ Componentes de la nave â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        [Header("Progreso del viaje")]
+        public Image      ProgressBar;       // 0 = salida, 1 = planeta
+        public TMP_Text   TimeLabel;         // tiempo restante de misión
+        public GameObject PlanetOnScreenMarker; // se oculta la flecha si el planeta está a la vista
+
+        // ── Componentes de la nave ────────────────────────────────────────────
         private FuelSystem      _fuel;
         private BurnoutSystem   _burnout;
         private CollisionSystem _collision;
@@ -84,9 +89,19 @@ namespace Navigator.UI
             UpdateDamage();
             UpdateLowFuelFlash();
             UpdateNearMissCombo();
+            UpdateTime();
         }
 
-        // â”€â”€ Actualizar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        void UpdateTime()
+        {
+            var gm = GameManager.Instance;
+            if (TimeLabel == null || gm == null) return;
+            float left = Mathf.Max(0f, gm.MaxFlightTimeS - gm.FlightTime);
+            TimeLabel.text  = $"{(int)left / 60}:{(int)left % 60:00}";
+            TimeLabel.color = left < 30f ? UIStyle.Bad : UIStyle.Text;
+        }
+
+        // ── Actualizar ────────────────────────────────────────────────────────
 
         void UpdateSpeed()
         {
@@ -107,20 +122,35 @@ namespace Navigator.UI
 
         void UpdateDistance()
         {
-            if (_arSpace == null || DistanceLabel == null) return;
-            float au = _arSpace.DistanceToTarget;
-            DistanceLabel.text = au >= 1f
-                ? $"{au:F2} AU"
-                : $"{au * 149.6f:F0} M km";
-
-            // Flecha apunta al planeta
-            if (ArrowToPlanet != null)
+            if (_arSpace == null) return;
+            if (DistanceLabel != null)
             {
-                Vector3 screenDir = Camera.main.WorldToScreenPoint(
-                    Camera.main.transform.position + _arSpace.DirectionToTarget * 100f);
-                Vector3 center    = new(Screen.width / 2f, Screen.height / 2f, 0f);
-                float   angle     = Mathf.Atan2(screenDir.y - center.y, screenDir.x - center.x) * Mathf.Rad2Deg;
-                ArrowToPlanet.rectTransform.rotation = Quaternion.Euler(0f, 0f, angle - 90f);
+                float au = _arSpace.DistanceToTarget;
+                DistanceLabel.text = au >= 1f
+                    ? $"{au:F2} AU"
+                    : $"{au * 149.6f:F0} M km";
+            }
+
+            if (ProgressBar != null) ProgressBar.fillAmount = _arSpace.Progress01;
+
+            // Flecha apunta al planeta; cuando está detrás, WorldToScreenPoint se invierte
+            var cam = Camera.main;
+            if (ArrowToPlanet != null && cam != null)
+            {
+                Vector3 sp = cam.WorldToScreenPoint(_arSpace.TargetPosition);
+                bool behind = sp.z < 0f;
+                Vector2 center = new(Screen.width / 2f, Screen.height / 2f);
+                Vector2 d = (Vector2)sp - center;
+                if (behind) d = -d;   // projection mirrors through the center when behind
+                bool onScreen = !behind && sp.x > 0 && sp.x < Screen.width && sp.y > 0 && sp.y < Screen.height;
+
+                ArrowToPlanet.gameObject.SetActive(!onScreen);
+                if (PlanetOnScreenMarker != null) PlanetOnScreenMarker.SetActive(onScreen);
+                if (!onScreen)
+                {
+                    float angle = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
+                    ArrowToPlanet.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle - 90f);
+                }
             }
         }
 
@@ -129,10 +159,10 @@ namespace Navigator.UI
             if (_burnout == null || BurnoutBar == null) return;
             BurnoutBar.fillAmount = _burnout.BurnoutBar;
 
-            // Color: blanco cuando Burnout activo, cyanâ†’naranja segÃºn nivel
+            // Color: blanco cuando Burnout activo, cyan→naranja según nivel
             BurnoutBar.color = _burnout.BurnoutActive
                 ? Color.white
-                : Color.Lerp(Color.cyan, new Color(1f, 0.5f, 0f), _burnout.BurnoutBar);
+                : Color.Lerp(UIStyle.Accent, UIStyle.Burnout, _burnout.BurnoutBar);
         }
 
         void UpdateDamage()
@@ -144,9 +174,9 @@ namespace Navigator.UI
 
             if (LivesLabel != null)
             {
-                string hearts = "";
-                for (int i = 0; i < _collision.Lives; i++) hearts += "â™¥";
-                LivesLabel.text = hearts;
+                LivesLabel.text  = $"CASCO {_collision.Lives}/3";
+                LivesLabel.color = _collision.Lives >= 3 ? UIStyle.Text
+                                 : _collision.Lives == 2 ? UIStyle.Warn : UIStyle.Bad;
             }
         }
 
@@ -165,7 +195,7 @@ namespace Navigator.UI
             NearMissComboObj.SetActive(_comboTimer > 0f && _burnout.NearMissCombo >= 3);
         }
 
-        // â”€â”€ Eventos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Eventos ───────────────────────────────────────────────────────────
 
         void OnBurnoutStart()
         {
@@ -190,12 +220,12 @@ namespace Navigator.UI
             }
         }
 
-        // â”€â”€ Setters externos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Setters externos ──────────────────────────────────────────────────
 
         public void SetCommDelay(string delay)
         {
             if (CommDelayLabel != null)
-                CommDelayLabel.text = $"SeÃ±al: {delay}";
+                CommDelayLabel.text = $"Señal: {delay}";
         }
 
         public void SetRacePosition(int pos)

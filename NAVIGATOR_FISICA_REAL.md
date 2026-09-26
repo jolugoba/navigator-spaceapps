@@ -2,6 +2,10 @@
 **Guacalita Inc. — Lo que nos hace ganar el reto**
 **Fecha: 2026-09-22**
 
+> **Nota:** documento de diseño histórico. Los valores y el comportamiento actuales del juego están en
+> [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md), validado contra el código.
+
+
 ---
 
 ## POR QUÉ ESTO GANA

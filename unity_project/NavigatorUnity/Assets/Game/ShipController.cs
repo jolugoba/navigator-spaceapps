@@ -24,6 +24,9 @@ namespace Navigator.Game
         public float          BaseMaxSpeed   = 80f;
         public MissionDesign  Mission;
 
+        [Tooltip("Arcade drag: the ship slows down unless you keep thrusting")]
+        public float          LinearDamping  = 0.5f;
+
         [Header("Steering")]
         public float YawSpeed   = 60f;
         public float PitchSpeed = 45f;
@@ -51,7 +54,7 @@ namespace Navigator.Game
             _sync      = FindObjectOfType<ShipSyncService>();
 
             _rb.useGravity = false;
-            _rb.linearDamping = 0.02f;
+            _rb.linearDamping = LinearDamping;
 
             if (Physics != null)
             {
@@ -66,6 +69,10 @@ namespace Navigator.Game
 
             float dt = Time.fixedDeltaTime;
 
+            bool hasFuel = _fuelSys == null || !_fuelSys.IsEmpty;
+            float thrust = hasFuel ? ThrustMain : 0f;
+            bool  boost  = hasFuel && (Boosting || _burnout.BurnoutActive);
+
             // Steering
             transform.Rotate(Vector3.up,    SteerYaw   * YawSpeed   * dt, Space.Self);
             transform.Rotate(Vector3.right, SteerPitch * PitchSpeed * dt, Space.Self);
@@ -73,19 +80,23 @@ namespace Navigator.Game
             // Feed inputs to physics engine
             if (Physics != null)
             {
-                Physics.ThrustMain     = ThrustMain;
-                Physics.Boosting       = Boosting || _burnout.BurnoutActive;
+                Physics.ThrustMain     = thrust;
+                Physics.Boosting       = boost;
                 Physics.FuelFraction   = _fuelFraction;
                 Physics.Tick(dt);
                 _fuelFraction = Physics.FuelFraction;
             }
 
-            // Drain FuelSystem — mantiene HUD, eventos OnFuelEmpty, IsLow sincronizados
+            // FuelSystem is the source of truth for fuel (HUD, events, score)
             if (_fuelSys != null)
-                _fuelSys.Drain(ThrustMain, Boosting || _burnout.BurnoutActive, dt);
+            {
+                _fuelSys.Drain(thrust, boost, dt);
+                _fuelFraction = _fuelSys.FuelFraction;
+            }
 
             // Speed cap (Burnout mode = 2.5x)
-            float maxSpeed = BaseMaxSpeed * (_burnout.BurnoutActive ? _burnout.SpeedMultiplier : 1f);
+            float maxSpeed = BaseMaxSpeed * (_burnout.BurnoutActive ? _burnout.SpeedMultiplier
+                                           : boost ? 1.5f : 1f);
             if (_rb.linearVelocity.magnitude > maxSpeed)
                 _rb.linearVelocity = _rb.linearVelocity.normalized * maxSpeed;
 
@@ -94,7 +105,7 @@ namespace Navigator.Game
                 _burnout.RegisterLowFuel(dt);
 
             // Boost fills Burnout bar
-            if (Boosting)
+            if (boost && !_burnout.BurnoutActive)
                 _burnout.RegisterBoostFlight(dt);
 
             // Sync state to other players
@@ -102,7 +113,7 @@ namespace Navigator.Game
             {
                 var state = ShipStateNet.FromTransform(
                     NodeId, DisplayName, transform, _rb,
-                    ThrustMain, Boosting, _burnout.BurnoutActive,
+                    thrust, boost, _burnout.BurnoutActive,
                     Mission?.TargetPlanetId ?? "mars", 0f,
                     _collision.Lives, _fuelFraction, 0);
                 _sync.Broadcast(state);

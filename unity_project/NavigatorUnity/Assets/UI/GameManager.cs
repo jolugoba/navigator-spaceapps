@@ -1,11 +1,13 @@
 // Navigator 2.0 — GameManager.cs
-// Máquina de estados del juego: Lobby → Diseño → Cuenta atrás → Vuelo → Llegada → Ciencia → Scoreboard
+// Máquina de estados: Lobby → Diseño → Cuenta atrás → Vuelo → Ciencia → Scoreboard
 // Es el director que conecta todos los demás scripts
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using TMPro;
 using Navigator.Core;
 using Navigator.Game;
@@ -37,6 +39,7 @@ namespace Navigator.UI
         public GameObject     ScienceOpsPanel;
         public GameObject     ScoreboardPanel;
         public TMP_Text       CountdownLabel;     // "3" "2" "1" "¡GO!"
+        public TMP_Text       CountdownSubLabel;  // "Destino: Marte"
 
         [Header("Scripts de juego")]
         public MissionDesignUI  MissionDesignUI;
@@ -44,6 +47,7 @@ namespace Navigator.UI
         public ScoreboardUI     ScoreboardUI;
         public CockpitHUD       HUD;
         public LobbyManager     Lobby;
+        public MissionScore     Score;
 
         [Header("Nave local")]
         public ShipController   Ship;
@@ -51,29 +55,40 @@ namespace Navigator.UI
         public ARShipController ARShip;
 
         [Header("AR")]
-        public ARSpaceManager   SpaceManager;
-        public ARCompassTracker Compass;
+        public ARSpaceManager       SpaceManager;
+        public ARCompassTracker     Compass;
         public CameraFeedBackground CameraFeed;
+        public GyroCameraRig        Rig;
+
+        [Header("Espacio")]
+        public PowerupSystem Powerups;
+        public AsteroidField Asteroids;
 
         [Header("Red")]
-        public SendaBridge      Senda;
-        public ShipSyncService  SyncService;
-        public P2PChatSystem    Chat;
+        public SendaBridge       Senda;
+        public ShipSyncService   SyncService;
+        public P2PChatSystem     Chat;
+        public RemoteShipManager RemoteShips;
 
-        [Header("Llegada al planeta")]
-        public float ArrivalDistanceM  = 0.6f;   // metros en AR — distancia que dispara la llegada
-        public float MaxFlightTimeS    = 300f;    // tiempo límite antes de forzar llegada
+        [Header("Reglas")]
+        public float ArrivalMargin  = 40f;    // distancia a la superficie que cuenta como llegada
+        public float LaneSpacing    = 6f;     // separación lateral entre jugadores en la salida
+        public float MaxFlightTimeS = 240f;   // sin llegar a tiempo = misión fallida
+        public string PlayerName    = "Cadete";
 
         // ── Estado runtime ─────────────────────────────────────────────────────
-        public  GameState     State       { get; private set; } = GameState.Lobby;
-        public  MissionDesign Mission     { get; private set; }
-        public  int           ArrivalPos  { get; private set; } = 0;  // 0=nadie llegó, 1=primero, 2=segundo
+        public  GameState     State      { get; private set; } = GameState.Lobby;
+        public  MissionDesign Mission    { get; private set; }
+        public  int           ArrivalPos { get; private set; } = 0;  // 0 = no llegó
+        public  float         FlightTime => _flightTimer;
+        public  string        FailReason { get; private set; }
 
         public UnityEvent<GameState> OnStateChanged = new();
 
-        private float      _flightTimer  = 0f;
-        private bool       _localArrived = false;
-        private int        _remoteScore  = 0;
+        private float  _flightTimer;
+        private bool   _rivalArrived;
+        private int    _remoteScore = Navigator.UI.ScoreboardUI.RemotePending;
+        private string _lastPlanet  = "mars";
 
         // ── Init ──────────────────────────────────────────────────────────────
 
@@ -81,19 +96,24 @@ namespace Navigator.UI
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+
+            // Gyro mapping assumes portrait; the AR view must not rotate under the player
+            Screen.orientation         = ScreenOrientation.Portrait;
+            Screen.sleepTimeout        = SleepTimeout.NeverSleep;
+            Application.targetFrameRate = 60;
         }
 
         void Start()
         {
-            // Senda init
-            if (Senda != null && !Senda.Initialized)
-                Senda.Init();
+            if (Senda != null && !Senda.Initialized) Senda.Init();
+            Senda?.OnMessage.AddListener(OnNetMessage);
 
-            // Escuchar peer connections desde el Lobby
-            Senda?.OnPeerConnected.AddListener(OnPeerConnected);
-
-            // Escuchar estado final del rival
-            SyncService?.OnRemoteScore.AddListener(OnRemoteScore);
+            if (SyncService != null)
+            {
+                SyncService.OnRemoteScore.AddListener(OnRemoteScore);
+                SyncService.OnRemoteArrived.AddListener(_ => OnRemoteArrived());
+                SyncService.OnRemoteName.AddListener((_, n) => ScoreboardUI?.SetRemotePlayerName(n));
+            }
 
             EnterLobby();
         }
@@ -104,157 +124,284 @@ namespace Navigator.UI
         {
             SetState(GameState.Lobby);
             SetPanels(lobby: true);
+            SetControls(false);
+            // The lobby QR scanner needs the camera to itself
+            if (CameraFeed != null) CameraFeed.Stop();
         }
 
-        // Llamado desde LobbyManager.StartGameButton (OnClick en Inspector)
+        // Lobby "Despegar" / Scoreboard "Jugar otra vez"
         public void OnLobbyReady()
         {
+            if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+
+            _rivalArrived = false;
+            _remoteScore  = Navigator.UI.ScoreboardUI.RemotePending;
+            ArrivalPos    = 0;
+            FailReason    = null;
+            Mission       = null;
+
+            if (SpaceManager != null) SpaceManager.Locked = false;
+            Powerups?.ClearAll();
+            Asteroids?.Clear();
+            ResetShip(Vector3.forward);
+            if (Score != null) Score.Clear();
+
             SetState(GameState.MissionDesign);
             SetPanels(missionDesign: true);
 
             // The lobby QR scanner has released the camera by now
             if (CameraFeed != null) CameraFeed.Play();
 
-            string planet = "mars"; // default — se puede cambiar desde el diseño
-            MissionDesignUI?.Show(planet);
+            MissionDesignUI?.Show(_lastPlanet);
         }
 
-        // Llamado desde MissionDesignUI.LaunchButton (OnClick en Inspector)
+        // MissionDesignUI → botón LANZAR
         public void OnLaunchConfirmed()
         {
+            if (State != GameState.MissionDesign) return;
+
             Mission = MissionDesignUI?.GetDesign();
-            if (Mission == null) return;
+            if (Mission == null || !Mission.IsValid) return;
+            _lastPlanet = Mission.TargetPlanetId;
 
             SetState(GameState.Countdown);
             SetPanels(countdown: true);
+
+            // Place the planet now so NASA Horizons can refine it during the countdown
+            if (Compass != null) Compass.SetTarget(Mission.TargetPlanetId);
+            else SpaceManager?.SetPlanetDirectionFallback(
+                Mission.TargetPlanetId, Vector3.forward,
+                ARSpaceManager.ApproxEarthDistanceAU(Mission.TargetPlanetId));
+
             StartCoroutine(CountdownCoroutine());
         }
 
         IEnumerator CountdownCoroutine()
         {
-            string[] labels = { "3", "2", "1", "¡GO!" };
-            foreach (string l in labels)
+            if (CountdownSubLabel != null)
+                CountdownSubLabel.text = $"Destino: {Navigator.UI.MissionDesignUI.PlanetDisplayName(Mission.TargetPlanetId)}\n" +
+                                         "Apunta el celular hacia el planeta · Mantén el dedo para acelerar";
+
+            foreach (string l in new[] { "3", "2", "1", "¡DESPEGUE!" })
             {
                 if (CountdownLabel != null) CountdownLabel.text = l;
                 yield return new WaitForSeconds(1f);
             }
-
             StartFlight();
         }
 
         void StartFlight()
         {
-            SetState(GameState.InFlight);
-            SetPanels(hud: true);
-            _flightTimer  = 0f;
-            _localArrived = false;
+            Vector3 target = SpaceManager != null ? SpaceManager.TargetPosition : Vector3.forward * 1400f;
+            Vector3 launch = SpaceManager != null ? SpaceManager.LaunchPoint    : Vector3.zero;
+            if (SpaceManager != null) SpaceManager.Locked = true;
 
-            // Configura física según diseño
-            if (Physics != null && Mission != null)
+            ResetShip((target - launch).normalized);
+            ConfigureShipFromDesign();
+
+            // North-align the view only when the planet came from real sky data
+            Rig?.Calibrate(Compass != null && Compass.GpsReady);
+
+            if (Physics != null)
             {
                 Physics.SetEngineConfig(Mission.Engine);
-                Physics.RegisterPlanetGravity(
-                    Mission.TargetPlanetId,
-                    SpaceManager != null
-                        ? SpaceManager.transform.position + SpaceManager.DirectionToTarget * 3f
-                        : Vector3.forward * 3f);
+                Physics.RegisterPlanetGravity(Mission.TargetPlanetId, target);
             }
 
-            // Activa el giroscopio
-            ARShip?.CalibrateGyro();
+            Powerups?.SpawnAlongRoute(launch, target);
+            if (Ship != null) Asteroids?.SpawnAlongRoute(launch, target, Ship.transform);
 
-            // Configura el HUD con el delay de comunicación
-            if (Mission != null && HUD != null &&
-                MissionDesign.CommDelayLabel.TryGetValue(Mission.TargetPlanetId, out var delay))
-                HUD.SetCommDelay(delay);
+            if (HUD != null)
+            {
+                if (MissionDesign.CommDelayLabel.TryGetValue(Mission.TargetPlanetId, out var delay))
+                    HUD.SetCommDelay(delay);
+                HUD.SetRacePosition(1);
+            }
 
-            // Inicia brújula hacia el planeta
-            Compass?.SetTarget(Mission?.TargetPlanetId ?? "mars");
+            _flightTimer = 0f;
+            SetState(GameState.InFlight);
+            SetPanels(hud: true);
+            SetControls(true);
 
-            Debug.Log($"[GM] Vuelo iniciado → {Mission?.TargetPlanetId}");
+            Debug.Log($"[GM] Vuelo iniciado → {Mission.TargetPlanetId}");
         }
 
-        void EnterScienceOps()
+        void ResetShip(Vector3 facing)
         {
-            if (_localArrived) return;
-            _localArrived = true;
+            if (Ship == null) return;
+            if (facing.sqrMagnitude < 1e-6f) facing = Vector3.forward;
+            Vector3 start = (SpaceManager != null ? SpaceManager.LaunchPoint : Vector3.zero)
+                          + LaneOffset(facing);
+            Ship.transform.SetPositionAndRotation(start, Quaternion.LookRotation(facing));
 
-            ArrivalPos = ArrivalPos == 0 ? 1 : 2;   // primero o segundo
+            var rb = Ship.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.position = start;
+                rb.rotation = Quaternion.LookRotation(facing);
+                rb.linearVelocity  = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+        }
+
+        // Two ships starting on the same point would overlap colliders: each player gets a
+        // side of the launch pad, agreed on without messages by comparing NodeIds
+        Vector3 LaneOffset(Vector3 facing)
+        {
+            if (Senda == null || string.IsNullOrEmpty(Senda.NodeId) || Senda.ConnectedPeers.Count == 0)
+                return Vector3.zero;
+            float side = string.CompareOrdinal(Senda.NodeId, Senda.ConnectedPeers[0]) < 0 ? -1f : 1f;
+            Vector3 right = Vector3.Cross(Vector3.up, facing);
+            if (right.sqrMagnitude < 1e-6f) right = Vector3.right;
+            return right.normalized * side * LaneSpacing;
+        }
+
+        void ConfigureShipFromDesign()
+        {
+            if (Ship == null || Mission == null) return;
+            Ship.Mission     = Mission;
+            Ship.NodeId      = Senda != null ? Senda.NodeId : null;
+            Ship.DisplayName = PlayerName;
+
+            Ship.GetComponent<FuelSystem>()?.InitFromDesign(Mission);
+            Ship.GetComponent<BurnoutSystem>()?.ResetState();
+
+            var col = Ship.GetComponent<CollisionSystem>();
+            if (col != null)
+            {
+                col.Lives      = 3;
+                col.FuelMassKg = Mission.FuelMassKg;
+                col.DryMassKg  = Mission.DryMassKg;
+            }
+        }
+
+        void Update()
+        {
+            if (State != GameState.InFlight || Ship == null) return;
+
+            _flightTimer += Time.deltaTime;
+
+            if (SpaceManager != null)
+            {
+                float dist = Vector3.Distance(Ship.transform.position, SpaceManager.TargetPosition);
+                if (dist < SpaceManager.PlanetRadius + ArrivalMargin)
+                {
+                    Arrive();
+                    return;
+                }
+            }
+
+            var col = Ship.GetComponent<CollisionSystem>();
+            if (col != null && col.Lives <= 0) { FailMission("Nave destruida"); return; }
+            if (_flightTimer >= MaxFlightTimeS) { FailMission("Tiempo agotado");  return; }
+        }
+
+        void Arrive()
+        {
+            SetControls(false);
+            StopShip();
+            Powerups?.ClearAll();
+            Asteroids?.Clear();
+
+            ArrivalPos = _rivalArrived ? 2 : 1;
+            SyncService?.BroadcastArrival(ArrivalPos);
+            Chat?.ArrivalBroadcast(ArrivalPos);
 
             SetState(GameState.ScienceOps);
             SetPanels(scienceOps: true);
-
-            // Notifica al rival
-            Chat?.ArrivalBroadcast(ArrivalPos);
-
-            // Muestra pantalla de ciencia
             ScienceOpsUI?.ShowOnArrival(Mission, ArrivalPos);
 
             Debug.Log($"[GM] Llegamos a {Mission?.TargetPlanetId} — posición #{ArrivalPos}");
         }
 
-        // Llamado desde ScienceOpsUI.CompleteMissionBtn (OnClick en Inspector)
+        void FailMission(string reason)
+        {
+            SetControls(false);
+            StopShip();
+            Powerups?.ClearAll();
+            Asteroids?.Clear();
+
+            FailReason = reason;
+            ArrivalPos = 0;
+            if (Score != null)
+            {
+                Score.ArrivalPosition = 0;
+                Score.SciencePoints   = 0;
+            }
+            Debug.Log($"[GM] Misión fallida: {reason}");
+            FinishMission();
+        }
+
+        // ScienceOpsUI → botón COMPLETAR MISIÓN
         public void OnMissionComplete()
         {
-            var score = FindObjectOfType<MissionScore>();
-            int total = score != null ? score.TotalScore() : 0;
+            if (State != GameState.ScienceOps) return;
+            FinishMission();
+        }
+
+        void FinishMission()
+        {
+            int total = 0;
+            if (Score != null)
+            {
+                var fuel    = Ship != null ? Ship.GetComponent<FuelSystem>()    : null;
+                var burnout = Ship != null ? Ship.GetComponent<BurnoutSystem>() : null;
+                Score.ArrivalPosition = ArrivalPos;
+                Score.FuelFraction    = fuel != null ? fuel.FuelFraction : 0f;
+                Score.TakedownCount   = burnout != null ? burnout.TakedownCount : 0;
+                // No arrival = no arrival bonus and no fuel bonus
+                total = ArrivalPos > 0 ? Score.TotalScore()
+                                       : Score.TakedownCount * 150;
+            }
 
             SyncService?.BroadcastMissionEnd(Senda?.NodeId ?? "", total);
 
+            bool solo = Senda == null || Senda.ConnectedPeers.Count == 0;
             SetState(GameState.Scoreboard);
             SetPanels(scoreboard: true);
-            ScoreboardUI?.Show(total, _remoteScore, score);
+            ScoreboardUI?.SetLocalPlayerName(PlayerName);
+            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason);
         }
 
-        // ── Update: detección de llegada en vuelo ──────────────────────────────
-
-        void Update()
+        void StopShip()
         {
-            if (State != GameState.InFlight) return;
+            var rb = Ship != null ? Ship.GetComponent<Rigidbody>() : null;
+            if (rb != null) rb.linearVelocity = Vector3.zero;
+        }
 
-            _flightTimer += Time.deltaTime;
-
-            // Detecta llegada: ship cerca del planeta en AR
-            if (Ship != null && SpaceManager != null)
-            {
-                Vector3 planetPos = SpaceManager.transform.position
-                                  + SpaceManager.DirectionToTarget * 3f;
-                float dist = Vector3.Distance(Ship.transform.position, planetPos);
-
-                if (dist < ArrivalDistanceM)
-                {
-                    EnterScienceOps();
-                    return;
-                }
-            }
-
-            // Tiempo límite agotado → llegada forzada
-            if (_flightTimer >= MaxFlightTimeS)
-                EnterScienceOps();
+        // Scoreboard → "Menú principal": reinicia todo (incluida la conexión)
+        public void ExitToLobby()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         // ── Eventos de red ─────────────────────────────────────────────────────
 
-        void OnPeerConnected(string nodeId)
+        void OnNetMessage(NavMsg msg)
         {
-            Debug.Log($"[GM] Peer conectado: {nodeId}");
-            // El lobby ya maneja el botón de inicio — aquí solo registramos
+            // Rival picked up an EMP pod: our Burnout is suppressed
+            if (msg.t == nameof(NavMsgType.shipEvent) && msg.pl_json.Contains("\"emp\"") && Ship != null)
+                Ship.GetComponent<BurnoutSystem>()?.SuppressFor(Powerup.EmpSeconds);
         }
 
-        void OnRemoteScore(System.Collections.Generic.Dictionary<string, int> scores)
+        void OnRemoteArrived()
         {
-            foreach (var v in scores.Values)
-                _remoteScore = v;   // toma el último score recibido
-
-            // Si el rival llegó primero y nosotros seguimos volando → somos segundo
-            if (State == GameState.InFlight && ArrivalPos == 0)
-            {
-                ArrivalPos = 2;
-                Chat?.ArrivalBroadcast(ArrivalPos);
-            }
+            _rivalArrived = true;
+            if (State == GameState.InFlight) HUD?.SetRacePosition(2);
         }
 
-        // ── Helpers UI ─────────────────────────────────────────────────────────
+        void OnRemoteScore(Dictionary<string, int> scores)
+        {
+            foreach (var v in scores.Values) _remoteScore = v;
+            if (State == GameState.Scoreboard) ScoreboardUI?.SetRemoteScore(_remoteScore);
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+
+        void SetControls(bool on)
+        {
+            if (ARShip != null) ARShip.ControlsEnabled = on;
+        }
 
         void SetState(GameState s)
         {
