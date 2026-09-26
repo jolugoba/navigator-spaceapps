@@ -95,13 +95,14 @@ namespace Navigator.UI
                 Options = new QrCodeEncodingOptions { Width = size, Height = size, Margin = 1 }
             };
             var pd  = writer.Write(content);
-            var tex = new Texture2D(pd.Width, pd.Height, TextureFormat.RGBA32, false);
+            int w   = pd.Width, h = pd.Height;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
 
-            // Convierte int[] ARGB → Color32[]
-            var c32 = new Color32[pd.Pixels.Length];
-            for (int i = 0; i < pd.Pixels.Length; i++)
+            // Convierte int[] ARGB → Color32[] — w*h es el tamaño canónico del buffer
+            var c32 = new Color32[w * h];
+            for (int i = 0; i < c32.Length; i++)
             {
-                int p = pd.Pixels[i];
+                int p = i < pd.Pixels.Length ? pd.Pixels[i] : 0;
                 c32[i] = new Color32(
                     (byte)((p >> 16) & 0xFF),
                     (byte)((p >> 8)  & 0xFF),
