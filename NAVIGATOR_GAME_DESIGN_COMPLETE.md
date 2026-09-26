@@ -225,6 +225,11 @@ consumo por segundo = empuje / BurnTimeS × (2.2 si boost)
 Diseñar justo al mínimo te da 45 s de empuje a fondo; el doble de ΔV, 90 s. **Sin combustible no hay
 empuje** (`ShipController` lo bloquea): la nave frena por el arrastre y la misión falla por tiempo.
 
+### Motor visible — `Game/ThrusterFX.cs`
+Llama, estela y luz en la tobera: **cian** al acelerar, **naranja** en boost, **blanca** en Burnout.
+Con menos del 15 % de combustible el motor **tose** (la llama se corta a ratos) y sin combustible se apaga
+y el HUD muestra **SIN COMBUSTIBLE**. Las naves rivales muestran su llama con los datos que llegan por red.
+
 ### Realidad aumentada — `AR/GyroCameraRig.cs`, `AR/CameraFeedBackground.cs`
 AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere ARCore/ARKit):
 - La **cámara trasera** se dibuja detrás de todo (`WebCamTexture`, maneja permisos, rotación y espejo).
@@ -279,6 +284,13 @@ La masa es la masa real del diseño (seca + combustible): **la nave más pesada 
 
 - Casco: 3 → 2 → 1 → destruida (misión fallida). 3 s de invulnerabilidad tras cada golpe.
 - Chocar con un asteroide cuenta como daño medio.
+
+### Choque entre jugadores (multijugador)
+Cada celular simula solo su propia nave. Cuando dos naves chocan, **solo el jugador con el NodeId menor**
+resuelve el choque (así el daño no se aplica dos veces): calcula el rebote de ambos y envía al rival un
+`shipEvent` con `"hit"` (severidad) y su nueva velocidad. El rival aplica el daño, la fuga de combustible
+y el rebote en su nave. Ambos ven la explosión, la sacudida de cámara y el aviso en el HUD
+(ROCE / IMPACTO −10 % / GOLPE FUERTE −1 casco / TAKEDOWN / ESCUDO).
 
 ### Takedown
 ```csharp
@@ -415,6 +427,12 @@ Jugador A  ◄──── QUIC directo (Iroh) ────►  Jugador B
 
 ---
 
+## 10b. Idiomas — `Core/Loc.cs`
+Todo el juego está en **inglés por defecto** y en **español**; el botón de idioma del lobby cambia
+entre ambos al instante y la elección se guarda (`PlayerPrefs`). Los textos fijos de la UI usan
+`LocalizedText`; los que cambian en vivo llaman a `Loc.T("clave")` / `Loc.F("clave", valores)`.
+Para agregar un idioma: añadir el valor al enum `Lang` y una columna a la tabla de `Loc`.
+
 ## 11. Arquitectura Unity
 
 ```
@@ -435,7 +453,8 @@ Navigator.Editor    NavigatorSceneSetup, NavigatorUIBuilder, NavigatorAssignMode
 |---|---|
 | **Setup Scene** | Crea y conecta toda la escena, genera pods/explosión/etiqueta del rival, asigna modelos, construye la UI y agrega la escena al build. Se puede repetir sin duplicar nada. |
 | Build UI | Solo reconstruye la interfaz (los 6 paneles con todos sus botones conectados). |
-| Assign Models | Solo reasigna los GLB (prefiere las versiones `_FINAL`). |
+| Assign Models | Solo reasigna los GLB (prefiere las versiones `_FINAL`) y gira cada nave para que su eje largo mire hacia adelante. |
+| Flip Ship Nose 180° | Si la nave vuela "de reversa", gira la nariz 180° y lo recuerda. |
 
 ---
 

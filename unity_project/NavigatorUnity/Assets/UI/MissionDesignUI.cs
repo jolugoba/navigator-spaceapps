@@ -99,8 +99,6 @@ namespace Navigator.UI
         private MissionDesign _design;
         private static readonly string[] _planetIds =
             { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
-        private static readonly string[] _planetNames =
-            { "Mercurio", "Venus", "Marte", "Júpiter", "Saturno", "Urano", "Neptuno" };
 
         void Awake()
         {
@@ -113,6 +111,9 @@ namespace Navigator.UI
             SyncControls();
             Refresh();
         }
+
+        void OnEnable()  => Loc.Changed += Refresh;
+        void OnDisable() => Loc.Changed -= Refresh;
 
         // Pushes _design into sliders/toggles without firing their listeners
         void SyncControls()
@@ -190,14 +191,28 @@ namespace Navigator.UI
 
         // ── Actualiza toda la UI según _design ────────────────────────────────
 
+        void RefreshInstrumentLabels()
+        {
+            var instValues = (ScienceInstrument[])System.Enum.GetValues(typeof(ScienceInstrument));
+            for (int i = 0; i < InstrumentToggles.Length && i < instValues.Length; i++)
+            {
+                var label = InstrumentToggles[i] != null ? InstrumentToggles[i].GetComponentInChildren<TMP_Text>() : null;
+                if (label == null) continue;
+                var inst = instValues[i];
+                label.text = $"{Loc.Instrument(inst)}\n<size=70%><color=#8FA3C7>" +
+                             $"{MissionDesign.InstrumentMassKg[inst]:F0} kg · {MissionDesign.InstrumentPowerW[inst]:F0} W · " +
+                             $"{MissionDesign.InstrumentSciencePoints[inst]} pts · {MissionDesign.InstrumentDataMb[inst]:F0} Mb</color></size>";
+            }
+        }
+
         void Refresh()
         {
+            RefreshInstrumentLabels();
             // Planeta
-            int pIdx = System.Array.IndexOf(_planetIds, _design.TargetPlanetId);
             if (PlanetLabel != null)
-                PlanetLabel.text = pIdx >= 0 ? _planetNames[pIdx] : _design.TargetPlanetId;
+                PlanetLabel.text = PlanetDisplayName(_design.TargetPlanetId);
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var delay))
-                CommDelayLabel.text = $"Señal: {delay}";
+                CommDelayLabel.text = Loc.F("design.signal", delay);
 
             for (int i = 0; i < PlanetButtons.Length && i < _planetIds.Length; i++)
                 SetButtonSelected(PlanetButtons[i], _design.TargetPlanetId == _planetIds[i]);
@@ -209,8 +224,8 @@ namespace Navigator.UI
             SetButtonSelected(BtnChemical, _design.Engine == EngineType.Chemical);
             SetButtonSelected(BtnIon,      _design.Engine == EngineType.Ion);
             SetButtonSelected(BtnNuclear,  _design.Engine == EngineType.Nuclear);
-            if (EngineFuelLabel != null) EngineFuelLabel.text = MissionDesign.EngineFuelType[_design.Engine];
-            if (EngineNasaLabel != null) EngineNasaLabel.text = MissionDesign.EngineNasaRef[_design.Engine];
+            if (EngineFuelLabel != null) EngineFuelLabel.text = Loc.T("fuel." + _design.Engine);
+            if (EngineNasaLabel != null) EngineNasaLabel.text = Loc.T("nasa.engine." + _design.Engine);
 
             // Combustible
             if (FuelValueLabel != null) FuelValueLabel.text = $"{_design.FuelMassKg:N0} kg";
@@ -223,27 +238,27 @@ namespace Navigator.UI
             if (DeltaVLabel  != null) DeltaVLabel.text = $"{dv:N0} m/s";
             if (DeltaVRequiredLabel != null)
             {
-                string parts = $"{_design.CruiseDeltaV:N0} viaje";
-                if (_design.InsertionDeltaV > 0f) parts += $" + {_design.InsertionDeltaV:N0} inserción";
-                if (_design.LandingDeltaV   > 0f) parts += $" + {_design.LandingDeltaV:N0} descenso";
-                DeltaVRequiredLabel.text = $"Requerido: {dvReq:N0} m/s ({parts})";
+                string parts = Loc.F("design.dv.cruise", _design.CruiseDeltaV);
+                if (_design.InsertionDeltaV > 0f) parts += Loc.F("design.dv.insert", _design.InsertionDeltaV);
+                if (_design.LandingDeltaV   > 0f) parts += Loc.F("design.dv.descent", _design.LandingDeltaV);
+                DeltaVRequiredLabel.text = Loc.F("design.required", dvReq, parts);
             }
             if (ObjectiveInfoLabel != null)
             {
                 string pid = _design.TargetPlanetId;
                 ObjectiveInfoLabel.text = _design.Objective switch
                 {
-                    "orbit"   => $"+{_design.InsertionDeltaV:N0} m/s para frenar en órbita · ciencia ×1.5",
+                    "orbit"   => Loc.F("design.obj.orbit", _design.InsertionDeltaV),
                     "landing" => _design.CanLandOnTarget
-                        ? $"+{_design.InsertionDeltaV + _design.LandingDeltaV:N0} m/s, +{MissionDesign.LanderMassKg:F0} kg y +${MissionDesign.LanderCostM:F0}M de módulo · ciencia ×2"
-                        : $"{PlanetDisplayName(pid)} no tiene superficie sólida",
-                    _         => "Pasas de largo: sin costo extra · ciencia ×1",
+                        ? Loc.F("design.obj.landing", _design.InsertionDeltaV + _design.LandingDeltaV, MissionDesign.LanderMassKg, MissionDesign.LanderCostM)
+                        : Loc.F("design.obj.nosurface", PlanetDisplayName(pid)),
+                    _         => Loc.T("design.obj.flyby"),
                 };
                 ObjectiveInfoLabel.color = _design.IsObjectiveOk ? UIStyle.Muted : UIStyle.Bad;
             }
             if (DeltaVStatusLabel   != null)
             {
-                DeltaVStatusLabel.text  = _design.HasDeltaV ? "OK" : "INSUFICIENTE";
+                DeltaVStatusLabel.text  = _design.HasDeltaV ? Loc.T("design.ok") : Loc.T("design.short");
                 DeltaVStatusLabel.color = _design.HasDeltaV ? UIStyle.Good : UIStyle.Bad;
             }
 
@@ -251,9 +266,9 @@ namespace Navigator.UI
             SetButtonSelected(BtnSolar,         _design.Power == PowerSystem.Solar);
             SetButtonSelected(BtnRTG,            _design.Power == PowerSystem.RTG);
             SetButtonSelected(BtnNuclearReactor, _design.Power == PowerSystem.NuclearReactor);
-            if (PowerOutputLabel != null) PowerOutputLabel.text = $"{_design.EffectivePowerW:F0} W efectivos";
-            if (PowerUsedLabel   != null) PowerUsedLabel.text   = $"Consumo: {_design.PowerUsedW:F0} W";
-            if (PowerNasaLabel   != null) PowerNasaLabel.text   = MissionDesign.PowerNasaRef[_design.Power];
+            if (PowerOutputLabel != null) PowerOutputLabel.text = Loc.F("design.poweravail", _design.EffectivePowerW);
+            if (PowerUsedLabel   != null) PowerUsedLabel.text   = Loc.F("design.powerused", _design.PowerUsedW);
+            if (PowerNasaLabel   != null) PowerNasaLabel.text   = Loc.T("nasa.power." + _design.Power);
             if (SolarWarning != null) SolarWarning.SetActive(!_design.IsSolarViable);
 
             // Antena
@@ -266,7 +281,7 @@ namespace Navigator.UI
                 string real = kbps >= 1000f ? $"{kbps / 1000f:F0} Mbps" : $"{kbps} kbps";
                 float  mbps = MissionDesign.GameDownlinkMbps[_design.Antenna];
                 float  secs = _design.TotalDataMb / mbps;
-                AntennaDataRateLabel.text = $"{real} reales · tus {_design.TotalDataMb:F0} Mb tardan {secs:F0} s en llegar";
+                AntennaDataRateLabel.text = Loc.F("design.antennarate", real, _design.TotalDataMb, secs);
             }
 
             // Lanzador
@@ -275,7 +290,7 @@ namespace Navigator.UI
             SetButtonSelected(BtnSLS,         _design.LaunchVeh == LaunchVehicle.SLS);
             SetButtonSelected(BtnStarship,    _design.LaunchVeh == LaunchVehicle.Starship);
             if (LaunchCapacityLabel != null)
-                LaunchCapacityLabel.text = $"Capacidad: {MissionDesign.LaunchCapacityKg[_design.LaunchVeh]:N0} kg";
+                LaunchCapacityLabel.text = Loc.F("design.capacity", MissionDesign.LaunchCapacityKg[_design.LaunchVeh]);
 
             // Instrumentos
             float instMass = 0f;
@@ -285,14 +300,14 @@ namespace Navigator.UI
                 instMass += MissionDesign.InstrumentMassKg[i];
                 instPts  += MissionDesign.InstrumentSciencePoints[i];
             }
-            if (InstrumentMassLabel    != null) InstrumentMassLabel.text    = $"Masa: {instMass:F0} kg";
-            if (InstrumentScienceLabel != null) InstrumentScienceLabel.text = $"{instPts} pts ciencia posibles";
+            if (InstrumentMassLabel    != null) InstrumentMassLabel.text    = Loc.F("design.instmass", instMass);
+            if (InstrumentScienceLabel != null) InstrumentScienceLabel.text = Loc.F("design.instpts", instPts);
 
             // Resumen
             float maxMass = MissionDesign.LaunchCapacityKg[_design.LaunchVeh];
             if (TotalMassLabel  != null) TotalMassLabel.text  = $"{_design.WetMassKg:N0} / {maxMass:N0} kg";
             if (TotalCostLabel  != null) TotalCostLabel.text  = $"${_design.TotalCostM:N0}M / $1,000M";
-            if (MassFractionLabel != null) MassFractionLabel.text = $"Fracción masa: {_design.MassFraction:F2}";
+            if (MassFractionLabel != null) MassFractionLabel.text = Loc.F("design.massfrac", _design.MassFraction);
             if (BudgetBar != null) BudgetBar.fillAmount = Mathf.Clamp01(_design.TotalCostM / MissionDesign.BudgetLimitM);
             if (MassBar   != null) MassBar.fillAmount   = Mathf.Clamp01(_design.WetMassKg  / maxMass);
 
@@ -300,11 +315,11 @@ namespace Navigator.UI
             bool valid = _design.IsValid;
             if (ErrorLabel != null)
             {
-                if (!_design.IsBudgetOk)     ErrorLabel.text = "Presupuesto excedido";
-                else if (!_design.IsMassOk)  ErrorLabel.text = "Nave demasiado pesada para el lanzador";
-                else if (!_design.IsPowerOk) ErrorLabel.text = "Consumo eléctrico supera la generación";
-                else if (!_design.IsObjectiveOk) ErrorLabel.text = "No se puede aterrizar en un gigante gaseoso";
-                else if (!_design.HasDeltaV) ErrorLabel.text = "ΔV insuficiente: más combustible o mejor motor";
+                if (!_design.IsBudgetOk)     ErrorLabel.text = Loc.T("err.budget");
+                else if (!_design.IsMassOk)  ErrorLabel.text = Loc.T("err.mass");
+                else if (!_design.IsPowerOk) ErrorLabel.text = Loc.T("err.power");
+                else if (!_design.IsObjectiveOk) ErrorLabel.text = Loc.T("err.objective");
+                else if (!_design.HasDeltaV) ErrorLabel.text = Loc.T("err.deltav");
                 else                         ErrorLabel.text = "";
                 ErrorLabel.gameObject.SetActive(!valid);
             }
@@ -337,11 +352,7 @@ namespace Navigator.UI
             GameManager.Instance?.OnLaunchConfirmed();
         }
 
-        public static string PlanetDisplayName(string planetId)
-        {
-            int i = System.Array.IndexOf(_planetIds, planetId);
-            return i >= 0 ? _planetNames[i] : planetId;
-        }
+        public static string PlanetDisplayName(string planetId) => Loc.Planet(planetId);
 
         // ── API pública ────────────────────────────────────────────────────────
 

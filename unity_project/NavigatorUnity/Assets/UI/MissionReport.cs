@@ -1,6 +1,6 @@
 // Navigator 2.0 — MissionReport.cs
-// Informe final: cómo cada decisión de diseño influyó en el resultado de la misión.
-// Es la respuesta directa a "evaluar cómo cada elección moldea el éxito de la misión".
+// Final debrief: how each design decision shaped the mission's result.
+// Direct answer to "evaluate how each choice shapes the success of the mission".
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections.Generic;
@@ -20,65 +20,57 @@ namespace Navigator.UI
         {
             if (d == null || o == null) return "";
             var sb = new StringBuilder();
-            string planet = MissionDesignUI.PlanetDisplayName(d.TargetPlanetId);
 
-            sb.AppendLine($"<color={Accent}><b>INFORME DE MISIÓN</b></color>");
-            sb.AppendLine($"<color={Muted}>{ScienceOpsUI.ObjectiveLabel(d.Objective)} a {planet} · " +
-                          $"misión real parecida: {MissionDesign.RealMission(d.TargetPlanetId, d.Objective)}</color>");
+            sb.AppendLine($"<color={Accent}><b>{Loc.T("rep.title")}</b></color>");
+            sb.AppendLine($"<color={Muted}>{Loc.F("rep.header", Loc.Objective(d.Objective), Loc.Planet(d.TargetPlanetId), MissionDesign.RealMission(d.TargetPlanetId, d.Objective))}</color>");
 
-            // ΔV / propulsión
+            // Propulsion
             float margin = d.DeltaVms / d.RequiredDeltaV - 1f;
             if (o.RanOutOfFuel)
-                Line(sb, Bad, $"Propulsión: te quedaste sin combustible. ΔV {d.DeltaVms:N0} de {d.RequiredDeltaV:N0} m/s " +
-                              "requeridos: más combustible o un motor de mayor Isp (iónico) da más empuje.");
+                Line(sb, Bad, Loc.F("rep.prop.nofuel", d.DeltaVms, d.RequiredDeltaV));
             else if (margin < 0.1f)
-                Line(sb, Warn, $"Propulsión: ΔV justo ({margin:P0} de margen). Llegaste con {o.FuelAtArrival:P0} de " +
-                               "combustible; un margen mayor permite más boost y maniobras.");
+                Line(sb, Warn, Loc.F("rep.prop.tight", margin, o.FuelAtArrival));
             else
-                Line(sb, Good, $"Propulsión: ΔV {d.DeltaVms:N0} m/s, {margin:P0} sobre lo requerido. " +
-                               $"Llegaste con {o.FuelAtArrival:P0} de combustible (+{Mathf.RoundToInt(o.FuelAtArrival * 500)} pts).");
+                Line(sb, Good, Loc.F("rep.prop.good", d.DeltaVms, margin, o.FuelAtArrival,
+                                     Mathf.RoundToInt(o.FuelAtArrival * 500)));
 
-            // Objetivo
+            // Objective
             if (d.IsOrbit || d.IsLanding)
-                Line(sb, Good, $"Objetivo: {ScienceOpsUI.ObjectiveLabel(d.Objective).ToLower()} costó " +
-                               $"+{d.InsertionDeltaV + d.LandingDeltaV:N0} m/s" +
-                               (d.IsLanding ? $" y {MissionDesign.LanderMassKg:F0} kg de módulo" : "") +
-                               $", y multiplicó la ciencia ×{d.ScienceMultiplier:0.#}.");
+                Line(sb, Good, Loc.F("rep.obj.paid", Loc.Objective(d.Objective).ToLower(),
+                                     d.InsertionDeltaV + d.LandingDeltaV,
+                                     d.IsLanding ? Loc.F("rep.obj.lander", MissionDesign.LanderMassKg) : "",
+                                     d.ScienceMultiplier));
             else
-                Line(sb, Muted, "Objetivo: un sobrevuelo es barato, pero una órbita daría ×1.5 de ciencia " +
-                                $"(+{MissionDesign.OrbitInsertionDV.GetValueOrDefault(d.TargetPlanetId, 1000f):N0} m/s).");
+                Line(sb, Muted, Loc.F("rep.obj.flyby",
+                                      MissionDesign.OrbitInsertionDV.GetValueOrDefault(d.TargetPlanetId, 1000f)));
 
             if (!o.Arrived)
             {
-                Line(sb, Bad, $"Vuelo: {o.FailReason ?? "no llegaste"} a los {o.FlightTimeS:F0} s. " +
-                              "Sin llegada no hay ciencia ni bono de combustible.");
+                string reason = o.FailReason != null ? Loc.T(o.FailReason) : Loc.T("fail.notarrived");
+                Line(sb, Bad, Loc.F("rep.fail", reason, o.FlightTimeS));
                 Budget(sb, d);
                 return sb.ToString().TrimEnd();
             }
 
-            // Energía
+            // Power
             if (o.PowerWaitS > 1f)
-                Line(sb, Warn, $"Energía: {d.EffectivePowerW:F0} W no alcanzaron para operar todo a la vez; " +
-                               $"los instrumentos esperaron {o.PowerWaitS:F0} s." +
-                               (d.Power == PowerSystem.Solar ? " A esta distancia del Sol un RTG rinde más." : ""));
+                Line(sb, Warn, Loc.F("rep.power.wait", d.EffectivePowerW, o.PowerWaitS) +
+                               (d.Power == PowerSystem.Solar ? Loc.T("rep.power.solar") : ""));
             else
-                Line(sb, Good, $"Energía: {d.EffectivePowerW:F0} W disponibles, {d.PowerUsedW:F0} W de consumo máximo. Sin esperas.");
+                Line(sb, Good, Loc.F("rep.power.good", d.EffectivePowerW, d.PowerUsedW));
 
-            // Comunicaciones
+            // Communications
             if (o.InstrumentsPlanned == 0)
-                Line(sb, Warn, "Ciencia: no llevaste instrumentos. Cada kilo de instrumento son puntos.");
+                Line(sb, Warn, Loc.T("rep.sci.none"));
             else if (o.PointsLost > 0)
-                Line(sb, Bad, $"Comunicaciones: llegaron {o.InstrumentsReceived} de {o.InstrumentsPlanned} instrumentos; " +
-                              $"se perdieron {o.PointsLost:N0} pts porque la antena no envió " +
-                              $"{d.TotalDataMb:F0} Mb a tiempo. Una antena de mayor ganancia los habría salvado.");
+                Line(sb, Bad, Loc.F("rep.comm.lost", o.InstrumentsReceived, o.InstrumentsPlanned, o.PointsLost, d.TotalDataMb));
             else
-                Line(sb, Good, $"Comunicaciones: los {o.InstrumentsReceived} instrumentos enviaron {d.TotalDataMb:F0} Mb " +
-                               $"a la Tierra ({o.PointsReceived:N0} pts).");
+                Line(sb, Good, Loc.F("rep.comm.good", o.InstrumentsReceived, d.TotalDataMb, o.PointsReceived));
 
             Budget(sb, d);
 
             if (o.Takedowns > 0 || o.HullLeft < 3)
-                Line(sb, Muted, $"Carrera: {o.Takedowns} takedown(s), casco {o.HullLeft}/3, vuelo de {o.FlightTimeS:F0} s.");
+                Line(sb, Muted, Loc.F("rep.race", o.Takedowns, o.HullLeft, o.FlightTimeS));
 
             return sb.ToString().TrimEnd();
         }
@@ -87,8 +79,8 @@ namespace Navigator.UI
         {
             float cap   = MissionDesign.LaunchCapacityKg[d.LaunchVeh];
             float spare = MissionDesign.BudgetLimitM - d.TotalCostM;
-            string msg  = $"Recursos: ${d.TotalCostM:N0}M de $1,000M y {d.WetMassKg:N0} de {cap:N0} kg del lanzador.";
-            if (spare > 150f) msg += $" Sobraron ${spare:N0}M: cabían más instrumentos.";
+            string msg  = Loc.F("rep.budget", d.TotalCostM, d.WetMassKg, cap);
+            if (spare > 150f) msg += Loc.F("rep.budget.spare", spare);
             Line(sb, spare > 150f ? Warn : Good, msg);
         }
 

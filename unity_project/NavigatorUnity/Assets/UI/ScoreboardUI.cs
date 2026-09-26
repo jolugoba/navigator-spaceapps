@@ -93,11 +93,11 @@ namespace Navigator.UI
                 if (LocalArrivalLabel != null)
                     LocalArrivalLabel.text = data.ArrivalPosition > 0
                         ? ArrivalText(data.ArrivalPosition)
-                        : failReason ?? "No llegó";
-                if (LocalScienceLabel  != null) LocalScienceLabel.text  = $"{data.SciencePoints:N0} pts ciencia";
-                if (LocalFuelLabel     != null) LocalFuelLabel.text     = $"Combustible: {data.FuelFraction:P0}";
+                        : failReason ?? Loc.T("fail.notarrived");
+                if (LocalScienceLabel  != null) LocalScienceLabel.text  = Loc.F("sb.science", data.SciencePoints);
+                if (LocalFuelLabel     != null) LocalFuelLabel.text     = Loc.F("sb.fuel", data.FuelFraction);
                 if (LocalTakedownLabel != null)
-                    LocalTakedownLabel.text = $"{data.TakedownCount} takedown{(data.TakedownCount != 1 ? "s" : "")}";
+                    LocalTakedownLabel.text = Loc.F("sb.takedowns", data.TakedownCount);
             }
 
             yield return new WaitForSeconds(0.4f);
@@ -113,13 +113,13 @@ namespace Navigator.UI
             // The rival may still be flying or doing science — never declare a winner early
             if (_remoteScore == RemotePending)
             {
-                if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = "Esperando al rival…";
-                if (WinnerSubLabel     != null) WinnerSubLabel.text     = "Tu rival sigue en misión";
+                if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.T("sb.waiting");
+                if (WinnerSubLabel     != null) WinnerSubLabel.text     = Loc.T("sb.rivalflying");
                 SetButtons(true);
                 while (_remoteScore == RemotePending) yield return null;
             }
 
-            if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = "Misión terminada";
+            if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.T("sb.rivaldone");
             yield return new WaitForSeconds(RevealDelayS);
             yield return AnimateScore(RemoteScoreLabel, RemoteScoreBar, 0, _remoteScore, 1.0f);
             yield return new WaitForSeconds(RevealDelayS);
@@ -156,13 +156,13 @@ namespace Navigator.UI
             bool win  = local  > remote;
             bool draw = local == remote;
 
-            WinnerLabel.text  = win ? "¡VICTORIA!" : draw ? "EMPATE" : "DERROTA";
+            WinnerLabel.text  = win ? Loc.T("sb.win") : draw ? Loc.T("sb.draw") : Loc.T("sb.lose");
             WinnerLabel.color = win ? UIStyle.Gold : draw ? UIStyle.Text : UIStyle.Muted;
 
             if (WinnerSubLabel != null)
-                WinnerSubLabel.text = win  ? "¡Misión completada con éxito!" :
-                                      draw ? "¡Igualados al milímetro!" :
-                                             "Mejor suerte la próxima, cadete.";
+                WinnerSubLabel.text = win  ? Loc.T("sb.win.sub") :
+                                      draw ? Loc.T("sb.draw.sub") :
+                                             Loc.T("sb.lose.sub");
 
             if (win && VictoryFX != null) VictoryFX.SetActive(true);
         }
@@ -171,11 +171,11 @@ namespace Navigator.UI
         {
             if (WinnerLabel == null) return;
             bool failed = !string.IsNullOrEmpty(failReason);
-            WinnerLabel.text  = failed ? "MISIÓN FALLIDA" : "MISIÓN CUMPLIDA";
+            WinnerLabel.text  = failed ? Loc.T("sb.failed") : Loc.T("sb.success");
             WinnerLabel.color = failed ? UIStyle.Bad : UIStyle.Gold;
             if (WinnerSubLabel != null)
-                WinnerSubLabel.text = failed ? $"{failReason}. Revisa tu ΔV y combustible."
-                                             : $"{local:N0} puntos para la NASA";
+                WinnerSubLabel.text = failed ? Loc.F("sb.failed.sub", failReason)
+                                             : Loc.F("sb.success.sub", local);
             if (!failed && VictoryFX != null) VictoryFX.SetActive(true);
         }
 
@@ -199,10 +199,10 @@ namespace Navigator.UI
 
         static string ArrivalText(int pos) => pos switch
         {
-            1 => "#1 PRIMERO",
-            2 => "#2 SEGUNDO",
-            3 => "#3 TERCERO",
-            _ => "Llegó",
+            1 => Loc.T("sb.pos1"),
+            2 => Loc.T("sb.pos2"),
+            3 => Loc.T("sb.pos3"),
+            _ => Loc.T("sb.arrived"),
         };
     }
 }

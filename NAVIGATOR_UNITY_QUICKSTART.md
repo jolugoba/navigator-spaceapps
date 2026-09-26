@@ -61,6 +61,9 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
 En macOS no hay librería nativa para el Editor: se juega en modo solo.
 
+Idioma: el juego arranca en **inglés**; el botón **ESPAÑOL / ENGLISH** del lobby lo cambia.
+Si la nave vuela de reversa (la llama sale por delante): **Navigator → Flip Ship Nose 180°** y Ctrl+S.
+
 ## 5. Build Android
 
 1. **File → Build Profiles → Android → Switch Platform**

@@ -43,7 +43,7 @@ namespace Navigator.Editor
                 var inst = (GameObject)PrefabUtility.InstantiatePrefab(nv01, localShip.transform);
                 inst.name = "Model";
                 inst.transform.localPosition = Vector3.zero;
-                inst.transform.localRotation = Quaternion.identity;
+                ModelFit.AlignLongAxisToForward(inst, NoseFlip("NV-01"));
                 ModelFit.FitToSize(inst, ShipSize);
                 assigned++;
             }
@@ -55,6 +55,9 @@ namespace Navigator.Editor
             {
                 rsm.RemoteShipPrefab = nv02;
                 rsm.ShipSize = ShipSize;
+                var probe = (GameObject)PrefabUtility.InstantiatePrefab(nv02);
+                rsm.ModelYaw = ModelFit.AlignLongAxisToForward(probe, NoseFlip("NV-02"));
+                Object.DestroyImmediate(probe);
                 EditorUtility.SetDirty(rsm);
                 assigned++;
             }
@@ -83,6 +86,18 @@ namespace Navigator.Editor
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
             return assigned;
+        }
+
+        // Which end is the nose can't be measured; "Flip Ship Nose" toggles it and remembers
+        static float NoseFlip(string model) => EditorPrefs.GetBool("Navigator.NoseFlip." + model, false) ? 180f : 0f;
+
+        [MenuItem("Navigator/Flip Ship Nose 180°")]
+        public static void FlipNose()
+        {
+            foreach (var m in new[] { "NV-01", "NV-02" })
+                EditorPrefs.SetBool("Navigator.NoseFlip." + m, !EditorPrefs.GetBool("Navigator.NoseFlip." + m, false));
+            int n = Assign();
+            Debug.Log($"[Navigator] Nariz de las naves girada 180° ({n} modelos reasignados). Guarda la escena.");
         }
 
         static int Set(ref GameObject slot, string prefix)

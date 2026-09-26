@@ -241,7 +241,7 @@ namespace Navigator.Core
         {
             ("mercury", "flyby")   => "Mariner 10 (1974)",
             ("mercury", "orbit")   => "MESSENGER (2011)",
-            ("mercury", "landing") => "ninguna todavía: serías la primera",
+            ("mercury", "landing") => Loc.T("mission.first"),
             ("venus",   "flyby")   => "Mariner 2 (1962)",
             ("venus",   "orbit")   => "Magellan (1990)",
             ("venus",   "landing") => "Venera 13 (1982)",
@@ -253,10 +253,10 @@ namespace Navigator.Core
             ("saturn",  "flyby")   => "Voyager 1 (1980)",
             ("saturn",  "orbit")   => "Cassini (2004)",
             ("uranus",  "flyby")   => "Voyager 2 (1986)",
-            ("uranus",  "orbit")   => "Uranus Orbiter and Probe (propuesta NASA)",
+            ("uranus",  "orbit")   => Loc.F("mission.proposal", "Uranus Orbiter and Probe"),
             ("neptune", "flyby")   => "Voyager 2 (1989)",
-            ("neptune", "orbit")   => "Neptune Odyssey (propuesta NASA)",
-            _                      => "ninguna",
+            ("neptune", "orbit")   => Loc.F("mission.proposal", "Neptune Odyssey"),
+            _                      => Loc.T("mission.none"),
         };
 
         // ── Comunicaciones (datos que cada instrumento debe enviar a la Tierra) ─

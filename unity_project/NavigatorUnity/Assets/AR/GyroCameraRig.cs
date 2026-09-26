@@ -26,6 +26,10 @@ namespace Navigator.AR
         public Quaternion LookRotation { get; private set; } = Quaternion.identity;
 
         private Quaternion _yawOffset = Quaternion.identity;
+        private float _shake;
+
+        // Impact feedback: amount in game units, decays in ~0.4 s
+        public void Shake(float amount) => _shake = Mathf.Max(_shake, amount);
         private float _mouseYaw, _mousePitch;
         private bool  _useGyro;
 
@@ -61,6 +65,12 @@ namespace Navigator.AR
             Vector3 desired = Target.position + LookRotation * new Vector3(0f, ChaseHeight, -ChaseDistance);
             float t = 1f - Mathf.Exp(-FollowSharpness * Time.deltaTime);
             transform.position = Vector3.Lerp(transform.position, desired, t);
+
+            if (_shake > 0.001f)
+            {
+                transform.position += Random.insideUnitSphere * _shake;
+                _shake = Mathf.MoveTowards(_shake, 0f, 2.5f * Time.deltaTime);
+            }
         }
 
         // Unity-space orientation of a portrait phone from the gyro attitude

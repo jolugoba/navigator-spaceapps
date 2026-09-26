@@ -113,13 +113,13 @@ namespace Navigator.Editor
 
             UIKit.Text(p, "Title", "NAVIGATOR", 110, new Vector4(0.05f, 0.87f, 0.95f, 0.96f),
                        TextAlignmentOptions.Center, UIStyle.Accent, FontStyles.Bold);
-            UIKit.Text(p, "Subtitle", "NASA Space Apps 2026 · Carrera espacial AR · P2P sin servidor", 32,
+            UIKit.Text(p, "Subtitle", "@lobby.subtitle", 32,
                        new Vector4(0.05f, 0.83f, 0.95f, 0.87f), TextAlignmentOptions.Center, UIStyle.Muted);
 
             var card = UIKit.Card(p, "QRCard", new Vector4(0.08f, 0.47f, 0.92f, 0.81f), UIStyle.Card);
-            lobby.MyNameLabel = UIKit.TextTop(card, "MyName", gm.PlayerName, 40, 0f, 1f, 24, 56,
+            lobby.MyNameLabel = UIKit.TextTop(card, "MyName", "@player.default", 40, 0f, 1f, 24, 56,
                                               TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
-            UIKit.TextTop(card, "Hint", "Tu rival escanea este código para conectarse", 28, 0f, 1f, 80, 40,
+            UIKit.TextTop(card, "Hint", "@lobby.qrhint", 28, 0f, 1f, 80, 40,
                           TextAlignmentOptions.Center, UIStyle.Muted);
 
             var qrArea = UIKit.Rect(card, "QRArea", new Vector4(0.18f, 0.16f, 0.82f, 0.78f));
@@ -134,20 +134,23 @@ namespace Navigator.Editor
             preview.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             lobby.ScanPreview = preview;
 
-            lobby.MyNodeIdLabel = UIKit.Text(card, "NodeId", "Iniciando red P2P…", 26,
+            lobby.MyNodeIdLabel = UIKit.Text(card, "NodeId", "Starting P2P network…", 26,
                                              new Vector4(0.05f, 0.03f, 0.95f, 0.14f),
                                              TextAlignmentOptions.Center, UIStyle.Muted);
 
-            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Escanear QR", new Vector4(0.08f, 0.37f, 0.92f, 0.44f),
+            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Scan QR", new Vector4(0.08f, 0.37f, 0.92f, 0.44f),
                                             UIStyle.ButtonIdle, UIStyle.Text, 40);
             lobby.ScanStatusText = UIKit.Text(p, "ScanStatus", "", 30, new Vector4(0.08f, 0.31f, 0.92f, 0.36f),
                                               TextAlignmentOptions.Center, UIStyle.Muted);
             lobby.ConnectedPlayersText = UIKit.Text(p, "Connected", "", 34, new Vector4(0.08f, 0.2f, 0.92f, 0.3f),
                                                     TextAlignmentOptions.Center, UIStyle.Text);
-            lobby.StartGameButton = UIKit.Button(p, "StartGameButton", "JUGAR SOLO",
+            lobby.StartGameButton = UIKit.Button(p, "StartGameButton", "PLAY SOLO",
                                                  new Vector4(0.08f, 0.07f, 0.92f, 0.17f),
                                                  UIStyle.Accent, UIStyle.Ink, 52, FontStyles.Bold);
             lobby.StartGameLabel = lobby.StartGameButton.GetComponentInChildren<TMP_Text>();
+
+            lobby.LanguageButton = UIKit.Button(p, "LanguageButton", "@lang.button", new Vector4(0.7f, 0.962f, 0.97f, 0.996f),
+                                                UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
 
             lobby.Senda = gm.Senda;
             lobby.Sync  = gm.SyncService;
@@ -164,16 +167,16 @@ namespace Navigator.Editor
             var p = panel.content;
             ui.Panel = panel.go;
 
-            UIKit.Text(p, "Title", "DISEÑO DE MISIÓN", 58, new Vector4(0.05f, 0.94f, 0.95f, 0.99f),
+            UIKit.Text(p, "Title", "@design.title", 58, new Vector4(0.05f, 0.94f, 0.95f, 0.99f),
                        TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
-            UIKit.Text(p, "Subtitle", "Cada kilo cuenta: Tsiolkovsky decide si llegas", 28,
+            UIKit.Text(p, "Subtitle", "@design.subtitle", 28,
                        new Vector4(0.05f, 0.915f, 0.95f, 0.945f), TextAlignmentOptions.Left, UIStyle.Muted);
 
             var content = UIKit.Scroll(p, "Scroll", new Vector4(0f, 0.25f, 1f, 0.91f));
 
             // Destino
-            var s = UIKit.Section(content, "DESTINO", 350);
-            string[] planets = { "Mercurio", "Venus", "Marte", "Júpiter", "Saturno", "Urano", "Neptuno" };
+            var s = UIKit.Section(content, "@design.destination", 350);
+            string[] planets = { "@planet.mercury", "@planet.venus", "@planet.mars", "@planet.jupiter", "@planet.saturn", "@planet.uranus", "@planet.neptune" };
             ui.PlanetButtons = new Button[planets.Length];
             for (int i = 0; i < planets.Length; i++)
             {
@@ -185,54 +188,54 @@ namespace Navigator.Editor
             ui.CommDelayLabel = UIKit.TextTop(s, "CommDelay", "", 30, 0.5f, 1f, 292, 44, TextAlignmentOptions.Right, UIStyle.Muted);
 
             // Objetivo
-            s = UIKit.Section(content, "OBJETIVO", 250);
-            ui.BtnFlyby   = UIKit.ButtonTop(s, "Flyby",   "Sobrevuelo", 0f,     1f / 3, 78, 90, 32);
-            ui.BtnOrbit   = UIKit.ButtonTop(s, "Orbit",   "Órbita",     1f / 3, 2f / 3, 78, 90, 32);
-            ui.BtnLanding = UIKit.ButtonTop(s, "Landing", "Aterrizaje", 2f / 3, 1f,     78, 90, 32);
+            s = UIKit.Section(content, "@design.objective", 250);
+            ui.BtnFlyby   = UIKit.ButtonTop(s, "Flyby",   "@objective.flyby", 0f,     1f / 3, 78, 90, 32);
+            ui.BtnOrbit   = UIKit.ButtonTop(s, "Orbit",   "@objective.orbit",     1f / 3, 2f / 3, 78, 90, 32);
+            ui.BtnLanding = UIKit.ButtonTop(s, "Landing", "@objective.landing", 2f / 3, 1f,     78, 90, 32);
             ui.ObjectiveInfoLabel = UIKit.TextTop(s, "ObjectiveInfo", "", 28, 0f, 1f, 180, 44, TextAlignmentOptions.Left, UIStyle.Muted);
 
             // Motor
-            s = UIKit.Section(content, "MOTOR", 330);
-            ui.BtnChemical = UIKit.ButtonTop(s, "Chemical", "Químico", 0f,     1f / 3, 78, 90, 32);
-            ui.BtnIon      = UIKit.ButtonTop(s, "Ion",      "Iónico",  1f / 3, 2f / 3, 78, 90, 32);
-            ui.BtnNuclear  = UIKit.ButtonTop(s, "Nuclear",  "Nuclear", 2f / 3, 1f,     78, 90, 32);
+            s = UIKit.Section(content, "@design.engine", 330);
+            ui.BtnChemical = UIKit.ButtonTop(s, "Chemical", "@engine.Chemical", 0f,     1f / 3, 78, 90, 32);
+            ui.BtnIon      = UIKit.ButtonTop(s, "Ion",      "@engine.Ion",  1f / 3, 2f / 3, 78, 90, 32);
+            ui.BtnNuclear  = UIKit.ButtonTop(s, "Nuclear",  "@engine.Nuclear", 2f / 3, 1f,     78, 90, 32);
             ui.EngineFuelLabel = UIKit.TextTop(s, "EngineFuel", "", 30, 0f, 1f, 182, 44, TextAlignmentOptions.Left, UIStyle.Text);
             ui.EngineNasaLabel = UIKit.TextTop(s, "EngineNasa", "", 26, 0f, 1f, 228, 84, TextAlignmentOptions.TopLeft, UIStyle.Muted);
 
             // Combustible
-            s = UIKit.Section(content, "COMBUSTIBLE", 190);
+            s = UIKit.Section(content, "@design.fuel", 190);
             ui.FuelSlider     = UIKit.SliderTop(s, "FuelSlider", 0f, 0.68f, 96, 56);
             ui.FuelValueLabel = UIKit.TextTop(s, "FuelValue", "", 40, 0.7f, 1f, 86, 72, TextAlignmentOptions.Right, UIStyle.Text, FontStyles.Bold);
 
             // ΔV
-            s = UIKit.Section(content, "ΔV · ECUACIÓN DE TSIOLKOVSKY", 260);
+            s = UIKit.Section(content, "@design.deltav", 260);
             ui.DeltaVLabel       = UIKit.TextTop(s, "DeltaV", "", 56, 0f, 0.6f, 66, 76, TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.DeltaVStatusLabel = UIKit.TextTop(s, "DeltaVStatus", "", 36, 0.6f, 1f, 76, 60, TextAlignmentOptions.Right, UIStyle.Good, FontStyles.Bold);
             ui.DeltaVBar         = UIKit.BarTop(s, "DeltaVBar", 0f, 1f, 152, 26, UIStyle.Good);
             ui.DeltaVRequiredLabel = UIKit.TextTop(s, "DeltaVRequired", "", 30, 0f, 1f, 192, 44, TextAlignmentOptions.Left, UIStyle.Muted);
 
             // Energía
-            s = UIKit.Section(content, "ENERGÍA", 380);
+            s = UIKit.Section(content, "@design.power", 380);
             ui.BtnSolar          = UIKit.ButtonTop(s, "Solar",   "Solar",   0f,     1f / 3, 78, 90, 32);
             ui.BtnRTG            = UIKit.ButtonTop(s, "RTG",     "RTG",     1f / 3, 2f / 3, 78, 90, 32);
-            ui.BtnNuclearReactor = UIKit.ButtonTop(s, "Reactor", "Reactor", 2f / 3, 1f,     78, 90, 32);
+            ui.BtnNuclearReactor = UIKit.ButtonTop(s, "Reactor", "@power.NuclearReactor", 2f / 3, 1f,     78, 90, 32);
             ui.PowerOutputLabel = UIKit.TextTop(s, "PowerOutput", "", 30, 0f,   0.5f, 182, 44, TextAlignmentOptions.Left,  UIStyle.Text);
             ui.PowerUsedLabel   = UIKit.TextTop(s, "PowerUsed",   "", 30, 0.5f, 1f,   182, 44, TextAlignmentOptions.Right, UIStyle.Text);
             ui.PowerNasaLabel   = UIKit.TextTop(s, "PowerNasa",   "", 26, 0f,   1f,   228, 80, TextAlignmentOptions.TopLeft, UIStyle.Muted);
             var warn = UIKit.ImageTop(s, "SolarWarning", 0f, 1f, 314, 50, new Color(UIStyle.Warn.r, UIStyle.Warn.g, UIStyle.Warn.b, 0.2f));
-            UIKit.Text(warn.rectTransform, "Text", "Paneles solares casi inútiles tan lejos del Sol", 26,
+            UIKit.Text(warn.rectTransform, "Text", "@design.solarwarn", 26,
                        new Vector4(0.03f, 0f, 0.97f, 1f), TextAlignmentOptions.Center, UIStyle.Warn);
             ui.SolarWarning = warn.gameObject;
 
             // Antena
-            s = UIKit.Section(content, "ANTENA · COMUNICACIONES", 240);
-            ui.BtnLowGain    = UIKit.ButtonTop(s, "Low",    "Baja",  0f,     1f / 3, 78, 90, 32);
-            ui.BtnMediumGain = UIKit.ButtonTop(s, "Medium", "Media", 1f / 3, 2f / 3, 78, 90, 32);
-            ui.BtnHighGain   = UIKit.ButtonTop(s, "High",   "Alta",  2f / 3, 1f,     78, 90, 32);
+            s = UIKit.Section(content, "@design.antenna", 240);
+            ui.BtnLowGain    = UIKit.ButtonTop(s, "Low",    "@antenna.LowGain",  0f,     1f / 3, 78, 90, 32);
+            ui.BtnMediumGain = UIKit.ButtonTop(s, "Medium", "@antenna.MediumGain", 1f / 3, 2f / 3, 78, 90, 32);
+            ui.BtnHighGain   = UIKit.ButtonTop(s, "High",   "@antenna.HighGain",  2f / 3, 1f,     78, 90, 32);
             ui.AntennaDataRateLabel = UIKit.TextTop(s, "DataRate", "", 30, 0f, 1f, 182, 44, TextAlignmentOptions.Left, UIStyle.Text);
 
             // Lanzador
-            s = UIKit.Section(content, "LANZADOR", 240);
+            s = UIKit.Section(content, "@design.launcher", 240);
             ui.BtnFalcon9     = UIKit.ButtonTop(s, "Falcon9",     "Falcon 9", 0f,    0.25f, 78, 90, 28);
             ui.BtnFalconHeavy = UIKit.ButtonTop(s, "FalconHeavy", "F. Heavy", 0.25f, 0.5f,  78, 90, 28);
             ui.BtnSLS         = UIKit.ButtonTop(s, "SLS",         "SLS",      0.5f,  0.75f, 78, 90, 28);
@@ -242,7 +245,7 @@ namespace Navigator.Editor
             // Instrumentos
             var instruments = (ScienceInstrument[])System.Enum.GetValues(typeof(ScienceInstrument));
             int rows = (instruments.Length + 1) / 2;
-            s = UIKit.Section(content, "INSTRUMENTOS CIENTÍFICOS", 78 + rows * 100 + 70);
+            s = UIKit.Section(content, "@design.instruments", 78 + rows * 100 + 70);
             ui.InstrumentToggles = new Toggle[instruments.Length];
             for (int i = 0; i < instruments.Length; i++)
             {
@@ -265,7 +268,7 @@ namespace Navigator.Editor
             ui.BudgetBar         = UIKit.BarTop(footer, "BudgetBar", 0.52f, 0.96f, 66, 16, UIStyle.Gold);
             ui.MassFractionLabel = UIKit.TextTop(footer, "MassFraction", "", 28, 0.04f, 0.96f, 92, 40, TextAlignmentOptions.Left, UIStyle.Muted);
             ui.ErrorLabel        = UIKit.TextTop(footer, "Error", "", 30, 0.04f, 0.96f, 136, 46, TextAlignmentOptions.Center, UIStyle.Bad, FontStyles.Bold);
-            ui.LaunchButton      = UIKit.ButtonTop(footer, "LaunchButton", "LANZAR MISIÓN", 0.04f, 0.96f, 196, 124, 50,
+            ui.LaunchButton      = UIKit.ButtonTop(footer, "LaunchButton", "@design.launchbtn", 0.04f, 0.96f, 196, 124, 50,
                                                    UIStyle.Accent, UIStyle.Ink, FontStyles.Bold, inset: 0f);
             return panel.go;
         }
@@ -326,29 +329,32 @@ namespace Navigator.Editor
                                                 TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
             hud.NearMissComboObj = hud.NearMissComboLabel.gameObject;
             hud.NearMissComboObj.SetActive(false);
-            hud.LowFuelWarning = UIKit.Text(p, "LowFuel", "COMBUSTIBLE BAJO", 44, new Vector4(0.05f, 0.3f, 0.95f, 0.34f),
+            hud.LowFuelWarning = UIKit.Text(p, "LowFuel", "LOW FUEL", 44, new Vector4(0.05f, 0.3f, 0.95f, 0.34f),
                                             TextAlignmentOptions.Center, UIStyle.Warn, FontStyles.Bold).gameObject;
             hud.LowFuelWarning.SetActive(false);
 
-            UIKit.Text(p, "ControlsHint", "1 dedo: acelerar · 2 dedos: boost · apunta el celular para girar", 26,
+            hud.ImpactLabel = UIKit.Text(p, "Impact", "", 50, new Vector4(0.04f, 0.47f, 0.96f, 0.54f),
+                                         TextAlignmentOptions.Center, UIStyle.Warn, FontStyles.Bold);
+
+            UIKit.Text(p, "ControlsHint", "@hud.controls", 26,
                        new Vector4(0.03f, 0.265f, 0.97f, 0.29f), TextAlignmentOptions.Center, UIStyle.Muted);
 
             // Burnout + casco
             UIKit.Text(p, "BurnoutTitle", "BURNOUT", 28, new Vector4(0.03f, 0.235f, 0.5f, 0.26f),
                        TextAlignmentOptions.Left, UIStyle.Burnout, FontStyles.Bold);
-            hud.LivesLabel = UIKit.Text(p, "Lives", "CASCO 3/3", 28, new Vector4(0.5f, 0.235f, 0.97f, 0.26f),
+            hud.LivesLabel = UIKit.Text(p, "Lives", "HULL 3/3", 28, new Vector4(0.5f, 0.235f, 0.97f, 0.26f),
                                         TextAlignmentOptions.Right, UIStyle.Text, FontStyles.Bold);
             hud.BurnoutBar = UIKit.Bar(p, "BurnoutBar", new Vector4(0.03f, 0.215f, 0.97f, 0.232f), UIStyle.Burnout);
 
             // Velocidad y combustible
             var speed = UIKit.Card(p, "SpeedCard", new Vector4(0.03f, 0.03f, 0.485f, 0.2f), UIStyle.HudCard);
-            UIKit.Text(speed, "Title", "VELOCIDAD", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+            UIKit.Text(speed, "Title", "@hud.speed", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
             hud.SpeedLabel = UIKit.Text(speed, "Value", "0 m/s", 60, new Vector4(0.08f, 0.28f, 0.92f, 0.72f),
                                         TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             hud.SpeedGaugeFill = UIKit.Bar(speed, "Gauge", new Vector4(0.08f, 0.12f, 0.92f, 0.2f), UIStyle.Accent);
 
             var fuel = UIKit.Card(p, "FuelCard", new Vector4(0.515f, 0.03f, 0.97f, 0.2f), UIStyle.HudCard);
-            UIKit.Text(fuel, "Title", "COMBUSTIBLE", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+            UIKit.Text(fuel, "Title", "@hud.fuel", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
             hud.FuelLabel = UIKit.Text(fuel, "Value", "100%", 60, new Vector4(0.08f, 0.28f, 0.92f, 0.72f),
                                        TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             hud.FuelBar = UIKit.Bar(fuel, "Bar", new Vector4(0.08f, 0.12f, 0.92f, 0.2f), UIStyle.Good);
@@ -367,7 +373,7 @@ namespace Navigator.Editor
             var p = panel.content;
             ui.Panel = panel.go;
 
-            ui.PlanetNameLabel = UIKit.Text(p, "Planet", "MARTE", 90, new Vector4(0.05f, 0.9f, 0.95f, 0.98f),
+            ui.PlanetNameLabel = UIKit.Text(p, "Planet", "MARS", 90, new Vector4(0.05f, 0.9f, 0.95f, 0.98f),
                                             TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
             ui.ArrivalPositionLabel  = UIKit.Text(p, "Arrival", "", 34, new Vector4(0.05f, 0.865f, 0.6f, 0.9f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
             ui.MissionObjectiveLabel = UIKit.Text(p, "Objective", "", 30, new Vector4(0.6f, 0.865f, 0.95f, 0.9f), TextAlignmentOptions.Right, UIStyle.Text);
@@ -381,12 +387,12 @@ namespace Navigator.Editor
             ui.WindowLabel   = UIKit.Text(p, "Window",   "", 36, new Vector4(0.05f, 0.685f, 0.95f, 0.72f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
 
             var power = UIKit.Card(p, "Power", new Vector4(0.05f, 0.605f, 0.95f, 0.68f), UIStyle.Card);
-            UIKit.Text(power, "Title", "ENERGÍA", 28, new Vector4(0.04f, 0.55f, 0.4f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+            UIKit.Text(power, "Title", "@sci.power", 28, new Vector4(0.04f, 0.55f, 0.4f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
             ui.PowerLabel       = UIKit.Text(power, "Value",  "", 32, new Vector4(0.4f, 0.55f, 0.75f, 0.92f), TextAlignmentOptions.Center, UIStyle.Text);
             ui.PowerStatusLabel = UIKit.Text(power, "Status", "", 32, new Vector4(0.75f, 0.55f, 0.96f, 0.92f), TextAlignmentOptions.Right, UIStyle.Good, FontStyles.Bold);
             ui.PowerBar         = UIKit.Bar(power, "Bar", new Vector4(0.04f, 0.18f, 0.96f, 0.36f), UIStyle.Accent);
 
-            UIKit.Text(p, "InstTitle", "INSTRUMENTOS: ESCANEO → ENVÍO → TIERRA", 28, new Vector4(0.05f, 0.575f, 0.95f, 0.6f),
+            UIKit.Text(p, "InstTitle", "@sci.pipeline", 28, new Vector4(0.05f, 0.575f, 0.95f, 0.6f),
                        TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
             var list = UIKit.Rect(p, "Instruments", new Vector4(0.05f, 0.3f, 0.95f, 0.57f));
             var vlg = list.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -403,7 +409,7 @@ namespace Navigator.Editor
             ui.FuelLabel          = UIKit.Text(score, "Fuel", "", 28, new Vector4(0.04f, 0.08f, 0.3f, 0.38f), TextAlignmentOptions.Left, UIStyle.Muted);
             ui.FuelBar            = UIKit.Bar(score, "FuelBar", new Vector4(0.32f, 0.17f, 0.96f, 0.29f), UIStyle.Good);
 
-            ui.CompleteMissionBtn = UIKit.Button(p, "CompleteMission", "Operaciones en curso…",
+            ui.CompleteMissionBtn = UIKit.Button(p, "CompleteMission", "Operations in progress…",
                                                  new Vector4(0.05f, 0.03f, 0.95f, 0.135f),
                                                  UIStyle.Accent, UIStyle.Ink, 44, FontStyles.Bold);
             ui.CompleteBtnLabel = ui.CompleteMissionBtn.GetComponentInChildren<TMP_Text>();
@@ -420,7 +426,7 @@ namespace Navigator.Editor
             var bg = item.AddComponent<Image>();
             UIKit.Rounded(bg, UIStyle.Card);
 
-            UIKit.Text(item.transform, "Label",    "Instrumento", 30, new Vector4(0.04f, 0.4f, 0.64f, 0.95f), TextAlignmentOptions.Left,  UIStyle.Text);
+            UIKit.Text(item.transform, "Label",    "Instrument", 30, new Vector4(0.04f, 0.4f, 0.64f, 0.95f), TextAlignmentOptions.Left,  UIStyle.Text);
             UIKit.Text(item.transform, "PtsLabel", "0 / 0",       28, new Vector4(0.64f, 0.4f, 0.96f, 0.95f), TextAlignmentOptions.Right, UIStyle.Accent);
             UIKit.Image(item.transform, "BarTrack", new Vector4(0.04f, 0.14f, 0.96f, 0.3f), UIStyle.BarTrack);
             var fill = UIKit.Image(item.transform, "Bar", new Vector4(0.04f, 0.14f, 0.96f, 0.3f), UIStyle.Accent);
@@ -447,7 +453,7 @@ namespace Navigator.Editor
             ui.WinnerSubLabel = UIKit.Text(p, "WinnerSub", "", 32, new Vector4(0.05f, 0.86f, 0.95f, 0.9f), TextAlignmentOptions.Center, UIStyle.Text);
 
             var local = UIKit.Card(p, "Local", new Vector4(0.05f, 0.645f, 0.95f, 0.855f), UIStyle.Card);
-            ui.LocalPlayerName   = UIKit.Text(local, "Name",  "Tú", 40, new Vector4(0.05f, 0.8f, 0.55f, 0.95f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            ui.LocalPlayerName   = UIKit.Text(local, "Name",  "You", 40, new Vector4(0.05f, 0.8f, 0.55f, 0.95f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.LocalScoreLabel   = UIKit.Text(local, "Score", "0", 96, new Vector4(0.45f, 0.62f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Accent, FontStyles.Bold);
             ui.LocalArrivalLabel = UIKit.Text(local, "Arrival", "", 34, new Vector4(0.05f, 0.64f, 0.55f, 0.8f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
             ui.LocalScoreBar     = UIKit.Bar(local, "Bar", new Vector4(0.05f, 0.52f, 0.95f, 0.58f), UIStyle.Accent);
@@ -467,9 +473,9 @@ namespace Navigator.Editor
                                          TextAlignmentOptions.TopLeft, UIStyle.Text);
             ui.DebriefLabel.fontSizeMin = 16f;
 
-            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "MEJORAR DISEÑO Y REPETIR", new Vector4(0.05f, 0.13f, 0.95f, 0.23f),
+            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.13f, 0.95f, 0.23f),
                                               UIStyle.Accent, UIStyle.Ink, 48, FontStyles.Bold);
-            ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "Menú principal", new Vector4(0.05f, 0.03f, 0.95f, 0.11f),
+            ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "@sb.menu", new Vector4(0.05f, 0.03f, 0.95f, 0.11f),
                                               UIStyle.ButtonIdle, UIStyle.Text, 38);
             return panel.go;
         }
@@ -641,6 +647,13 @@ namespace Navigator.Editor
 
         static TMP_Text Style(TextMeshProUGUI t, string text, float size, TextAlignmentOptions align, Color c, FontStyles style)
         {
+            // "@key" = localized fixed text that follows the language toggle
+            if (!string.IsNullOrEmpty(text) && text[0] == '@')
+            {
+                string key = text.Substring(1);
+                t.gameObject.AddComponent<LocalizedText>().Key = key;
+                text = Loc.T(key);
+            }
             t.text      = text;
             t.fontSize  = size;
             t.enableAutoSizing = true;
@@ -809,7 +822,7 @@ namespace Navigator.Editor
 
         public static RectTransform Section(RectTransform content, string title, float height)
         {
-            var card = Image(content, title, Vector4.zero, UIStyle.Card);
+            var card = Image(content, title.TrimStart('@'), Vector4.zero, UIStyle.Card);
             var le = card.gameObject.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.minHeight       = height;

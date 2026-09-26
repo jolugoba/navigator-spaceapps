@@ -74,7 +74,7 @@ namespace Navigator.UI
         public float ArrivalMargin  = 40f;    // distancia a la superficie que cuenta como llegada
         public float LaneSpacing    = 6f;     // separación lateral entre jugadores en la salida
         public float MaxFlightTimeS = 240f;   // sin llegar a tiempo = misión fallida
-        public string PlayerName    = "Cadete";
+        public string PlayerName => Loc.T("player.default");
 
         // ── Estado runtime ─────────────────────────────────────────────────────
         public  GameState     State      { get; private set; } = GameState.Lobby;
@@ -185,10 +185,9 @@ namespace Navigator.UI
         IEnumerator CountdownCoroutine()
         {
             if (CountdownSubLabel != null)
-                CountdownSubLabel.text = $"Destino: {Navigator.UI.MissionDesignUI.PlanetDisplayName(Mission.TargetPlanetId)}\n" +
-                                         "Apunta el celular hacia el planeta · Mantén el dedo para acelerar";
+                CountdownSubLabel.text = Loc.F("count.sub", Loc.Planet(Mission.TargetPlanetId));
 
-            foreach (string l in new[] { "3", "2", "1", "¡DESPEGUE!" })
+            foreach (string l in new[] { "3", "2", "1", Loc.T("count.liftoff") })
             {
                 if (CountdownLabel != null) CountdownLabel.text = l;
                 yield return new WaitForSeconds(1f);
@@ -300,7 +299,7 @@ namespace Navigator.UI
             }
 
             var col = Ship.GetComponent<CollisionSystem>();
-            if (col != null && col.Lives <= 0) { FailMission("Nave destruida"); return; }
+            if (col != null && col.Lives <= 0) { FailMission("fail.destroyed"); return; }
 
             // Out of fuel and coasted to a stop: no point waiting for the clock
             var fuel = Ship.GetComponent<FuelSystem>();
@@ -308,10 +307,10 @@ namespace Navigator.UI
             if (fuel != null && fuel.IsEmpty && rb != null && rb.linearVelocity.magnitude < 2f)
             {
                 Outcome.RanOutOfFuel = true;
-                FailMission("Sin combustible");
+                FailMission("fail.nofuel");
                 return;
             }
-            if (_flightTimer >= MaxFlightTimeS) { FailMission("Tiempo agotado");  return; }
+            if (_flightTimer >= MaxFlightTimeS) { FailMission("fail.timeout");  return; }
         }
 
         void RecordFlight(bool arrived)
@@ -405,7 +404,7 @@ namespace Navigator.UI
             SetState(GameState.Scoreboard);
             SetPanels(scoreboard: true);
             ScoreboardUI?.SetLocalPlayerName(PlayerName);
-            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason,
+            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason != null ? Loc.T(FailReason) : null,
                                MissionReport.Build(Mission, Outcome));
         }
 
@@ -425,9 +424,34 @@ namespace Navigator.UI
 
         void OnNetMessage(NavMsg msg)
         {
+            if (msg.t != nameof(NavMsgType.shipEvent) || Ship == null || State != GameState.InFlight) return;
+
             // Rival picked up an EMP pod: our Burnout is suppressed
-            if (msg.t == nameof(NavMsgType.shipEvent) && msg.pl_json.Contains("\"emp\"") && Ship != null)
+            if (msg.pl_json.Contains("\"emp\""))
+            {
                 Ship.GetComponent<BurnoutSystem>()?.SuppressFor(Powerup.EmpSeconds);
+                HUD?.Flash("hud.emp", UIStyle.Burnout, 0.4f);
+            }
+
+            // Rival rammed us: their device resolved the crash and sent our new velocity
+            if (msg.pl_json.Contains("\"hit\""))
+            {
+                var sev = (CollisionSeverity)Mathf.Clamp((int)Num(msg.pl_json, "hit"), 0, 2);
+                var v   = new Vector3(Num(msg.pl_json, "vx"), Num(msg.pl_json, "vy"), Num(msg.pl_json, "vz"));
+                Ship.GetComponent<CollisionSystem>()?.ReceiveHit(sev, v);
+            }
+        }
+
+        static float Num(string json, string key)
+        {
+            string k = $"\"{key}\":";
+            int i = json.IndexOf(k);
+            if (i < 0) return 0f;
+            i += k.Length;
+            int e = json.IndexOfAny(new[] { ',', '}' }, i);
+            string v = e > i ? json[i..e] : "";
+            return float.TryParse(v, System.Globalization.NumberStyles.Float,
+                                  System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 0f;
         }
 
         void OnRemoteArrived()

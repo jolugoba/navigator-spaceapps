@@ -4,6 +4,8 @@
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
+using UnityEngine.Events;
+using Navigator.Network;
 
 namespace Navigator.Game
 {
@@ -19,6 +21,12 @@ namespace Navigator.Game
         public GameObject ExplosionPrefab;   // asignar en Inspector
 
         public bool IsInvincible { get; private set; }
+
+        [HideInInspector] public string RemoteNodeId;   // set on rival proxies by RemoteShipManager
+
+        // HUD and camera shake listen to these (local ship only)
+        public UnityEvent<CollisionSeverity> OnDamaged = new();
+        public UnityEvent                    OnBlocked = new();   // shield / Burnout absorbed it
 
         private float      _invTimer;
         private Rigidbody  _rb;
@@ -50,7 +58,11 @@ namespace Navigator.Game
             if (IsInvincible || _rb.isKinematic) return;
 
             var other = col.gameObject.GetComponent<CollisionSystem>();
-            if (other != null) ResolveShipCollision(other, col.relativeVelocity.magnitude);
+            if (other == null) return;
+
+            // Both phones see the same crash; only the lower NodeId resolves it so damage isn't doubled
+            if (other._rb.isKinematic && !IsAuthorityOver(other.RemoteNodeId)) return;
+            ResolveShipCollision(other, col.relativeVelocity.magnitude);
         }
 
         // ── Resolve ship-to-ship collision ────────────────────────────────────
@@ -78,7 +90,11 @@ namespace Navigator.Game
 
             // Burnout mode = invincible
             if (_burnout == null || !_burnout.BurnoutActive) ApplyDamage(severity);
-            other.ApplyDamage(severity);
+            else OnBlocked.Invoke();
+
+            // The rival simulates their own ship: tell them they were hit and how they bounce
+            if (other._rb.isKinematic) SendHit(severity, vf2);
+            else other.ApplyDamage(severity);
 
             // Determine takedown — faster lighter ship vs heavier slower = takedown
             bool isTakedown = false;
@@ -99,9 +115,41 @@ namespace Navigator.Game
             StartInvincibility();
         }
 
+        static bool IsAuthorityOver(string rivalId)
+        {
+            var senda = FindObjectOfType<SendaBridge>();
+            if (senda == null || string.IsNullOrEmpty(senda.NodeId) || string.IsNullOrEmpty(rivalId)) return true;
+            return string.CompareOrdinal(senda.NodeId, rivalId) < 0;
+        }
+
+        void SendHit(CollisionSeverity severity, Vector3 newVelocity)
+        {
+            var senda = FindObjectOfType<SendaBridge>();
+            if (senda == null || !senda.Initialized) return;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            senda.Broadcast(NavMsg.Build(NavMsgType.shipEvent, senda.NodeId,
+                "{\"hit\":" + (int)severity +
+                ",\"vx\":" + newVelocity.x.ToString("F2", ci) +
+                ",\"vy\":" + newVelocity.y.ToString("F2", ci) +
+                ",\"vz\":" + newVelocity.z.ToString("F2", ci) +
+                ",\"name\":\"SYSTEM\",\"text\":\"HIT\"}"));
+        }
+
+        // Rival rammed us (applied on the victim's own device)
+        public void ReceiveHit(CollisionSeverity severity, Vector3 newVelocity)
+        {
+            if (_rb.isKinematic) return;
+            ExplosionVFX.Spawn(ExplosionPrefab, _rb.position, false);
+            if (IsInvincible || (_burnout != null && _burnout.BurnoutActive)) { OnBlocked.Invoke(); return; }
+            _rb.linearVelocity = newVelocity;
+            ApplyDamage(severity);
+            StartInvincibility();
+        }
+
         // ── Damage model ──────────────────────────────────────────────────────
         public void ApplyDamage(CollisionSeverity severity)
         {
+            OnDamaged.Invoke(severity);
             switch (severity)
             {
                 case CollisionSeverity.Light:

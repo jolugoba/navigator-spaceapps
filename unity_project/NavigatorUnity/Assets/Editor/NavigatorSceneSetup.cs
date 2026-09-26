@@ -85,6 +85,9 @@ namespace Navigator.Editor
             EnsureComp<ShipCustomizer>(ship);
             EnsureComp<ShipAnimator>(ship);
             var arShip    = EnsureComp<ARShipController>(ship);
+            var thruster  = EnsureComp<ThrusterFX>(ship);
+            thruster.ParticleMaterial = ParticleMaterial();
+            thruster.ShipLength       = NavigatorAssignModels.ShipSize;
 
             shipCtrl.Physics      = physics;
             shipCtrl.IsLocalPlayer = true;
@@ -134,6 +137,7 @@ namespace Navigator.Editor
 
             remote.ARCamera      = cam;
             remote.NameTagPrefab = NameTagPrefab();
+            remote.ExhaustMaterial = ParticleMaterial();
 
             // ── Modelos GLB (requiere glTFast) ────────────────────────────────
             int models = NavigatorAssignModels.Assign();

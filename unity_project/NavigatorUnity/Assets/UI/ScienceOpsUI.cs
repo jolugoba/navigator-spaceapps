@@ -97,15 +97,10 @@ namespace Navigator.UI
             { ScienceInstrument.RadarAltimeter,    30f },
         };
 
-        private static readonly Dictionary<string, (float g, string atm)> PlanetData = new()
+        private static readonly Dictionary<string, float> SurfaceGravity = new()
         {
-            { "mercury", (3.70f,  "Sin atmósfera") },
-            { "venus",   (8.87f,  "CO2 densa, 92 atm, 465 °C") },
-            { "mars",    (3.72f,  "CO2 delgada, 0.006 atm") },
-            { "jupiter", (24.79f, "H2 + He, sin superficie sólida") },
-            { "saturn",  (10.44f, "H2 + He, anillos de hielo") },
-            { "uranus",  (8.87f,  "H2 + He + CH4, gigante helado") },
-            { "neptune", (11.15f, "H2 + He + CH4, vientos de 2,100 km/h") },
+            { "mercury", 3.70f }, { "venus", 8.87f }, { "mars", 3.72f }, { "jupiter", 24.79f },
+            { "saturn", 10.44f }, { "uranus", 8.87f }, { "neptune", 11.15f },
         };
 
         void Awake()
@@ -146,7 +141,7 @@ namespace Navigator.UI
 
             BuildItems();
             RefreshHeader(arrivalPosition);
-            SetCompleteButton(false, "Operaciones en curso…");
+            SetCompleteButton(false, Loc.T("sci.busy"));
             if (Panel != null) Panel.SetActive(true);
 
             // A design with no instruments has nothing to do here
@@ -265,8 +260,8 @@ namespace Navigator.UI
 
             RefreshItems();
             RefreshLiveLabels();
-            if (WindowLabel != null) WindowLabel.text = "Ventana cerrada";
-            SetCompleteButton(true, "COMPLETAR MISIÓN");
+            if (WindowLabel != null) WindowLabel.text = Loc.T("sci.windowclosed");
+            SetCompleteButton(true, Loc.T("sci.complete"));
         }
 
         void CompleteMission()
@@ -291,7 +286,7 @@ namespace Navigator.UI
                 item.name = op.Inst.ToString();
                 op.Item = item.transform;
                 var label = op.Item.Find("Label")?.GetComponent<TMP_Text>();
-                if (label != null) label.text = InstrumentDisplayName(op.Inst);
+                if (label != null) label.text = Loc.Instrument(op.Inst);
             }
         }
 
@@ -306,13 +301,13 @@ namespace Navigator.UI
 
                 (float fill, Color color, string text) = op.Stage switch
                 {
-                    Stage.WaitingPower => (op.Scan, UIStyle.Warn,   "Esperando energía"),
-                    Stage.Scanning     => (op.Scan, UIStyle.Accent, $"Escaneando {op.Scan:P0}"),
-                    Stage.Queued       => (0f,      UIStyle.Muted,  "En cola de envío"),
-                    Stage.Transmitting => (op.SentMb / size, UIStyle.Gold, $"Enviando {op.SentMb:F0}/{size:F0} Mb"),
-                    Stage.InTransit    => (1f,      UIStyle.Gold,   $"Viajando a la Tierra {op.TransitLeft:F0} s"),
-                    Stage.Received     => (1f,      UIStyle.Good,   $"+{Points(op.Inst):N0} pts"),
-                    _                  => (1f,      UIStyle.Bad,    "Perdido: sin ventana"),
+                    Stage.WaitingPower => (op.Scan, UIStyle.Warn,   Loc.T("sci.st.power")),
+                    Stage.Scanning     => (op.Scan, UIStyle.Accent, Loc.F("sci.st.scan", op.Scan)),
+                    Stage.Queued       => (0f,      UIStyle.Muted,  Loc.T("sci.st.queued")),
+                    Stage.Transmitting => (op.SentMb / size, UIStyle.Gold, Loc.F("sci.st.sending", op.SentMb, size)),
+                    Stage.InTransit    => (1f,      UIStyle.Gold,   Loc.F("sci.st.transit", op.TransitLeft)),
+                    Stage.Received     => (1f,      UIStyle.Good,   Loc.F("sci.st.received", Points(op.Inst))),
+                    _                  => (1f,      UIStyle.Bad,    Loc.T("sci.st.lost")),
                 };
                 if (bar != null) { bar.fillAmount = fill; bar.color = color; }
                 if (pts != null) { pts.text = text; pts.color = color; }
@@ -327,50 +322,50 @@ namespace Navigator.UI
             if (PowerStatusLabel != null)
             {
                 bool waiting = _ops.Exists(o => o.Stage == Stage.WaitingPower);
-                PowerStatusLabel.text  = waiting ? "ESPERANDO ENERGÍA" : "OK";
+                PowerStatusLabel.text  = waiting ? Loc.T("sci.waitpower") : Loc.T("design.ok");
                 PowerStatusLabel.color = waiting ? UIStyle.Warn : UIStyle.Good;
             }
 
             if (WindowLabel != null && !_done)
             {
                 float t = Mathf.Max(0f, _windowLeft);
-                WindowLabel.text  = $"Ventana de comunicación {(int)t / 60}:{(int)t % 60:00}";
+                WindowLabel.text  = Loc.F("sci.window", (int)t / 60, (int)t % 60);
                 WindowLabel.color = t < 15f ? UIStyle.Bad : UIStyle.Text;
             }
 
             if (_fuel != null)
             {
                 if (FuelBar   != null) FuelBar.fillAmount = _fuel.FuelFraction;
-                if (FuelLabel != null) FuelLabel.text     = $"Combustible {_fuel.FuelFraction:P0}";
+                if (FuelLabel != null) FuelLabel.text     = Loc.F("sci.fuel", _fuel.FuelFraction);
             }
 
             if (_score != null)
             {
                 _score.FuelFraction = _fuel != null ? _fuel.FuelFraction : 1f;
                 int total = _score.TotalScore();
-                if (SciencePointsLabel != null) SciencePointsLabel.text = $"{_score.SciencePoints:N0} pts recibidos";
-                if (TotalScoreLabel    != null) TotalScoreLabel.text    = $"TOTAL {total:N0}";
+                if (SciencePointsLabel != null) SciencePointsLabel.text = Loc.F("sci.received", _score.SciencePoints);
+                if (TotalScoreLabel    != null) TotalScoreLabel.text    = Loc.F("sci.total", total);
                 if (ScoreBar           != null) ScoreBar.fillAmount     = Mathf.Clamp01(total / (float)ScoreboardUI.ScoreBarMax);
             }
         }
 
         void RefreshHeader(int arrivalPosition)
         {
-            string planet = MissionDesignUI.PlanetDisplayName(_design.TargetPlanetId);
+            string planet = Loc.Planet(_design.TargetPlanetId);
             if (PlanetNameLabel != null) PlanetNameLabel.text = planet.ToUpper();
             if (ArrivalPositionLabel != null)
-                ArrivalPositionLabel.text = arrivalPosition == 1 ? "#1 PRIMERO EN LLEGAR" : $"#{arrivalPosition} EN LLEGAR";
+                ArrivalPositionLabel.text = arrivalPosition == 1 ? Loc.T("sci.first") : Loc.F("sci.nth", arrivalPosition);
             if (MissionObjectiveLabel != null)
-                MissionObjectiveLabel.text = $"{ObjectiveLabel(_design.Objective)} · ciencia ×{_design.ScienceMultiplier:0.#}";
+                MissionObjectiveLabel.text = Loc.F("sci.objective", Loc.Objective(_design.Objective), _design.ScienceMultiplier);
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var d))
-                CommDelayLabel.text = $"Señal real: {d} de ida · {_design.TotalDataMb:F0} Mb por enviar";
+                CommDelayLabel.text = Loc.F("sci.signal", d, _design.TotalDataMb);
             if (DownlinkLabel != null)
-                DownlinkLabel.text = $"{AntennaLabel(_design.Antenna)} · {_downlinkMbps:0.#} Mb/s · luz {_delayS:0.#} s";
+                DownlinkLabel.text = Loc.F("sci.downlink", Loc.T("antenna." + _design.Antenna), _downlinkMbps, _delayS);
 
-            if (PlanetData.TryGetValue(_design.TargetPlanetId, out var data))
+            if (SurfaceGravity.TryGetValue(_design.TargetPlanetId, out var g))
             {
-                if (GravityLabel    != null) GravityLabel.text    = $"Gravedad superficial {data.g:F2} m/s²";
-                if (AtmosphereLabel != null) AtmosphereLabel.text = $"Atmósfera: {data.atm}";
+                if (GravityLabel    != null) GravityLabel.text    = Loc.F("sci.gravity", g);
+                if (AtmosphereLabel != null) AtmosphereLabel.text = Loc.F("sci.atmosphere", Loc.T("atm." + _design.TargetPlanetId));
             }
         }
 
@@ -380,34 +375,8 @@ namespace Navigator.UI
             if (CompleteBtnLabel   != null) CompleteBtnLabel.text = label;
         }
 
-        // ── Nombres ────────────────────────────────────────────────────────────
-
-        public static string InstrumentDisplayName(ScienceInstrument inst) => inst switch
-        {
-            ScienceInstrument.WideAngleCamera   => "Cámara gran angular",
-            ScienceInstrument.NarrowAngleCamera => "Cámara teleobjetivo",
-            ScienceInstrument.UVSpectrometer    => "Espectrómetro UV",
-            ScienceInstrument.InfraredMapper    => "Mapeador infrarrojo",
-            ScienceInstrument.Magnetometer      => "Magnetómetro",
-            ScienceInstrument.ParticleDetector  => "Detector de partículas",
-            ScienceInstrument.RadioScience      => "Radio ciencia",
-            ScienceInstrument.RadarAltimeter    => "Radar altímetro",
-            _ => inst.ToString(),
-        };
-
-        public static string ObjectiveLabel(string obj) => obj switch
-        {
-            "flyby"   => "Sobrevuelo",
-            "orbit"   => "Órbita",
-            "landing" => "Aterrizaje",
-            _ => obj,
-        };
-
-        public static string AntennaLabel(AntennaType a) => a switch
-        {
-            AntennaType.LowGain    => "Antena baja ganancia",
-            AntennaType.MediumGain => "Antena media ganancia",
-            _                      => "Antena alta ganancia",
-        };
+        // ── Nombres (kept for callers; all text comes from Loc) ────────────────
+        public static string InstrumentDisplayName(ScienceInstrument inst) => Loc.Instrument(inst);
+        public static string ObjectiveLabel(string obj) => Loc.Objective(obj);
     }
 }

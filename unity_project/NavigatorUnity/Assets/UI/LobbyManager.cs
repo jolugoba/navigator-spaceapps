@@ -12,6 +12,7 @@ using UnityEngine.Android;
 #endif
 using UnityEngine.UI;
 using TMPro;
+using Navigator.Core;
 using ZXing;
 using ZXing.QrCode;
 using ZXing.Common;
@@ -35,6 +36,9 @@ namespace Navigator.UI
         public Button   StartGameButton;
         public TMP_Text StartGameLabel;
 
+        [Header("Idioma")]
+        public Button   LanguageButton;
+
         [Header("Componentes")]
         public Navigator.Network.SendaBridge      Senda;
         public Navigator.Network.ShipSyncService  Sync;
@@ -52,6 +56,8 @@ namespace Navigator.UI
                 StartGameButton.interactable = true;
             }
             if (ScanButton != null) ScanButton.onClick.AddListener(ToggleScan);
+            if (LanguageButton != null) LanguageButton.onClick.AddListener(Loc.Toggle);
+            Loc.Changed += OnLanguageChanged;
             if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
             UpdateConnectedLabel();
 
@@ -61,7 +67,7 @@ namespace Navigator.UI
 
             if (!online)
             {
-                if (MyNodeIdLabel != null) MyNodeIdLabel.text = "Red P2P no disponible — puedes jugar solo";
+                if (MyNodeIdLabel != null) MyNodeIdLabel.text = Loc.T("lobby.offline");
                 return;
             }
 
@@ -124,13 +130,13 @@ namespace Navigator.UI
             if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
             {
                 Permission.RequestUserPermission(Permission.Camera);
-                SetScanStatus("Permite el uso de la cámara y vuelve a tocar Escanear.");
+                SetScanStatus(Loc.T("lobby.campermission"));
                 return;
             }
 #endif
             _scanning = true;
-            SetScanButtonLabel("Cancelar");
-            SetScanStatus("Apunta la cámara al QR del otro jugador…");
+            SetScanButtonLabel(Loc.T("lobby.cancel"));
+            SetScanStatus(Loc.T("lobby.aim"));
 
             string device = null;
             foreach (var d in WebCamTexture.devices)
@@ -153,7 +159,7 @@ namespace Navigator.UI
             if (_cam != null) _cam.Stop();
             _cam = null;
             if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
-            SetScanButtonLabel("Escanear QR");
+            SetScanButtonLabel(Loc.T("lobby.scan"));
         }
 
         void SetScanStatus(string s) { if (ScanStatusText != null) ScanStatusText.text = s; }
@@ -206,11 +212,11 @@ namespace Navigator.UI
 
         void ConnectToScanned(string remoteNodeId)
         {
-            SetScanStatus("Conectando…");
+            SetScanStatus(Loc.T("lobby.connecting"));
             bool ok = Senda.ConnectToNode(remoteNodeId);
             if (ScanStatusText != null) ScanStatusText.text = ok
-                ? $"Conectado a {remoteNodeId[..Mathf.Min(12, remoteNodeId.Length)]}…"
-                : "Error de conexión. Intenta de nuevo.";
+                ? Loc.F("lobby.connected", remoteNodeId[..Mathf.Min(12, remoteNodeId.Length)])
+                : Loc.T("lobby.connecterror");
         }
 
         void OnPeerConnected(string nodeId)
@@ -218,7 +224,7 @@ namespace Navigator.UI
             _peersConnected++;
             UpdateConnectedLabel();
 
-            string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : "Cadete";
+            string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : Loc.T("player.default");
             string lobbyJson = $"{{\"name\":\"{myName}\"," +
                                $"\"nodeId\":\"{Senda.NodeId}\"}}";
             Senda.Broadcast(Navigator.Network.NavMsg.Build(
@@ -236,13 +242,25 @@ namespace Navigator.UI
         void UpdateConnectedLabel()
         {
             if (StartGameLabel != null)
-                StartGameLabel.text = _peersConnected == 0 ? "JUGAR SOLO" : "¡DESPEGAR!";
+                StartGameLabel.text = _peersConnected == 0 ? Loc.T("lobby.solo") : Loc.T("lobby.launch");
             if (ConnectedPlayersText == null) return;
             ConnectedPlayersText.text = _peersConnected == 0
-                ? "Esperando jugadores…\nMuestra tu QR o escanea el de otro jugador"
-                : $"{_peersConnected + 1} jugador(es) conectados — listo para despegar!";
+                ? Loc.T("lobby.waiting")
+                : Loc.F("lobby.players", _peersConnected + 1);
         }
 
-        void OnDestroy() { _cam?.Stop(); }
+        void OnLanguageChanged()
+        {
+            UpdateConnectedLabel();
+            if (!_scanning) SetScanButtonLabel(Loc.T("lobby.scan"));
+            if (Senda == null || !Senda.Initialized)
+                if (MyNodeIdLabel != null) MyNodeIdLabel.text = Loc.T("lobby.offline");
+        }
+
+        void OnDestroy()
+        {
+            Loc.Changed -= OnLanguageChanged;
+            if (_cam != null) _cam.Stop();
+        }
     }
 }

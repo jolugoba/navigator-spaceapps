@@ -24,6 +24,7 @@ namespace Navigator.Game
         public GameObject NameTagPrefab;      // Canvas WorldSpace con TMP_Text
 
         [Header("Efectos")]
+        public Material ExhaustMaterial;       // llama del motor del rival
         public ParticleSystem BurnoutParticlesPrefab; // exhaust blanco Burnout
 
         [Header("Cámara AR (las etiquetas miran hacia ella)")]
@@ -31,6 +32,7 @@ namespace Navigator.Game
 
         [Header("Escala")]
         public float ShipSize        = 3f;    // mismo tamaño que la nave local
+        public float ModelYaw        = 0f;    // orienta la nariz del GLB hacia +Z (lo calcula Assign Models)
         public float CollisionRadius = 1.6f;
 
         // ── Runtime ────────────────────────────────────────────────────────────
@@ -87,6 +89,7 @@ namespace Navigator.Game
                 instance.TargetPosition = state.Position;
                 instance.TargetRotation = Quaternion.Euler(state.Pitch, state.Yaw, state.Roll);
                 instance.Boosting       = state.Boosting;
+                instance.Throttle       = state.Throttle;
                 instance.BurnoutActive  = state.BurnoutActive;
                 instance.FuelFraction   = state.FuelFraction;
                 instance.Lives          = state.Lives;
@@ -113,6 +116,15 @@ namespace Navigator.Game
                 if (inst.NameTag != null && ARCamera != null)
                     inst.NameTag.transform.LookAt(ARCamera.transform);
 
+                var fx = inst.Root.GetComponent<ThrusterFX>();
+                if (fx != null)
+                {
+                    fx.Thrust  = inst.Throttle;
+                    fx.Boost   = inst.Boosting;
+                    fx.Burnout = inst.BurnoutActive;
+                    fx.Fuel    = inst.FuelFraction;
+                }
+
                 // Efecto Burnout activo
                 if (inst.BurnoutParticles != null)
                     inst.BurnoutParticles.gameObject.SetActive(inst.BurnoutActive);
@@ -128,6 +140,7 @@ namespace Navigator.Game
             {
                 root = new GameObject();
                 var model = Instantiate(RemoteShipPrefab, root.transform);
+                model.transform.localRotation = Quaternion.Euler(0f, ModelYaw, 0f);
                 Navigator.Core.ModelFit.FitToSize(model, ShipSize);
             }
             else
@@ -148,7 +161,10 @@ namespace Navigator.Game
             var rb = root.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.useGravity  = false;
-            root.AddComponent<CollisionSystem>();
+            root.AddComponent<CollisionSystem>().RemoteNodeId = nodeId;
+            var thruster = root.AddComponent<ThrusterFX>();
+            thruster.ShipLength = ShipSize;
+            thruster.SetMaterial(ExhaustMaterial);
 
             // Personalizar con colores del rival (se actualizan con lobbyInfo)
             var customizer = root.GetComponentInChildren<ShipCustomizer>();
@@ -227,6 +243,7 @@ namespace Navigator.Game
         public Vector3    TargetPosition;
         public Quaternion TargetRotation;
         public bool       Boosting;
+        public float      Throttle;
         public bool       BurnoutActive;
         public float      FuelFraction;
         public int        Lives;

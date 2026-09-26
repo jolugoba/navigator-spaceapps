@@ -45,6 +45,9 @@ namespace Navigator.UI
         [Header("Posición en carrera")]
         public TMP_Text   RacePositionLabel; // "#1" "#2"
 
+        [Header("Avisos de impacto")]
+        public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
+
         [Header("Progreso del viaje")]
         public Image      ProgressBar;       // 0 = salida, 1 = planeta
         public TMP_Text   TimeLabel;         // tiempo restante de misión
@@ -58,6 +61,20 @@ namespace Navigator.UI
         private ARSpaceManager  _arSpace;
 
         private float _lowFuelFlash = 0f;
+        private float _impactTimer  = 0f;
+        private GyroCameraRig _rig;
+
+        public void Flash(string key, Color color, float shake)
+        {
+            if (ImpactLabel != null)
+            {
+                ImpactLabel.text  = Loc.T(key);
+                ImpactLabel.color = color;
+                ImpactLabel.gameObject.SetActive(true);
+            }
+            _impactTimer = 2f;
+            if (shake > 0f && _rig != null) _rig.Shake(shake);
+        }
         private float _comboTimer   = 0f;
 
         void Awake()
@@ -78,6 +95,15 @@ namespace Navigator.UI
             _burnout?.OnBurnoutEnd.AddListener(OnBurnoutEnd);
             _burnout?.OnNearMiss.AddListener(OnNearMiss);
             _fuel?.OnLowFuelWarning.AddListener(() => { if (LowFuelWarning != null) LowFuelWarning.SetActive(true); });
+            _burnout?.OnTakedown.AddListener(_ => Flash("hud.takedown", UIStyle.Gold, 0.6f));
+            _collision?.OnBlocked.AddListener(() => Flash("hud.hit.shielded", UIStyle.Accent, 0.3f));
+            _collision?.OnDamaged.AddListener(sev => Flash(
+                sev == CollisionSeverity.Heavy  ? "hud.hit.heavy"  :
+                sev == CollisionSeverity.Medium ? "hud.hit.medium" : "hud.hit.light",
+                sev == CollisionSeverity.Light ? UIStyle.Text : sev == CollisionSeverity.Medium ? UIStyle.Warn : UIStyle.Bad,
+                sev == CollisionSeverity.Heavy ? 1.2f : sev == CollisionSeverity.Medium ? 0.7f : 0.3f));
+            _rig = FindObjectOfType<GyroCameraRig>();
+            if (ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
         }
 
         void Update()
@@ -90,6 +116,12 @@ namespace Navigator.UI
             UpdateLowFuelFlash();
             UpdateNearMissCombo();
             UpdateTime();
+
+            if (_impactTimer > 0f)
+            {
+                _impactTimer -= Time.deltaTime;
+                if (_impactTimer <= 0f && ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
+            }
         }
 
         void UpdateTime()
@@ -174,7 +206,7 @@ namespace Navigator.UI
 
             if (LivesLabel != null)
             {
-                LivesLabel.text  = $"CASCO {_collision.Lives}/3";
+                LivesLabel.text  = Loc.F("hud.hull", _collision.Lives);
                 LivesLabel.color = _collision.Lives >= 3 ? UIStyle.Text
                                  : _collision.Lives == 2 ? UIStyle.Warn : UIStyle.Bad;
             }
@@ -184,6 +216,9 @@ namespace Navigator.UI
         {
             if (_fuel == null || LowFuelWarning == null) return;
             if (!_fuel.IsLow) return;
+            var label = LowFuelWarning.GetComponent<TMP_Text>();
+            if (label != null) label.text = Loc.T(_fuel.IsEmpty ? "hud.nofuel" : "hud.lowfuel");
+            if (_fuel.IsEmpty) { LowFuelWarning.SetActive(true); return; }
             _lowFuelFlash += Time.deltaTime * 3.5f;
             LowFuelWarning.SetActive(Mathf.Sin(_lowFuelFlash) > 0f);
         }
@@ -225,7 +260,7 @@ namespace Navigator.UI
         public void SetCommDelay(string delay)
         {
             if (CommDelayLabel != null)
-                CommDelayLabel.text = $"Señal: {delay}";
+                CommDelayLabel.text = Loc.F("hud.signal", delay);
         }
 
         public void SetRacePosition(int pos)

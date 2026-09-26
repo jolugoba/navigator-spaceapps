@@ -8,6 +8,25 @@ namespace Navigator.Core
 {
     public static class ModelFit
     {
+        // Meshy exports face arbitrary directions. A ship is longest nose-to-tail, so turn the
+        // model until its longest horizontal side lies along +Z. `extraYaw` (0 or 180) picks
+        // which end is the nose. Returns the yaw applied. Call before FitToSize.
+        public static float AlignLongAxisToForward(GameObject model, float extraYaw = 0f)
+        {
+            model.transform.localRotation = Quaternion.identity;
+            var renderers = model.GetComponentsInChildren<Renderer>();
+            float yaw = 0f;
+            if (renderers.Length > 0)
+            {
+                Bounds b = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+                if (b.size.x > b.size.z * 1.1f) yaw = 90f;
+            }
+            yaw += extraYaw;
+            model.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            return yaw;
+        }
+
         // Scales `model` uniformly so its largest renderer-bounds side equals `size`
         // and recenters it on its parent. Returns the applied scale factor.
         public static float FitToSize(GameObject model, float size)
