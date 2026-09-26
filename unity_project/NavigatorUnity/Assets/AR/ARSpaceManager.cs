@@ -22,6 +22,9 @@ namespace Navigator.AR
         public GameObject PlanetUranus;
         public GameObject PlanetNeptune;
         public GameObject PlanetEarth;     // optional (Meshy PL-08_Earth) — flyby body
+        public GameObject PlanetMoon;      // optional (Meshy PL-09_Moon)
+        public GameObject PlanetPluto;     // optional (Meshy PL-10_Pluto)
+        public GameObject PlanetEuropa;    // optional (Meshy PL-11_Europa)
 
         [Header("Escala del viaje (unidades de juego)")]
         public float BaseJourney      = 1200f;  // distancia mínima de viaje
@@ -103,6 +106,9 @@ namespace Navigator.AR
                 "saturn"  => new Color(0.9f, 0.82f, 0.6f),
                 "uranus"  => new Color(0.6f, 0.85f, 0.9f),
                 "neptune" => new Color(0.3f, 0.45f, 0.9f),
+                "moon"   => new Color(0.75f, 0.75f, 0.72f),
+                "pluto"  => new Color(0.75f, 0.65f, 0.55f),
+                "europa" => new Color(0.88f, 0.85f, 0.78f),
                 _         => Color.gray,
             };
             return s;
@@ -124,6 +130,9 @@ namespace Navigator.AR
             "uranus"  => PlanetUranus,
             "neptune" => PlanetNeptune,
             "earth"   => PlanetEarth,
+            "moon"    => PlanetMoon,
+            "pluto"   => PlanetPluto,
+            "europa"  => PlanetEuropa,
             _         => null,
         };
 

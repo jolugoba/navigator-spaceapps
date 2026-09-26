@@ -1,8 +1,61 @@
-# NAVIGATOR 2.0 — Pedido de arte a Meshy (cielo, gravedad, misiones reales)
+# NAVIGATOR 2.0 — Arte de cielo y modelos 3D (estado 2026-09-26)
+
+> **✅ GENERADO COMPLETAMENTE — 2026-09-26**
+> Clave usada: `msy_7piEK37EPJrZ1a9e4SXtHAqoUIqBRrL6cM2n`
+> Nota: la API de Meshy solo genera modelos 3D (.glb). Las imágenes del cielo se descargaron de **NASA / Hubble / JWST / EHT** (dominio público, hasta 3840px).
+
+---
+
+## ✅ ESTADO ACTUAL — TODO EN CARPETA
+
+### Imágenes del cielo → `Assets/Art/Sky/`
+| Archivo | Fuente | Resolución | Estado |
+|---|---|---|---|
+| `nebula_01.jpg` | Hubble — Orion Nebula | 3840×3840 | ✅ |
+| `nebula_02.jpg` | Hubble — Helix Nebula (Comets) | 3840×3194 | ✅ |
+| `nebula_03.jpg` | Hubble — Carina Nebula / NGC 3372 | 3840×1860 | ✅ |
+| `nebula_04.jpg` | JWST — Pillars of Creation | 3840×4005 | ✅ |
+| `nebula_05.jpg` | Hubble — Ring Nebula (ESA Hubble) | 700×700 | ⚠️ solo 700px |
+| `nebula_06.jpg` | Hubble — Horsehead Nebula | 3840×3951 | ✅ |
+| `blackhole_01.jpg` | EHT — M87* black hole shadow | 3840×3840 | ✅ |
+| `galaxy_01.jpg` | Deep-field — Andromeda Galaxy | 3840×2593 | ✅ |
+| `galaxy_02.jpg` | Hubble — Whirlpool Galaxy (M51) | 3840×2665 | ✅ |
+| `galaxy_03.jpg` | Hubble — Deep Field Galaxies | 1920×1999 | ✅ |
+
+### Modelos 3D planetas → `Assets/Models/Planets/`
+| Archivo | Calidad | MB |
+|---|---|---|
+| `PL-01_Mercury_FINAL.glb` | preview | 4.9 |
+| `PL-02_Venus_FINAL.glb` | preview | 5.1 |
+| `PL-03_Mars_FINAL.glb` | **refined** | 16.4 |
+| `PL-04_Jupiter_FINAL.glb` | **refined** | 6.9 |
+| `PL-05_Saturn_FINAL.glb` | **refined** | 18.2 |
+| `PL-06_Uranus_FINAL.glb` | preview | 10.0 |
+| `PL-07_Neptune_FINAL.glb` | preview | 8.0 |
+| `PL-08_Earth_FINAL.glb` | **refined** | 22.3 |
+| `PL-09_Moon_FINAL.glb` | **refined** | 12.8 |
+| `PL-10_Pluto_FINAL.glb` | preview | 9.4 |
+| `PL-11_Europa_FINAL.glb` | preview | 0.4 |
+
+### Modelos 3D objetos → `Assets/Models/Objects/`
+| Archivo | MB |
+|---|---|
+| `OB-06_Voyager_FINAL.glb` | 54.4 |
+| `OB-07_Cassini_FINAL.glb` | 51.2 |
+| `OB-08_Juno_FINAL.glb` | 38.6 |
+| `OB-09_Comet_FINAL.glb` | 23.2 |
+| `OB-10_Asteroid_FINAL.glb` | 28.6 |
+
+### Cómo activarlo en Unity
+1. Abre el proyecto en Unity
+2. Menú **Navigator → Setup Scene** — configura las texturas del cielo automáticamente
+3. Menú **Navigator → Assign Models** — asigna los 11 planetas y los objetos
+
+---
 
 **Para quién:** la persona que genera en Meshy.
-**Cuánto:** 30 imágenes como máximo, más 6 modelos 3D opcionales. Están en orden de prioridad: si solo alcanza para 10, haz las 10 primeras.
-**Qué pasa si falta arte:** el juego ya funciona sin nada de esto. Las nebulosas, la galaxia y el hoyo negro se generan por código. Cuando pones el arte de Meshy en la carpeta indicada y corres **Navigator → Setup Scene**, el juego lo usa automáticamente.
+**Nota:** la API de Meshy **no genera imágenes 2D**. Las texturas del cielo están listas con imágenes reales de Hubble/JWST. Para más nebulosas, sube imágenes a `Assets/Art/Sky/` con prefijos `nebula_`, `galaxy_` o `blackhole_`.
+**Qué pasa si falta arte:** el juego ya funciona sin nada de esto. Las nebulosas, la galaxia y el hoyo negro se generan por código. Cuando pones arte en la carpeta indicada y corres **Navigator → Setup Scene**, el juego lo usa automáticamente.
 
 ---
 
