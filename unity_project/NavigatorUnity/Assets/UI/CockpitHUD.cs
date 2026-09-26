@@ -82,6 +82,8 @@ namespace Navigator.UI
         private GyroCameraRig _rig;
         private ShipTools     _tools;
         private float         _infoTimer;
+        private bool          _scanHintShown;
+        const string ScanHintKey = "navigator.hint.scan";
 
         void OnDestroy()
         {
@@ -229,6 +231,18 @@ namespace Navigator.UI
             if (FireButton != null) FireButton.interactable = ShipTools.WeaponsAllowed;
 
             if (Reticle == null || _tools == null) return;
+
+            // First time anything is in the sights: say what the SCAN button is for (once per install)
+            if (_tools.Target != null && !_scanHintShown)
+            {
+                _scanHintShown = true;
+                if (PlayerPrefs.GetInt(ScanHintKey, 0) == 0)
+                {
+                    PlayerPrefs.SetInt(ScanHintKey, 1);
+                    PlayerPrefs.Save();
+                    Flash("hint.scan", UIStyle.Accent, 0f);
+                }
+            }
             var cam = Camera.main;
             if (cam == null) return;
 

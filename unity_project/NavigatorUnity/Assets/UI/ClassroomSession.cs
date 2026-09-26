@@ -53,6 +53,7 @@ namespace Navigator.UI
 
         private SendaBridge Senda => GameManager.Instance != null ? GameManager.Instance.Senda : null;
         private float _helloTimer;
+        private float _lastJoinSent = -999f;
         private int   _nextQuestion;
 
         void Awake() => Instance = this;
@@ -208,8 +209,15 @@ namespace Navigator.UI
 
         void SendJoin()
         {
+            _lastJoinSent = Time.unscaledTime;
             string name = GameManager.Instance != null ? GameManager.Instance.PlayerName : "Student";
             SendTo(TeacherId, $"{{\"op\":\"join\",\"name\":\"{Esc(name)}\",\"phase\":{ApprovedPhase},\"stars\":{Campaign.TotalStars()}}}");
+        }
+
+        // The student renamed themself: the teacher's list follows
+        public void OnNameChanged()
+        {
+            if (Mode == Role.Student) SendJoin();
         }
 
         public void Answer(int choice)
@@ -238,6 +246,8 @@ namespace Navigator.UI
                     if (Mode == Role.Student && TeacherId != msg.from) break;
                     JoinClass(msg.from, Str(json, "name") ?? "Teacher");
                     ApplyWeapons(Num(json, "weapons") > 0);
+                    // Answer hellos now and then, so a teacher who lost us (phone slept) lists us again
+                    if (Time.unscaledTime - _lastJoinSent > 10f) SendJoin();
                     break;
                 case "phase":
                     if (Mode != Role.Student || msg.from != TeacherId) break;

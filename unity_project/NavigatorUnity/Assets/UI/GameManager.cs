@@ -84,10 +84,34 @@ namespace Navigator.UI
         public float MaxFlightTimeS = 240f;   // sin llegar a tiempo = misión fallida
         // Pilot name: set from the Flutter app (FlutterBridge) or the default "Cadet"
         const string NameKey = "navigator.name";
+        public const int MaxNameLength = 16;
+        public static event System.Action<string> PlayerNameChanged;
+
         public string PlayerName
         {
-            get { string n = PlayerPrefs.GetString(NameKey, ""); return string.IsNullOrWhiteSpace(n) ? Loc.T("player.default") : n; }
-            set { PlayerPrefs.SetString(NameKey, (value ?? "").Trim()); PlayerPrefs.Save(); }
+            get { string n = CustomPlayerName; return string.IsNullOrWhiteSpace(n) ? Loc.T("player.default") : n; }
+            set
+            {
+                string clean = CleanName(value);
+                if (clean == CustomPlayerName) return;
+                PlayerPrefs.SetString(NameKey, clean);
+                PlayerPrefs.Save();
+                PlayerNameChanged?.Invoke(PlayerName);
+            }
+        }
+
+        // What the player typed ("" = still the default "Cadet")
+        public string CustomPlayerName => PlayerPrefs.GetString(NameKey, "");
+
+        // Names travel inside our tiny JSON messages: drop the characters that would break them
+        public static string CleanName(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "";
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in raw)
+                if (c >= ' ' && "\"\\,;{}:".IndexOf(c) < 0) sb.Append(c);
+            string s = sb.ToString().Trim();
+            return s.Length > MaxNameLength ? s[..MaxNameLength].Trim() : s;
         }
 
         // ── Estado runtime ─────────────────────────────────────────────────────

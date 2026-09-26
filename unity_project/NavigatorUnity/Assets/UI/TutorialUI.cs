@@ -12,8 +12,8 @@ namespace Navigator.UI
 {
     public class TutorialUI : MonoBehaviour
     {
-        const string DoneKey = "navigator.tutorial.done";
-        public const int Steps = 8;
+        const string DoneKey = "navigator.tutorial.done.v2";   // v2: new step about SCAN / FIRE / the map
+        public const int Steps = 9;
 
         public GameObject Panel;
         public TMP_Text   TitleLabel;

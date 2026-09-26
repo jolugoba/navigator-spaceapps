@@ -1,7 +1,7 @@
 # NAVIGATOR 2.0 — Arte de cielo y modelos 3D (estado 2026-09-26)
 
 > **✅ GENERADO COMPLETAMENTE — 2026-09-26**
-> Nota: la API de Meshy solo genera modelos 3D (.glb). Las imágenes del cielo se descargaron de **NASA / Hubble / JWST / EHT** (dominio público, hasta 3840px).
+> Nota: la API de Meshy solo genera modelos 3D (.glb). Las imágenes del cielo vienen de NASA, Hubble, ESA/Hubble, Spitzer, EHT y Wikimedia Commons. **No todas son de dominio público**: ver créditos y licencias en [`CREDITS.md`](CREDITS.md).
 
 ---
 
@@ -13,7 +13,7 @@
 | `nebula_01.jpg` | Hubble — Orion Nebula | 3840×3840 | ✅ |
 | `nebula_02.jpg` | Hubble — Helix Nebula (Comets) | 3840×3194 | ✅ |
 | `nebula_03.jpg` | Hubble — Carina Nebula / NGC 3372 | 3840×1860 | ✅ |
-| `nebula_04.jpg` | JWST — Pillars of Creation | 3840×4005 | ✅ |
+| `nebula_04.jpg` | Hubble (2014) — Pillars of Creation | 3840×4005 | ✅ |
 | `nebula_05.jpg` | Hubble — Ring Nebula (ESA Hubble) | 700×700 | ⚠️ solo 700px |
 | `nebula_06.jpg` | Hubble — Horsehead Nebula | 3840×3951 | ✅ |
 | `blackhole_01.jpg` | EHT — M87* black hole shadow | 3840×3840 | ✅ |

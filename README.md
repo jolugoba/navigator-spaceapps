@@ -11,3 +11,4 @@ instrumentos, presupuesto), la lanzas, la pilotas con asistencias gravitatorias 
 
 **Empezar:** [`NAVIGATOR_UNITY_QUICKSTART.md`](NAVIGATOR_UNITY_QUICKSTART.md), luego [`flutter_app/README.md`](flutter_app/README.md).
 **Diseño y ecuaciones:** [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md).
+**Créditos y licencias:** [`CREDITS.md`](CREDITS.md).

@@ -31,7 +31,11 @@ namespace Navigator.Network
         void Awake()
         {
             _senda  = GetComponent<SendaBridge>();
-            if (_senda != null) _senda.OnMessage.AddListener(OnNavMessage);
+            if (_senda != null)
+            {
+                _senda.OnMessage.AddListener(OnNavMessage);
+                _senda.OnPeerDisconnected.AddListener(OnPeerGone);
+            }
         }
 
         // ── Send our ship state to all peers (call every 50ms) ────────────────
@@ -70,6 +74,14 @@ namespace Navigator.Network
         {
             _senda?.Broadcast(NavMsg.Build(NavMsgType.missionSync, _nodeId,
                 $"{{\"arrived\":{position}}}"));
+        }
+
+        // A rival who left: remove their ship so no ghost keeps floating in the race
+        private void OnPeerGone(string nodeId)
+        {
+            bool had = _remoteShips.Remove(nodeId);
+            _remoteScores.Remove(nodeId);
+            if (had) OnRemoteUpdate.Invoke(new Dictionary<string, ShipStateNet>(_remoteShips));
         }
 
         // ── Receive ───────────────────────────────────────────────────────────

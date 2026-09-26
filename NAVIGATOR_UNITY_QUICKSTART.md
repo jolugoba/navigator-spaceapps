@@ -61,6 +61,8 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 | Botón **ESCANEAR** | Y | **C** | "¿Qué es eso?": identifica lo que está en la mira |
 | Botón **DISPARAR** | Clic del stick derecho | **X** | Láser: no destruye, quita 1 punto de casco a un rival, gasta 1.5 % de combustible |
 | Botón **PROFESOR** (lobby) | — | — | Modo profesor: QR de la clase, preguntas, quién pasa de mundo |
+| Recuadro del nombre (lobby) | — | — | Tu nombre: lo ven los rivales, el marcador y el profesor |
+| **CRÉDITOS** (lobby, abajo) | — | — | Datos NASA, imágenes y software usados (lista completa en `CREDITS.md`) |
 
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
 En macOS no hay librería nativa para el Editor: se juega en modo solo.

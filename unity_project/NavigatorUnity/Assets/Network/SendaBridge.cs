@@ -89,6 +89,13 @@ namespace Navigator.Network
         public  bool   Initialized { get; private set; }
 
         private readonly List<string>          _connectedPeers = new();
+
+        // The native layer never reports a peer leaving, so we notice it ourselves: everyone
+        // sends a tiny ping every few seconds, and a peer silent for too long is gone.
+        public float PingInterval = 4f;
+        public float PeerTimeout  = 15f;
+        private readonly Dictionary<string, float> _lastSeen = new();
+        private float _pingTimer, _sweepTimer;
         public  IReadOnlyList<string>           ConnectedPeers => _connectedPeers;
 
         // Static because IL2CPP reverse P/Invoke only accepts static [MonoPInvokeCallback] methods
@@ -169,11 +176,14 @@ namespace Navigator.Network
             while (_inbox.TryDequeue(out var item))
             {
                 // The side that was dialed never calls ConnectToNode, so learn peers from traffic
-                if (!string.IsNullOrEmpty(item.from) && item.from != NodeId &&
-                    !_connectedPeers.Contains(item.from))
+                if (!string.IsNullOrEmpty(item.from) && item.from != NodeId)
                 {
-                    _connectedPeers.Add(item.from);
-                    OnPeerConnected.Invoke(item.from);
+                    _lastSeen[item.from] = Time.unscaledTime;
+                    if (!_connectedPeers.Contains(item.from))
+                    {
+                        _connectedPeers.Add(item.from);
+                        OnPeerConnected.Invoke(item.from);
+                    }
                 }
 
                 try
@@ -185,6 +195,30 @@ namespace Navigator.Network
                     OnMessage.Invoke(msg);
                 }
                 catch { /* malformed packet */ }
+            }
+
+            if (!Initialized || _connectedPeers.Count == 0) return;
+
+            _pingTimer -= Time.unscaledDeltaTime;
+            if (_pingTimer <= 0f)
+            {
+                _pingTimer = PingInterval;
+                Broadcast(NavMsg.Build(NavMsgType.ping, NodeId, "{}"));
+            }
+
+            _sweepTimer -= Time.unscaledDeltaTime;
+            if (_sweepTimer > 0f) return;
+            _sweepTimer = 1f;
+            for (int i = _connectedPeers.Count - 1; i >= 0; i--)
+            {
+                string peer = _connectedPeers[i];
+                // A peer we dialed but never heard from gets the same grace period from now
+                if (!_lastSeen.TryGetValue(peer, out float seen)) { _lastSeen[peer] = Time.unscaledTime; continue; }
+                if (Time.unscaledTime - seen < PeerTimeout) continue;
+                _connectedPeers.RemoveAt(i);
+                _lastSeen.Remove(peer);
+                Debug.Log($"[Senda] {peer} silent for {PeerTimeout:F0}s: disconnected");
+                OnPeerDisconnected.Invoke(peer);
             }
         }
 

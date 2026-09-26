@@ -91,6 +91,7 @@ namespace Navigator.Network
                 nav.t != NavMsgType.shipEvent.ToString()) return;
 
             string text = ExtractString(nav.pl_json, "text");
+            if (string.IsNullOrEmpty(text)) return;   // laser / scan events carry no chat text
             string from = ExtractString(nav.pl_json, "name");
             if (string.IsNullOrEmpty(from)) from = nav.from[..Math.Min(8, nav.from.Length)];
             bool   isSystem = nav.t == NavMsgType.shipEvent.ToString();

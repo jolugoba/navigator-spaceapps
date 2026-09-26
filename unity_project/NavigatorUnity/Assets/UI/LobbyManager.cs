@@ -26,6 +26,7 @@ namespace Navigator.UI
         public RawImage MyQRImage;
         public TMP_Text MyNodeIdLabel;
         public TMP_Text MyNameLabel;
+        public TMP_InputField NameInput;   // the player's name: rivals, scoreboard and the teacher see it
 
         [Header("Escanear QR (Jugador B — Guest)")]
         public Button   ScanButton;
@@ -65,6 +66,7 @@ namespace Navigator.UI
             if (PasteChallengeButton != null) PasteChallengeButton.onClick.AddListener(PasteChallenge);
             if (SkyButton != null) SkyButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.OpenSkyFinder("mars"); });
             Loc.Changed += OnLanguageChanged;
+            SetupNameInput();
             if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
             UpdateConnectedLabel();
 
@@ -243,11 +245,38 @@ namespace Navigator.UI
                 : Loc.T("lobby.connecterror");
         }
 
+        void SetupNameInput()
+        {
+            GameManager.PlayerNameChanged += OnNameChanged;
+            if (NameInput == null) return;
+            NameInput.characterLimit = GameManager.MaxNameLength;
+            NameInput.SetTextWithoutNotify(GameManager.Instance != null ? GameManager.Instance.CustomPlayerName : "");
+            NameInput.onEndEdit.AddListener(v =>
+            {
+                if (GameManager.Instance == null) return;
+                GameManager.Instance.PlayerName = v;
+                NameInput.SetTextWithoutNotify(GameManager.Instance.CustomPlayerName);
+            });
+        }
+
+        // Typed here or sent by the Flutter app: show it and tell everyone connected
+        void OnNameChanged(string name)
+        {
+            if (NameInput != null && GameManager.Instance != null && !NameInput.isFocused)
+                NameInput.SetTextWithoutNotify(GameManager.Instance.CustomPlayerName);
+            if (Senda != null && Senda.Initialized && Senda.ConnectedPeers.Count > 0) BroadcastLobbyInfo();
+            ClassroomSession.Instance?.OnNameChanged();
+        }
+
         void OnPeerConnected(string nodeId)
         {
             _peersConnected = Senda.ConnectedPeers.Count;
             UpdateConnectedLabel();
+            BroadcastLobbyInfo();
+        }
 
+        void BroadcastLobbyInfo()
+        {
             // Share who we know so everyone connects to everyone (full mesh, no host)
             string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : Loc.T("player.default");
             string peers  = string.Join(";", Senda.ConnectedPeers);
@@ -294,6 +323,7 @@ namespace Navigator.UI
         void OnDestroy()
         {
             Loc.Changed -= OnLanguageChanged;
+            GameManager.PlayerNameChanged -= OnNameChanged;
             if (_cam != null) _cam.Stop();
         }
     }

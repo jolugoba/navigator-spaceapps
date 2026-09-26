@@ -92,6 +92,7 @@ namespace Navigator.Editor
             BuildCampaign(root.transform, root.AddComponent<CampaignUI>());
             root.AddComponent<ClassroomSession>();
             BuildClassroom(root.transform, root.AddComponent<ClassroomUI>());
+            BuildCredits(root.transform, root.AddComponent<CreditsUI>());
             gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
             gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
             gm.Events   = events;
@@ -131,8 +132,8 @@ namespace Navigator.Editor
                        new Vector4(0.05f, 0.83f, 0.95f, 0.87f), TextAlignmentOptions.Center, UIStyle.Muted);
 
             var card = UIKit.Card(p, "QRCard", new Vector4(0.08f, 0.47f, 0.92f, 0.81f), UIStyle.Card);
-            lobby.MyNameLabel = UIKit.TextTop(card, "MyName", "@player.default", 40, 0f, 1f, 24, 56,
-                                              TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            // Your name: tap to type it (rivals, the scoreboard and the teacher see it)
+            lobby.NameInput = UIKit.InputTop(card, "MyName", "@lobby.nameph", 0.12f, 0.88f, 18, 60, 36);
             UIKit.TextTop(card, "Hint", "@lobby.qrhint", 28, 0f, 1f, 80, 40,
                           TextAlignmentOptions.Center, UIStyle.Muted);
 
@@ -173,6 +174,8 @@ namespace Navigator.Editor
                                                 UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
             _teacherButton = UIKit.Button(p, "TeacherButton", "@class.button", new Vector4(0.03f, 0.962f, 0.3f, 0.996f),
                                           UIStyle.ButtonIdle, UIStyle.Gold, 26, FontStyles.Bold);
+            _creditsButton = UIKit.Button(p, "CreditsButton", "@credits.button", new Vector4(0.35f, 0.012f, 0.65f, 0.055f),
+                                          new Color(0f, 0f, 0f, 0f), UIStyle.Muted, 24);
 
             lobby.Senda = gm.Senda;
             lobby.Sync  = gm.SyncService;
@@ -420,7 +423,8 @@ namespace Navigator.Editor
         // ══════════════════════════════════════════════════════════════════════
 
         static Button _campaignButton;
-        static Button _teacherButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
+        static Button _teacherButton;
+        static Button _creditsButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
 
         // World map: Earth at the bottom, eight worlds zig-zagging up to Neptune
         static void BuildCampaign(Transform root, CampaignUI camp)
@@ -520,6 +524,34 @@ namespace Navigator.Editor
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // CRÉDITOS
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildCredits(Transform root, CreditsUI ui)
+        {
+            var go = UIKit.Stretch(root, "CreditsPanel").gameObject;
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.02f, 0.03f, 0.08f, 0.97f);
+            bg.raycastTarget = true;
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = UIKit.Column(safe);
+
+            UIKit.Text(p, "Title", "@credits.title", 56, new Vector4(0.05f, 0.925f, 0.7f, 0.98f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            ui.CloseButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.72f, 0.93f, 0.95f, 0.975f), UIStyle.ButtonIdle, UIStyle.Text, 28);
+
+            var content = UIKit.Scroll(p, "Scroll", new Vector4(0f, 0.02f, 1f, 0.915f));
+            var body = UIKit.Text(content, "Body", "@credits.body", 26, new Vector4(0f, 1f, 1f, 1f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            body.enableAutoSizing = false;       // grows with the text inside the scroll view
+            body.overflowMode = TextOverflowModes.Overflow;
+
+            ui.Panel = go;
+            ui.OpenButton = _creditsButton;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // MODO PROFESOR: panel de la clase, pregunta del alumno, avisos
         // ══════════════════════════════════════════════════════════════════════
 
@@ -608,7 +640,7 @@ namespace Navigator.Editor
             var card = UIKit.Card(UIKit.Column(go.transform), "Card", new Vector4(0.05f, 0.2f, 0.95f, 0.8f), UIStyle.Card);
 
             UIKit.Text(card, "Tag", "@tut.tag", 26, new Vector4(0.05f, 0.91f, 0.7f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
-            tut.CounterLabel = UIKit.Text(card, "Counter", "1 / 8", 26, new Vector4(0.7f, 0.91f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
+            tut.CounterLabel = UIKit.Text(card, "Counter", "1 / 9", 26, new Vector4(0.7f, 0.91f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
             tut.TitleLabel   = UIKit.Text(card, "Title", "", 50, new Vector4(0.05f, 0.79f, 0.95f, 0.9f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             tut.BodyLabel    = UIKit.Text(card, "Body", "", 32, new Vector4(0.05f, 0.2f, 0.95f, 0.78f), TextAlignmentOptions.TopLeft, UIStyle.Text);
             tut.BackButton = UIKit.Button(card, "Back", "@tut.back", new Vector4(0.04f, 0.04f, 0.3f, 0.15f), UIStyle.ButtonIdle, UIStyle.Text, 30);
@@ -1221,6 +1253,41 @@ namespace Navigator.Editor
             var raw = Rect(parent, name, a).gameObject.AddComponent<RawImage>();
             raw.raycastTarget = false;
             return raw;
+        }
+
+        // Single-line text box with a localized placeholder
+        public static TMP_InputField InputTop(Transform parent, string name, string placeholder, float x0, float x1,
+                                              float top, float h, float size)
+        {
+            var rt = RectTop(parent, name, x0, x1, top, h);
+            var bg = rt.gameObject.AddComponent<Image>();
+            Rounded(bg, UIStyle.ButtonIdle);
+            bg.raycastTarget = true;
+
+            var area = Rect(rt, "Text Area", new Vector4(0f, 0f, 1f, 1f));
+            area.offsetMin = new Vector2(18f, 4f);
+            area.offsetMax = new Vector2(-18f, -4f);
+            area.gameObject.AddComponent<RectMask2D>();
+
+            var ph = Style(Rect(area, "Placeholder", new Vector4(0f, 0f, 1f, 1f)).gameObject.AddComponent<TextMeshProUGUI>(),
+                           placeholder, size, TextAlignmentOptions.Center, UIStyle.Muted, FontStyles.Italic);
+            var text = Style(Rect(area, "Text", new Vector4(0f, 0f, 1f, 1f)).gameObject.AddComponent<TextMeshProUGUI>(),
+                             "", size, TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            // Typed text must not shrink or wrap while typing
+            text.enableAutoSizing = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode     = TextOverflowModes.Overflow;
+
+            var input = rt.gameObject.AddComponent<TMP_InputField>();
+            input.textViewport  = area;
+            input.textComponent = text;
+            input.placeholder   = ph;
+            input.targetGraphic = bg;
+            input.lineType      = TMP_InputField.LineType.SingleLine;
+            input.contentType   = TMP_InputField.ContentType.Standard;
+            input.caretColor    = UIStyle.Accent;
+            input.customCaretColor = true;
+            return input;
         }
 
         static TMP_Text Style(TextMeshProUGUI t, string text, float size, TextAlignmentOptions align, Color c, FontStyles style)
