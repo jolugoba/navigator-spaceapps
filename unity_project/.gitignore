@@ -1,0 +1,3 @@
+# Si creas NavigatorUnity/ aquí como proyecto Unity:
+# Library/, Temp/, Obj/, Logs/ se ignoran desde el .gitignore raíz
+# Este archivo existe para que git no ignore el directorio unity_project/
