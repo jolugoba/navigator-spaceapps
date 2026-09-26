@@ -303,7 +303,7 @@ if (isTakedown)
     TakedownType type = DetermineTakedownType(v1, v2);
     // Frontal / Lateral / Trasero
     _burnout?.RegisterTakedown(type);  // +35% boost bar
-    BurnoutSystem.MissileEffect(5f);   // rival suprimido 5s
+    other._burnout?.SuppressFor(5f);   // rival suprimido 5s (EMP)
 }
 ExplosionVFX.Spawn(ExplosionPrefab, impactPoint, isTakedown);
 ```
@@ -396,17 +396,14 @@ La antena de alta ganancia reduce este efecto
 ```csharp
 public int TotalScore()
 {
-    int arrival  = ArrivalPosition switch {
-        1 => 1500,   // primero
-        2 => 750,    // segundo
-        _ => 250
-    };
-    int science  = SciencePoints;              // suma de instrumentos
-    int fuel     = (int)(FuelFraction * 1000); // 0-1000 pts
-    int takedown = TakedownCount * 500;        // 500 pts por takedown
-    int gravAssist = GravityAssistCount * 300;
+    // ArrivalBonus: 1st=×1.50, 2nd=×1.25, 3rd=×1.10, else=×1.00
+    int baseScore     = Mathf.RoundToInt(1000f * ArrivalBonus(ArrivalPosition));
+    int scienceBonus  = SciencePoints;
+    int fuelBonus     = Mathf.RoundToInt(FuelFraction * 500f);  // 0-500 pts
+    int takedownBonus = TakedownCount * 150;
+    int gravAssist    = GravityAssistUsed ? 200 : 0;
 
-    return arrival + science + fuel + takedown + gravAssist;
+    return baseScore + scienceBonus + fuelBonus + takedownBonus + gravAssist;
 }
 ```
 
@@ -416,11 +413,11 @@ Componente      Máximo
 ────────────────────────
 Llegada #1      1500
 Ciencia (8 inst) ~5300
-Fuel 100%       1000
-3 Takedowns     1500
-Gravity assist  300
+Fuel 100%        500
+3 Takedowns      450
+Gravity assist   200
 ────────────────────────
-TOTAL MÁXIMO    ~9600
+TOTAL MÁXIMO    ~7950
 ```
 
 #### ScoreboardUI — animación reveal
@@ -546,7 +543,7 @@ Assets/Models/Instr/    IC-01 cámara, IC-02 antena,
 1. Abrir NavigatorUnity en Unity 6 LTS
 2. Packages/manifest.json ya tiene todos los paquetes
 3. Instalar ZXing.Net.Unity desde Asset Store
-4. Copiar unity_scripts/ → Assets/Navigator/
+4. Los scripts ya están en Assets/ (no copiar unity_scripts/)
 5. Navigator → Setup Scene (menú Unity)
 6. Asignar en Inspector:
    - LocalShip: prefab NV-01_FINAL.glb
