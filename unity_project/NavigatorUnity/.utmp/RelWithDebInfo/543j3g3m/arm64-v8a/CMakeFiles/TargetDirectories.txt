@@ -1,0 +1,5 @@
+C:/laragonbk/www/dada/navigator/unity_project/NavigatorUnity/.utmp/RelWithDebInfo/543j3g3m/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/laragonbk/www/dada/navigator/unity_project/NavigatorUnity/.utmp/RelWithDebInfo/543j3g3m/arm64-v8a/CMakeFiles/rebuild_cache.dir
+C:/laragonbk/www/dada/navigator/unity_project/NavigatorUnity/.utmp/RelWithDebInfo/543j3g3m/arm64-v8a/GameActivity/CMakeFiles/game.dir
+C:/laragonbk/www/dada/navigator/unity_project/NavigatorUnity/.utmp/RelWithDebInfo/543j3g3m/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+C:/laragonbk/www/dada/navigator/unity_project/NavigatorUnity/.utmp/RelWithDebInfo/543j3g3m/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

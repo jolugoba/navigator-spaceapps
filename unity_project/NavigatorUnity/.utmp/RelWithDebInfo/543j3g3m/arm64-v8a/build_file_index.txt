@@ -1,0 +1,2 @@
+C:\laragonbk\www\dada\navigator\unity_project\NavigatorUnity\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\laragonbk\www\dada\navigator\unity_project\NavigatorUnity\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt
