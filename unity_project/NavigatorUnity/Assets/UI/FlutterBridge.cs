@@ -90,6 +90,11 @@ namespace Navigator.UI
             sb.Append(",\"position\":").Append(arrivalPos.ToString(inv));
             sb.Append(",\"stars\":").Append(stars.ToString(inv));
             sb.Append(",\"costM\":").Append(mission.TotalCostM.ToString("F0", inv));
+            if (!string.IsNullOrEmpty(mission.LaunchDateIso))
+            {
+                sb.Append(",\"launch\":\"").Append(Escape(mission.LaunchDateIso)).Append('"');
+                sb.Append(",\"tripDays\":").Append(mission.TransferDays.ToString("F0", inv));
+            }
             if (outcome != null)
             {
                 sb.Append(",\"timeS\":").Append(outcome.FlightTimeS.ToString("F1", inv));
