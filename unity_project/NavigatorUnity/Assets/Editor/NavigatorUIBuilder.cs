@@ -843,24 +843,28 @@ namespace Navigator.Editor
             stick.Knob  = knob.rectTransform;
             stick.Range = 80f;
 
-            var thrust = HoldButtonAt(p, "ThrustButton", "@hud.thrust", new Vector2(-36f, 36f), new Vector2(190f, 150f),
-                                      new Color(0.2f, 0.8f, 1f, 0.42f), 28);
-            var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector2(-36f, 196f), new Vector2(190f, 70f),
-                                      new Color(1f, 0.5f, 0.1f, 0.42f), 22);
+            // Right-hand column of sci-fi buttons (slanted, glowing outline, segmented bar), bottom to top:
+            // THRUST (blue, a bit taller: the thumb rests there), BOOST (red), FIRE (orange), SCAN (green)
+            const float bx = -30f, bw = 210f, bh = 72f, th = 92f, gap = 10f;
+            var thrust = HoldButtonAt(p, "ThrustButton", "@hud.thrust", new Vector2(bx, 30f), new Vector2(bw, th),
+                                      new Color(0.25f, 0.45f, 1f, 0.9f), 28);
+            var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector2(bx, 30f + th + gap), new Vector2(bw, bh),
+                                      new Color(1f, 0.25f, 0.25f, 0.9f), 26);
 
-            // SCAN and FIRE above BOOST, same column
             var fire = UIKit.Button(p, "FireButton", "@hud.fire", new Vector4(1f, 0f, 1f, 0f),
-                                    new Color(0.9f, 0.25f, 0.2f, 0.45f), UIStyle.Text, 24, FontStyles.Bold);
-            PinButton(fire, new Vector2(-36f, 282f), new Vector2(190f, 72f));
+                                    new Color(1f, 0.62f, 0.15f, 0.9f), UIStyle.Text, 26, FontStyles.Bold);
+            PinButton(fire, new Vector2(bx, 30f + th + bh + 2 * gap), new Vector2(bw, bh));
+            SciFi(fire.image);
             hud.FireButton = fire;
-            hud.FireCooldown = UIKit.Image(fire.transform, "Charge", new Vector4(0f, 0f, 1f, 0.12f), new Color(1f, 0.8f, 0.4f, 0.8f));
+            hud.FireCooldown = UIKit.Image(fire.transform, "Charge", new Vector4(0.14f, 0.1f, 0.62f, 0.2f), new Color(1f, 0.9f, 0.5f, 0.95f));
             hud.FireCooldown.sprite = null;
             hud.FireCooldown.type   = UnityEngine.UI.Image.Type.Filled;
             hud.FireCooldown.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
 
             var scan = UIKit.Button(p, "ScanButton", "@hud.scan", new Vector4(1f, 0f, 1f, 0f),
-                                    new Color(0.2f, 0.9f, 0.7f, 0.42f), UIStyle.Text, 24, FontStyles.Bold);
-            PinButton(scan, new Vector2(-36f, 366f), new Vector2(190f, 72f));
+                                    new Color(0.2f, 0.95f, 0.45f, 0.9f), UIStyle.Text, 26, FontStyles.Bold);
+            PinButton(scan, new Vector2(bx, 30f + th + 2 * bh + 3 * gap), new Vector2(bw, bh));
+            SciFi(scan.image);
             hud.ScanButton = scan;
 
             // Reticle that locks onto what the ship points at
@@ -919,6 +923,82 @@ namespace Navigator.Editor
             rt.anchoredPosition = pos;
         }
 
+        // Game-style button: slanted chamfered plate, bright outline, inner glow and a segmented
+        // gauge along the bottom. White, so each button is tinted by its Image colour.
+        static void SciFi(Image img)
+        {
+            img.sprite = SciFiButtonSprite();
+            img.type   = UnityEngine.UI.Image.Type.Simple;
+            img.preserveAspect = false;
+            // The label sits a little higher, above the gauge
+            var label = img.GetComponentInChildren<TMP_Text>();
+            if (label != null)
+            {
+                var rt = label.rectTransform;
+                rt.anchorMin = new Vector2(0.06f, 0.2f); rt.anchorMax = new Vector2(0.94f, 1f);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                label.fontStyle = FontStyles.Bold | FontStyles.Italic;
+            }
+        }
+
+        static Sprite SciFiButtonSprite()
+        {
+            const string path = "Assets/UI/Generated/SciFiButton.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+            const int W = 288, H = 100;
+            const float m = 4f, c = 22f, skew = 16f;   // margin, corner cut, slant
+            // Convex outline, counter-clockwise: top-left and bottom-right corners cut, then slanted
+            var pts = new[]
+            {
+                new Vector2(m, m), new Vector2(W - m - c, m), new Vector2(W - m, m + c),
+                new Vector2(W - m, H - m), new Vector2(m + c, H - m), new Vector2(m, H - m - c),
+            };
+            for (int i = 0; i < pts.Length; i++) pts[i].x += skew * (pts[i].y / H - 0.5f);
+
+            float Dist(Vector2 q)   // signed distance to the polygon (negative inside)
+            {
+                float d = float.MinValue;
+                for (int i = 0; i < pts.Length; i++)
+                {
+                    Vector2 a = pts[i], b = pts[(i + 1) % pts.Length], e = (b - a).normalized;
+                    Vector2 n = new Vector2(e.y, -e.x);   // outward normal for CCW
+                    d = Mathf.Max(d, Vector2.Dot(q - a, n));
+                }
+                return d;
+            }
+
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+            {
+                var q = new Vector2(x + 0.5f, y + 0.5f);
+                float d = Dist(q);
+                float edge    = Mathf.Clamp01(1f - Mathf.Abs(d + 1.5f) / 2f);       // 3 px outline
+                float outside = Mathf.Clamp01(1f - (d + 0.5f));                      // anti-aliased shape
+                float glow    = d < 0f ? 0.45f * Mathf.Exp(d / 7f) : 0f;             // brighter near the rim
+                float fill    = d < 0f ? 0.30f : 0f;
+                // Segmented gauge: 8 small slanted cells along the bottom-left
+                float gx = x - (16f + skew * ((y + 0.5f) / H - 0.5f));
+                bool cell = y >= 12 && y <= 19 && gx >= 0f && gx < 8 * 20f && (gx % 20f) < 13f;
+                float a = Mathf.Max(edge, Mathf.Min(1f, fill + glow), cell && d < -3f ? 0.75f : 0f) * outside;
+                px[y * W + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels(px);
+            tex.Apply();
+            System.IO.Directory.CreateDirectory("Assets/UI/Generated");
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.textureType = TextureImporterType.Sprite;
+            ti.alphaIsTransparency = true;
+            ti.mipmapEnabled = false;
+            ti.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
         // Thin ring with four ticks, generated once
         static Sprite ReticleSprite()
         {
@@ -956,8 +1036,9 @@ namespace Navigator.Editor
         {
             var img = UIKit.PinImage(p, name, new Vector2(1f, 0f), pos, box, color);
             img.raycastTarget = true;
-            UIKit.Text(img.rectTransform, "Label", label, size, new Vector4(0f, 0f, 1f, 1f),
+            UIKit.Text(img.rectTransform, "Label", label, size, new Vector4(0.06f, 0.2f, 0.94f, 1f),
                        TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            SciFi(img);
             var hold = img.gameObject.AddComponent<HoldButton>();
             hold.Target = img;
             return hold;
