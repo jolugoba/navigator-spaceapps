@@ -49,14 +49,14 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 
 **Play** → **JUGAR SOLO** → ajusta el diseño → **LANZAR MISIÓN**.
 
-| Tecla | Acción |
-|---|---|
-| Clic izquierdo o **W** | Acelerar |
-| **Espacio** | Boost |
-| **A / D** o ← / → | Girar izquierda / derecha |
-| **↑ / ↓** o **R / F** | Apuntar arriba / abajo |
-| **S** | Frenar |
-| Clic derecho + arrastrar | Apuntar con el mouse |
+| Celular / tablet | Control Bluetooth | Teclado | Acción |
+|---|---|---|---|
+| Inclinar el celular o **joystick** en pantalla | Stick izquierdo | **A/D** o ←/→, **↑/↓** o R/F, clic derecho + arrastrar | Girar / apuntar |
+| Botón **ACELERAR** o 1 dedo en pantalla | RT o A | **W** o clic izquierdo | Acelerar |
+| Botón **BOOST**, 2 dedos o doble toque | LT o B | **Espacio** | Boost |
+| — | X | **S** | Frenar |
+| — | LB / RB | **Q / E** | Tonel (barrel roll) |
+| Botón **GYRO ON/OFF** | — | — | Jugar sin mover el celular (solo joystick) |
 
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
 En macOS no hay librería nativa para el Editor: se juega en modo solo.

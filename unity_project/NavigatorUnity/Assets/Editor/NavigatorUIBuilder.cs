@@ -15,6 +15,7 @@ using TMPro;
 using Navigator.Core;
 using Navigator.Network;
 using Navigator.UI;
+using Navigator.AR;
 
 namespace Navigator.Editor
 {
@@ -81,7 +82,7 @@ namespace Navigator.Editor
             gm.LobbyPanel         = BuildLobby(root.transform, safe, lobby, gm);
             gm.MissionDesignPanel = BuildMissionDesign(root.transform, safe, design);
             gm.CountdownPanel     = BuildCountdown(safe, gm);
-            gm.HUDPanel           = BuildHUD(safe, hud);
+            gm.HUDPanel           = BuildHUD(safe, hud, gm.ARShip);
             gm.ScienceOpsPanel    = BuildScienceOps(root.transform, safe, science);
             gm.ScoreboardPanel    = BuildScoreboard(root.transform, safe, board);
 
@@ -409,7 +410,7 @@ namespace Navigator.Editor
         // HUD EN VUELO — nada intercepta toques: toda la pantalla es el acelerador
         // ══════════════════════════════════════════════════════════════════════
 
-        static GameObject BuildHUD(RectTransform safe, CockpitHUD hud)
+        static GameObject BuildHUD(RectTransform safe, CockpitHUD hud, ARShipController ship)
         {
             var go = UIKit.Stretch(safe, "HUDPanel").gameObject;
             var p = go.transform;
@@ -486,7 +487,56 @@ namespace Navigator.Editor
             hud.FuelBar = UIKit.Bar(fuel, "Bar", new Vector4(0.08f, 0.12f, 0.92f, 0.2f), UIStyle.Good);
 
             foreach (var g in go.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
+
+            // Touch controls come after the loop: they are the only HUD parts that take taps
+            BuildTouchControls(p, hud, ship);
             return go;
+        }
+
+        // Phones and tablets have no keyboard: stick to steer, buttons to thrust and boost
+        static void BuildTouchControls(Transform p, CockpitHUD hud, ARShipController ship)
+        {
+            var area = UIKit.Rect(p, "Joystick", new Vector4(0.03f, 0.295f, 0.4f, 0.47f));
+            area.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            var baseImg = area.gameObject.AddComponent<Image>();
+            baseImg.sprite = UIKit.KnobSprite;
+            baseImg.color  = new Color(1f, 1f, 1f, 0.12f);
+            baseImg.raycastTarget = true;
+            var knob = UIKit.Image(area, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.55f));
+            knob.sprite = UIKit.KnobSprite;
+            knob.type   = UnityEngine.UI.Image.Type.Simple;
+            knob.rectTransform.sizeDelta = new Vector2(120, 120);
+            var stick = area.gameObject.AddComponent<VirtualJoystick>();
+            stick.Knob  = knob.rectTransform;
+            stick.Range = 100f;
+
+            var thrust = HoldButtonAt(p, "ThrustButton", "@hud.thrust", new Vector4(0.62f, 0.355f, 0.97f, 0.47f),
+                                      new Color(0.2f, 0.8f, 1f, 0.45f), 38);
+            var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector4(0.66f, 0.295f, 0.97f, 0.345f),
+                                      new Color(1f, 0.5f, 0.1f, 0.45f), 30);
+
+            hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(0.74f, 0.8f, 0.97f, 0.84f),
+                                          new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 24, FontStyles.Bold);
+            hud.GyroLabel = hud.GyroButton.GetComponentInChildren<TMP_Text>();
+
+            if (ship != null)
+            {
+                ship.Stick        = stick;
+                ship.ThrustButton = thrust;
+                ship.BoostButton  = boost;
+                EditorUtility.SetDirty(ship);
+            }
+        }
+
+        static HoldButton HoldButtonAt(Transform p, string name, string label, Vector4 a, Color color, float size)
+        {
+            var img = UIKit.Image(p, name, a, color);
+            img.raycastTarget = true;
+            UIKit.Text(img.rectTransform, "Label", label, size, new Vector4(0f, 0f, 1f, 1f),
+                       TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            var hold = img.gameObject.AddComponent<HoldButton>();
+            hold.Target = img;
+            return hold;
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -721,7 +771,7 @@ namespace Navigator.Editor
     {
         static Sprite _rounded, _knob, _check;
         static Sprite RoundedSprite => _rounded ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-        static Sprite KnobSprite    => _knob    ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+        public static Sprite KnobSprite => _knob    ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
         static Sprite CheckSprite   => _check   ??= AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
 
         public struct PanelParts { public GameObject go; public RectTransform content; }

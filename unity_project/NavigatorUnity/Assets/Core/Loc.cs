@@ -174,7 +174,7 @@ namespace Navigator.Core
             { "hud.signal",         ("Signal delay: {0}", "Retardo de señal: {0}") },
             { "hud.lowfuel",        ("LOW FUEL", "COMBUSTIBLE BAJO") },
             { "hud.nofuel",         ("OUT OF FUEL", "SIN COMBUSTIBLE") },
-            { "hud.controls",       ("1 finger: thrust · 2 fingers: boost · aim your phone to steer", "1 dedo: acelerar · 2 dedos: boost · apunta el celular para girar") },
+            { "hud.controls", ("Joystick or tilt the phone to steer · hold THRUST · Q/E or LB/RB: barrel roll", "Joystick o inclina el celular para girar · mantén ACELERAR · Q/E o LB/RB: tonel") },
             { "hud.hit.light",      ("BUMP", "ROCE") },
             { "hud.hit.medium",     ("IMPACT · FUEL LEAK −10%", "IMPACTO · FUGA DE COMBUSTIBLE −10%") },
             { "hud.hit.heavy",      ("HEAVY HIT · HULL −1 · FUEL −25%", "GOLPE FUERTE · CASCO −1 · COMBUSTIBLE −25%") },
@@ -308,6 +308,10 @@ namespace Navigator.Core
             { "rep.ops.bonus",   ("Cruise science: +{0:N0} pts from your decisions en route.", "Ciencia en crucero: +{0:N0} pts por tus decisiones en el viaje.") },
 
             // ── Cruise operations events ─────────────────────────────────────
+            { "hud.gyro.on",  ("GYRO ON", "GIRO ON") },
+            { "hud.gyro.off", ("GYRO OFF", "GIRO OFF") },
+            { "hud.thrust",   ("THRUST", "ACELERAR") },
+            { "hud.boost",    ("BOOST", "BOOST") },
             { "hud.safemode", ("SAFE MODE · ENGINES OFF {0:0} s", "MODO SEGURO · MOTORES APAGADOS {0:0} s") },
             { "pod.Fuel",          ("+15% FUEL", "+15% COMBUSTIBLE") },
             { "pod.Boost",         ("BURNOUT BAR FULL!", "¡BARRA DE BURNOUT LLENA!") },
