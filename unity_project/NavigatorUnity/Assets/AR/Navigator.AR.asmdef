@@ -4,9 +4,7 @@
     "references": [
         "Navigator.Core",
         "Navigator.Game",
-        "Navigator.Network",
-        "Unity.XR.ARFoundation",
-        "Unity.XR.ARSubsystems"
+        "Navigator.Network"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

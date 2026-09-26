@@ -1,10 +1,30 @@
 ﻿<Solution>
+  <Project Path="Unity.XR.Simulation.csproj" />
+  <Project Path="Unity.XR.ARFoundation.VisualScripting.Editor.csproj" />
+  <Project Path="Unity.XR.ARSubsystems.csproj" />
+  <Project Path="Unity.XR.ARFoundation.Runtime.Tests.csproj" />
+  <Project Path="Unity.XR.Simulation.Editor.csproj" />
+  <Project Path="Unity.XR.Simulation.Runtime.Tests.csproj" />
+  <Project Path="Unity.XR.ARFoundation.CodeSamples.Tests.csproj" />
+  <Project Path="Unity.XR.ARFoundation.csproj" />
+  <Project Path="Unity.XR.ARFoundation.VisualScripting.csproj" />
+  <Project Path="Unity.XR.ARSubsystems.Editor.csproj" />
   <Project Path="Navigator.Game.csproj" />
   <Project Path="Navigator.Network.csproj" />
   <Project Path="Navigator.AR.csproj" />
+  <Project Path="Unity.XR.ARSubsystems.Editor.Tests.csproj" />
+  <Project Path="Unity.XR.Simulation.Editor.Tests.csproj" />
+  <Project Path="Unity.XR.ARFoundation.Editor.Tests.csproj" />
   <Project Path="Navigator.Editor.csproj" />
+  <Project Path="Unity.XR.ARFoundation.InternalUtils.csproj" />
+  <Project Path="Unity.XR.ARFoundation.Editor.csproj" />
   <Project Path="Navigator.Core.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Navigator.UI.csproj" />
+  <Project Path="Unity.XR.TestTooling.Editor.Tests.csproj" />
+  <Project Path="Unity.XR.ARFoundation.InternalUtils.Editor.Tests.csproj" />
+  <Project Path="Unity.XR.ARAnalytics.Editor.csproj" />
+  <Project Path="Unity.XR.ARFoundation.CodeSamples.Editor.Tests.csproj" />
+  <Project Path="Unity.XR.ARFoundation.InternalUtils.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

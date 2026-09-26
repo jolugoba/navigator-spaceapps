@@ -1,11 +1,10 @@
 // Navigator 2.0 — ARSessionManager.cs
-// Inicia AR Foundation y avisa cuando la cámara está lista
-// Todo lo demás (camera background, tracking) lo hace Unity automáticamente
+// Inicia el modo AR sin AR Foundation — usa cámara estándar + giroscopio
+// Funciona en cualquier dispositivo Android/iOS sin necesitar ARCore/ARKit
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
 using UnityEngine;
-using UnityEngine.XR.ARFoundation;
 using UnityEngine.UI;
 using TMPro;
 
@@ -13,14 +12,13 @@ namespace Navigator.AR
 {
     public class ARSessionManager : MonoBehaviour
     {
-        [Header("AR Foundation (asignar desde escena)")]
-        public ARSession    Session;         // GameObject AR Session
-        public ARCameraManager CameraManager; // en el AR Camera
+        [Header("Referencias (sin AR Foundation)")]
+        public Camera ARCamera;          // cámara principal
 
         [Header("UI de carga")]
-        public GameObject LoadingPanel;      // "Iniciando AR..."
+        public GameObject LoadingPanel;
         public TMP_Text   StatusText;
-        public Button     CalibrateCameraBtn; // "Recalibrar"
+        public Button     CalibrateCameraBtn;
 
         [Header("Refs")]
         public ARShipController ShipController;
@@ -30,51 +28,26 @@ namespace Navigator.AR
 
         IEnumerator InitAR()
         {
-            ShowStatus("Verificando soporte AR…");
+            ShowStatus("Iniciando modo AR…");
 
-            // Espera que AR Foundation compruebe el dispositivo
-            yield return new WaitUntil(() =>
-                ARSession.state != ARSessionState.None &&
-                ARSession.state != ARSessionState.CheckingAvailability);
+            // Activa el giroscopio si está disponible
+            if (SystemInfo.supportsGyroscope)
+                Input.gyro.enabled = true;
 
-            if (ARSession.state == ARSessionState.Unsupported)
-            {
-                ShowStatus("AR no disponible en este dispositivo.\nUsando modo pantalla.");
-                // Fallback: desactiva AR background, usa skybox de espacio
-                if (CameraManager != null) CameraManager.enabled = false;
-                LoadingPanel?.SetActive(false);
-                yield break;
-            }
+            yield return new WaitForSeconds(0.5f);
 
-            ShowStatus("Iniciando cámara…");
+            ShowStatus("Cámara lista.");
+            yield return new WaitForSeconds(0.5f);
 
-            // AR Foundation enciende la cámara automáticamente
-            // Solo esperamos que el estado sea SessionTracking
-            float timeout = 8f;
-            while (ARSession.state != ARSessionState.SessionTracking && timeout > 0f)
-            {
-                yield return new WaitForSeconds(0.2f);
-                timeout -= 0.2f;
-            }
+            LoadingPanel?.SetActive(false);
 
-            if (ARSession.state == ARSessionState.SessionTracking)
-            {
-                ShowStatus("¡AR listo!");
-                yield return new WaitForSeconds(0.8f);
-                LoadingPanel?.SetActive(false);
-
-                // Calibra giroscopio con la posición actual del celular
-                ShipController?.CalibrateGyro();
-                SpaceManager?.enabled = true;
-            }
-            else
-            {
-                ShowStatus("AR iniciando… mueve el celular lentamente.");
-                LoadingPanel?.SetActive(false);
-            }
+            ShipController?.CalibrateGyro();
+            if (SpaceManager != null) SpaceManager.enabled = true;
 
             if (CalibrateCameraBtn != null)
                 CalibrateCameraBtn.onClick.AddListener(() => ShipController?.CalibrateGyro());
+
+            Debug.Log("[AR] Modo giroscopio listo.");
         }
 
         void ShowStatus(string msg)
