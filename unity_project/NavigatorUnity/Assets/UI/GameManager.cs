@@ -24,6 +24,7 @@ namespace Navigator.UI
         InFlight,
         ScienceOps,
         Scoreboard,
+        SkyFinder,
     }
 
     public class GameManager : MonoBehaviour
@@ -63,6 +64,8 @@ namespace Navigator.UI
         [Header("Operaciones")]
         public MissionEventsUI Events;
         public TutorialUI      Tutorial;
+        public SkyFinderUI     SkyFinder;
+        public ShareChallengeUI Share;
 
         [Header("Espacio")]
         public PowerupSystem Powerups;
@@ -93,6 +96,7 @@ namespace Navigator.UI
         public MissionOutcome Outcome { get; } = new();
 
         private float  _flightTimer;
+        private int _lastTotal;
         private readonly HashSet<string>         _rivalsArrived = new();
         private readonly Dictionary<string, int> _rivalScores   = new();
         private int _rivalsAtStart;   // how many final scores the scoreboard waits for
@@ -164,8 +168,56 @@ namespace Navigator.UI
         }
 
         public bool HasNextCampaignMission =>
-            ActiveCampaign != null && ActiveCampaign.Index + 1 < Campaign.Missions.Length &&
+            ActiveCampaign != null && !ActiveCampaign.IsChallenge &&
+            ActiveCampaign.Index + 1 < Campaign.Missions.Length &&
             Campaign.IsUnlocked(ActiveCampaign.Index + 1);
+
+        // Scanned or pasted challenge code: same target and objective, challenger's spending as the cap
+        public void StartChallenge(CampaignMission challenge)
+        {
+            if (challenge == null) return;
+            if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+            ActiveCampaign = challenge;
+            BeginDesign();
+        }
+
+        // Scoreboard → share this mission as a challenge
+        public void ShareChallenge()
+        {
+            if (State == GameState.Scoreboard && Mission != null && ArrivalPos > 0)
+                Share?.Show(Mission, _lastTotal, PlayerName);
+        }
+
+        // ── "Where is it tonight?" ─────────────────────────────────────────────
+
+        private GameState _skyReturn;
+
+        public void OpenSkyFinder(string planetId)
+        {
+            if (SkyFinder == null || (State != GameState.Lobby && State != GameState.Scoreboard)) return;
+            _skyReturn = State;
+            SetState(GameState.SkyFinder);
+            SetPanels();
+            if (CameraFeed != null) CameraFeed.Play();
+            if (Ship != null) Ship.gameObject.SetActive(false);   // nothing between you and the sky
+            if (Rig != null) Rig.Target = null;
+            SkyFinder.Show(planetId);
+        }
+
+        public void CloseSkyFinder()
+        {
+            if (State != GameState.SkyFinder) return;
+            SkyFinder?.Hide();
+            if (Ship != null) Ship.gameObject.SetActive(true);
+            if (Rig != null && Ship != null) Rig.Target = Ship.transform;
+            SetState(_skyReturn);
+            if (_skyReturn == GameState.Lobby)
+            {
+                SetPanels(lobby: true);
+                if (CameraFeed != null) CameraFeed.Stop();   // the QR scanner needs the camera
+            }
+            else SetPanels(scoreboard: true);
+        }
 
         public void NextMission()
         {
@@ -474,7 +526,13 @@ namespace Navigator.UI
             SetState(GameState.Scoreboard);
             SetPanels(scoreboard: true);
             ScoreboardUI?.SetLocalPlayerName(PlayerName);
-            if (ActiveCampaign != null)
+            _lastTotal = total;
+            if (ActiveCampaign != null && ActiveCampaign.IsChallenge)
+            {
+                bool beat = ArrivalPos > 0 && total > ActiveCampaign.TargetScore;
+                ScoreboardUI?.SetCampaignResult(ActiveCampaign, beat ? 3 : 0, false, false);
+            }
+            else if (ActiveCampaign != null)
             {
                 int stars    = Campaign.StarsFor(ActiveCampaign, total, ArrivalPos > 0);
                 bool improved = Campaign.Record(ActiveCampaign.Index, stars);

@@ -216,8 +216,10 @@ namespace Navigator.UI
         {
             RefreshInstrumentLabels();
             if (BriefLabel != null)
-                BriefLabel.text = _campaign == null
-                    ? Loc.T("design.subtitle")
+                BriefLabel.text = _campaign == null ? Loc.T("design.subtitle")
+                    : _campaign.IsChallenge
+                    ? Loc.F("chal.brief", _campaign.Challenger, _campaign.TargetScore, Loc.Objective(_campaign.Objective),
+                            Loc.Planet(_campaign.Planet), _campaign.BudgetM)
                     : Loc.F("camp.brief", _campaign.Index + 1, Loc.T($"camp.{_campaign.Key}.name"),
                             Loc.T($"camp.{_campaign.Key}.brief"), _campaign.BudgetM, _campaign.StarGoals[0]);
             // Planeta

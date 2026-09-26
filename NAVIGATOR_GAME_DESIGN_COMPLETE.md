@@ -494,11 +494,26 @@ de puntaje para 1, 2 y 3 estrellas (● ○ ○). Con 1 estrella se desbloquea l
 Cada meta se verificó con un diseño real posible (por ejemplo, Venus en órbita exige 7,500 m/s: solo con motor iónico).
 Al terminar, el marcador muestra las estrellas y los botones **Reintentar** (con tu diseño) y **Siguiente misión**.
 
-## 10c. Multijugador de hasta 4
+## 10c. Multijugador sin límite de jugadores
+No hay tope de jugadores (pensado para un aula entera). La frecuencia de sincronización baja sola con el tamaño
+de la sala (20 Hz con hasta 5 jugadores, mínimo 4 Hz) para que el tráfico total no crezca. El marcador muestra
+los primeros 6 y tu lugar, y no espera más de 90 s a quien se haya ido.
 Al conectarse, cada celular comparte su lista de jugadores en `lobbyInfo` y los demás se conectan a los que les falten:
 una red en malla sin anfitrión. Un nuevo jugador puede escanear el QR de **cualquier** celular ya conectado.
 Cada nave sale en su carril, la posición de llegada cuenta a todos los rivales y el marcador muestra la clasificación
 completa, esperando el puntaje final de todos.
+
+## 10d. ¿Dónde está esta noche? — `UI/SkyFinderUI.cs`, `Network/NasaHorizons.cs`
+Desde el lobby o al terminar una misión: GPS + brújula + **NASA JPL Horizons** calculan dónde está el planeta
+**en tu cielo, ahora mismo** (consulta topocéntrica con tu latitud y longitud). La cámara muestra el cielo real,
+una flecha guía hasta el planeta y un aro lo marca. Dice azimut y dirección (N, NE…), altura sobre el horizonte,
+distancia en UA, cuántos minutos tarda su luz, si es de día (vuelve al atardecer), si está bajo el horizonte y
+cómo se ve a simple vista (Venus: la "estrella" más brillante; Neptuno: necesitas telescopio).
+
+## 10e. Reto compartible — `Core/Challenge.cs`, `UI/ShareChallengeUI.cs`
+Al terminar una misión: **COMPARTIR RETO** genera un QR y un código `NAVC1:…` (se copia para pegarlo en cualquier chat).
+Quien lo recibe lo escanea con el mismo botón *Escanear QR* del lobby, o toca **PEGAR RETO**. Vuela el mismo
+destino y objetivo con **lo que gastó el retador como presupuesto máximo**, y debe superar su puntaje.
 
 ## 10b. Idiomas — `Core/Loc.cs`
 Todo el juego está en **inglés por defecto** y en **español**; el botón de idioma del lobby cambia

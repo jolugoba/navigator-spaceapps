@@ -15,6 +15,11 @@ namespace Navigator.Core
         public string Objective;
         public float  BudgetM;
         public int[]  StarGoals;    // score needed for 1, 2, 3 stars
+
+        // Shared challenges reuse this shape (Index = -1): beat TargetScore spending at most BudgetM
+        public string Challenger;
+        public int    TargetScore;
+        public bool   IsChallenge => Index < 0;
     }
 
     public static class Campaign

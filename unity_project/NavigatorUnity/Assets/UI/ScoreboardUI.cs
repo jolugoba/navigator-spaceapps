@@ -49,6 +49,12 @@ namespace Navigator.UI
         public Button   PlayAgainButton;      // retry (keeps the design)
         public Button   MainMenuButton;
         public Button   NextMissionButton;    // campaign only
+        public Button   ShareButton;          // turn this mission into a challenge
+        public Button   SkyButton;            // where is this planet tonight?
+
+        [Header("Espera de rivales")]
+        public float MaxRivalWaitS = 90f;     // someone may have quit: don't wait forever
+        public int   RankingRows   = 6;
 
         [Header("Animación")]
         public float RevealDelayS = 0.4f;
@@ -67,6 +73,12 @@ namespace Navigator.UI
             PlayAgainButton  ?.onClick.AddListener(() => GameManager.Instance?.Retry());
             MainMenuButton   ?.onClick.AddListener(() => GameManager.Instance?.ExitToLobby());
             NextMissionButton?.onClick.AddListener(() => GameManager.Instance?.NextMission());
+            ShareButton?.onClick.AddListener(() => GameManager.Instance?.ShareChallenge());
+            SkyButton  ?.onClick.AddListener(() =>
+            {
+                var gm = GameManager.Instance;
+                if (gm != null && gm.Mission != null) gm.OpenSkyFinder(gm.Mission.TargetPlanetId);
+            });
         }
 
         public void SetCampaignResult(CampaignMission mission, int stars, bool improved, bool hasNext)
@@ -106,6 +118,7 @@ namespace Navigator.UI
             if (VictoryFX      != null) VictoryFX.SetActive(false);
             if (RemoteBlock    != null) RemoteBlock.SetActive(multiplayer || _campaign != null);
             if (NextMissionButton != null) NextMissionButton.gameObject.SetActive(false);
+            if (ShareButton != null) ShareButton.gameObject.SetActive(data != null && data.ArrivalPosition > 0);
             SetButtons(false);
 
             if (data != null)
@@ -135,7 +148,17 @@ namespace Navigator.UI
                 if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.T("sb.waiting");
                 if (WinnerSubLabel     != null) WinnerSubLabel.text     = Loc.T("sb.rivalflying");
                 SetButtons(true);
-                while (_rivals.Count < _expectedRivals) yield return null;
+                float waited = 0f;
+                while (_rivals.Count < _expectedRivals && waited < MaxRivalWaitS)
+                {
+                    waited += Time.deltaTime;
+                    yield return null;
+                }
+                if (_rivals.Count == 0)
+                {
+                    ShowSoloResult(failReason);
+                    yield break;
+                }
             }
 
             yield return new WaitForSeconds(RevealDelayS);
@@ -159,9 +182,13 @@ namespace Navigator.UI
             all.Add((string.IsNullOrEmpty(_localName) ? Loc.T("you") : _localName, _localScore, true));
             all.Sort((a, b) => b.score.CompareTo(a.score));
 
+            // Big rooms: top rows, then "…" and your own place
             var sb = new StringBuilder();
+            int myIndex = all.FindIndex(r => r.me);
             for (int i = 0; i < all.Count; i++)
             {
+                bool show = i < RankingRows || i == myIndex;
+                if (!show) { if (i == RankingRows) sb.AppendLine("..."); continue; }
                 var (name, score, me) = all[i];
                 string line = $"{i + 1}. {name}  {score:N0}";
                 sb.AppendLine(me ? $"<color=#33CCFF><b>{line}</b></color>" : line);
@@ -216,6 +243,7 @@ namespace Navigator.UI
         // Campaign: stars against the mission's goals, and the way forward
         void ShowCampaign(string failReason)
         {
+            if (_campaign.IsChallenge) { ShowChallenge(failReason); return; }
             ShowSoloResult(failReason);
             if (RemotePlayerName != null)
                 RemotePlayerName.text = Loc.F("camp.missionN", _campaign.Index + 1, Loc.T($"camp.{_campaign.Key}.name"));
@@ -237,6 +265,25 @@ namespace Navigator.UI
             ShowCampaignButtons();
         }
 
+        void ShowChallenge(string failReason)
+        {
+            bool beat = _stars > 0;
+            int diff = Mathf.Abs(_localScore - _campaign.TargetScore);
+            if (WinnerLabel != null)
+            {
+                WinnerLabel.text  = beat ? Loc.T("chal.win") : Loc.T("chal.lose");
+                WinnerLabel.color = beat ? UIStyle.Gold : UIStyle.Muted;
+            }
+            if (WinnerSubLabel != null)
+                WinnerSubLabel.text = beat ? Loc.F("chal.win.sub", _campaign.Challenger, diff)
+                                           : Loc.F("chal.lose.sub", _campaign.Challenger, diff);
+            if (RemotePlayerName != null) RemotePlayerName.text = Loc.F("chal.title", _campaign.Challenger);
+            if (RemoteScoreLabel != null) { RemoteScoreLabel.text = _campaign.TargetScore.ToString("N0"); RemoteScoreLabel.color = UIStyle.Bad; }
+            if (RemoteScoreBar   != null) RemoteScoreBar.fillAmount = Mathf.Clamp01((float)_campaign.TargetScore / ScoreBarMax);
+            if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.F("chal.rules", _campaign.BudgetM);
+            if (beat && VictoryFX != null) VictoryFX.SetActive(true);
+        }
+
         void ShowCampaignButtons()
         {
             if (NextMissionButton != null) NextMissionButton.gameObject.SetActive(_hasNext && _stars > 0);
@@ -247,6 +294,8 @@ namespace Navigator.UI
             if (PlayAgainButton   != null) PlayAgainButton.interactable   = interactable;
             if (MainMenuButton    != null) MainMenuButton.interactable    = interactable;
             if (NextMissionButton != null) NextMissionButton.interactable = interactable;
+            if (ShareButton       != null) ShareButton.interactable       = interactable;
+            if (SkyButton         != null) SkyButton.interactable         = interactable;
         }
 
         public void SetLocalPlayerName(string name)

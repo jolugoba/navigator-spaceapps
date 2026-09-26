@@ -90,6 +90,8 @@ namespace Navigator.Editor
             BuildEvents(root.transform, events);
             BuildTutorial(root.transform, tutor, gm.MissionDesignPanel);
             BuildCampaign(root.transform, root.AddComponent<CampaignUI>());
+            gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
+            gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
             gm.Events   = events;
             gm.Tutorial = tutor;
 
@@ -148,7 +150,7 @@ namespace Navigator.Editor
                                              new Vector4(0.05f, 0.03f, 0.95f, 0.14f),
                                              TextAlignmentOptions.Center, UIStyle.Muted);
 
-            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Scan QR", new Vector4(0.08f, 0.395f, 0.92f, 0.455f),
+            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Scan QR", new Vector4(0.08f, 0.395f, 0.55f, 0.455f),
                                             UIStyle.ButtonIdle, UIStyle.Text, 40);
             lobby.ScanStatusText = UIKit.Text(p, "ScanStatus", "", 28, new Vector4(0.08f, 0.355f, 0.92f, 0.39f),
                                               TextAlignmentOptions.Center, UIStyle.Muted);
@@ -158,8 +160,12 @@ namespace Navigator.Editor
                                                  new Vector4(0.08f, 0.07f, 0.92f, 0.17f),
                                                  UIStyle.Accent, UIStyle.Ink, 52, FontStyles.Bold);
             lobby.StartGameLabel = lobby.StartGameButton.GetComponentInChildren<TMP_Text>();
-            _campaignButton = UIKit.Button(p, "CampaignButton", "@camp.button", new Vector4(0.08f, 0.18f, 0.92f, 0.26f),
-                                           UIStyle.Gold, UIStyle.Ink, 40, FontStyles.Bold);
+            _campaignButton = UIKit.Button(p, "CampaignButton", "@camp.button", new Vector4(0.08f, 0.18f, 0.6f, 0.26f),
+                                           UIStyle.Gold, UIStyle.Ink, 34, FontStyles.Bold);
+            lobby.SkyButton = UIKit.Button(p, "SkyButton", "@lobby.sky", new Vector4(0.62f, 0.18f, 0.92f, 0.26f),
+                                           new Color(0.35f, 0.25f, 0.7f, 1f), UIStyle.Text, 28, FontStyles.Bold);
+            lobby.PasteChallengeButton = UIKit.Button(p, "PasteChallenge", "@lobby.paste", new Vector4(0.57f, 0.395f, 0.92f, 0.455f),
+                                                      UIStyle.ButtonIdle, UIStyle.Gold, 30, FontStyles.Bold);
 
             lobby.LanguageButton = UIKit.Button(p, "LanguageButton", "@lang.button", new Vector4(0.7f, 0.962f, 0.97f, 0.996f),
                                                 UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
@@ -315,6 +321,94 @@ namespace Navigator.Editor
             ev.Panel = go;
             go.transform.SetAsLastSibling();
             go.SetActive(false);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ¿DÓNDE ESTÁ ESTA NOCHE? — el cielo real a través de la cámara
+        // ══════════════════════════════════════════════════════════════════════
+
+        static SkyFinderUI BuildSkyFinder(Transform root, SkyFinderUI sky, GameManager gm)
+        {
+            var go = UIKit.Stretch(root, "SkyFinderPanel").gameObject;   // transparent: the camera is the view
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = UIKit.Column(safe);
+
+            var card = UIKit.Card(p, "Info", new Vector4(0.03f, 0.74f, 0.97f, 0.985f), UIStyle.HudCard);
+            UIKit.Text(card, "Tag", "@sky.title", 22, new Vector4(0.05f, 0.84f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            sky.PlanetLabel = UIKit.Text(card, "Planet", "", 56, new Vector4(0.05f, 0.62f, 0.95f, 0.85f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            sky.StatusLabel = UIKit.Text(card, "Status", "", 28, new Vector4(0.05f, 0.4f, 0.95f, 0.62f), TextAlignmentOptions.TopLeft, UIStyle.Good, FontStyles.Bold);
+            sky.DetailLabel = UIKit.Text(card, "Detail", "", 24, new Vector4(0.05f, 0.03f, 0.95f, 0.4f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+
+            sky.Arrow = UIKit.Image(p, "Arrow", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), UIStyle.Gold);
+            sky.Arrow.rectTransform.sizeDelta = new Vector2(560, 560);
+            sky.Arrow.sprite = ArrowSprite();
+            sky.Arrow.type   = UnityEngine.UI.Image.Type.Simple;
+
+            // Hollow ring (a glyph the font has) so the planet stays visible inside it
+            var ring = UIKit.Text(p, "Reticle", "○", 260, new Vector4(0.5f, 0.5f, 0.5f, 0.5f), TextAlignmentOptions.Center, UIStyle.Gold);
+            ring.enableAutoSizing = false;
+            ring.rectTransform.sizeDelta = new Vector2(280, 280);
+            sky.Reticle = ring.rectTransform;
+
+            UIKit.Text(p, "Hint", "@sky.hint", 26, new Vector4(0.05f, 0.215f, 0.95f, 0.245f), TextAlignmentOptions.Center, UIStyle.Muted);
+
+            string[] ids = { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
+            sky.PlanetButtons = new Button[ids.Length];
+            for (int i = 0; i < ids.Length; i++)
+            {
+                float x0 = 0.03f + i * (0.94f / ids.Length), x1 = x0 + 0.94f / ids.Length - 0.008f;
+                sky.PlanetButtons[i] = UIKit.Button(p, $"Planet_{ids[i]}", $"@planet.{ids[i]}", new Vector4(x0, 0.13f, x1, 0.2f),
+                                                    UIStyle.ButtonIdle, UIStyle.Text, 20, FontStyles.Bold);
+            }
+            sky.CloseButton = UIKit.Button(p, "Close", "@sky.close", new Vector4(0.05f, 0.03f, 0.95f, 0.11f), UIStyle.Accent, UIStyle.Ink, 40, FontStyles.Bold);
+
+            foreach (var g in go.GetComponentsInChildren<Graphic>(true))
+                if (g.GetComponent<Button>() == null) g.raycastTarget = false;   // look around freely
+
+            sky.Horizons     = gm.Compass != null ? gm.Compass.Horizons : null;
+            sky.SpaceManager = gm.SpaceManager;
+            sky.ARCamera     = gm.Rig != null ? gm.Rig.GetComponent<Camera>() : Camera.main;
+            sky.Panel = go;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+            return sky;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // RETO COMPARTIBLE
+        // ══════════════════════════════════════════════════════════════════════
+
+        static ShareChallengeUI BuildShare(Transform root, ShareChallengeUI share)
+        {
+            var go = UIKit.Stretch(root, "SharePanel").gameObject;
+            var dim = go.AddComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.75f);
+            dim.raycastTarget = true;
+            var card = UIKit.Card(UIKit.Column(go.transform), "Card", new Vector4(0.05f, 0.12f, 0.95f, 0.88f), UIStyle.Card);
+
+            UIKit.Text(card, "Title", "@share.title", 48, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            share.SummaryLabel = UIKit.Text(card, "Summary", "", 28, new Vector4(0.05f, 0.83f, 0.95f, 0.9f), TextAlignmentOptions.TopLeft, UIStyle.Text, FontStyles.Bold);
+
+            var qrArea = UIKit.Rect(card, "QRArea", new Vector4(0.12f, 0.36f, 0.88f, 0.82f));
+            var qrBg = UIKit.Image(qrArea, "QRBackground", Vector4.zero, Color.white);
+            UIKit.Fill(qrBg.rectTransform);
+            qrBg.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            share.QRImage = UIKit.Raw(qrBg.rectTransform, "QR", new Vector4(0.03f, 0.03f, 0.97f, 0.97f));
+
+            UIKit.Text(card, "Hint", "@share.hint", 24, new Vector4(0.05f, 0.25f, 0.95f, 0.35f), TextAlignmentOptions.Center, UIStyle.Muted);
+            share.CodeLabel = UIKit.Text(card, "Code", "", 18, new Vector4(0.05f, 0.19f, 0.95f, 0.25f), TextAlignmentOptions.Center, UIStyle.Accent);
+            share.CodeLabel.textWrappingMode = TextWrappingModes.NoWrap;
+
+            share.CopyButton  = UIKit.Button(card, "Copy", "@share.copy", new Vector4(0.05f, 0.09f, 0.95f, 0.18f), UIStyle.Gold, UIStyle.Ink, 36, FontStyles.Bold);
+            share.CopyLabel   = share.CopyButton.GetComponentInChildren<TMP_Text>();
+            Object.DestroyImmediate(share.CopyLabel.GetComponent<LocalizedText>());   // switches to "COPIED!"
+            share.CloseButton = UIKit.Button(card, "Close", "@share.close", new Vector4(0.05f, 0.015f, 0.95f, 0.08f), UIStyle.ButtonIdle, UIStyle.Text, 30);
+
+            share.Panel = go;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+            return share;
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -649,13 +743,17 @@ namespace Navigator.Editor
                                          TextAlignmentOptions.TopLeft, UIStyle.Text);
             ui.DebriefLabel.fontSizeMin = 16f;
 
-            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.13f, 0.49f, 0.23f),
+            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.135f, 0.49f, 0.225f),
                                               UIStyle.ButtonIdle, UIStyle.Text, 32, FontStyles.Bold);
-            ui.NextMissionButton = UIKit.Button(p, "NextMission", "@sb.next", new Vector4(0.51f, 0.13f, 0.95f, 0.23f),
+            ui.NextMissionButton = UIKit.Button(p, "NextMission", "@sb.next", new Vector4(0.51f, 0.135f, 0.95f, 0.225f),
                                                 UIStyle.Accent, UIStyle.Ink, 40, FontStyles.Bold);
             ui.NextMissionButton.gameObject.SetActive(false);
-            ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "@sb.menu", new Vector4(0.05f, 0.03f, 0.95f, 0.11f),
-                                              UIStyle.ButtonIdle, UIStyle.Text, 38);
+            ui.ShareButton = UIKit.Button(p, "Share", "@sb.share", new Vector4(0.05f, 0.035f, 0.365f, 0.12f),
+                                          UIStyle.Gold, UIStyle.Ink, 26, FontStyles.Bold);
+            ui.SkyButton   = UIKit.Button(p, "Sky", "@sb.sky", new Vector4(0.375f, 0.035f, 0.685f, 0.12f),
+                                          new Color(0.35f, 0.25f, 0.7f, 1f), UIStyle.Text, 26, FontStyles.Bold);
+            ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "@sb.menu", new Vector4(0.695f, 0.035f, 0.95f, 0.12f),
+                                              UIStyle.ButtonIdle, UIStyle.Text, 26);
             return panel.go;
         }
 

@@ -1,114 +1,114 @@
 // Navigator 2.0 — NasaHorizons.cs
-// NASA JPL Horizons API — real planet positions from GPS location
-// Ported from Dart: navigator/lib/nasa/horizons_service.dart
+// NASA JPL Horizons API: where each planet is in YOUR sky right now (topocentric),
+// how far it is, and whether the Sun is up.
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace Navigator.Network
 {
+    public struct SkyPosition
+    {
+        public bool  Ok;           // false = no data (offline, no GPS…)
+        public float Azimuth;      // degrees clockwise from true north
+        public float Altitude;     // degrees above the horizon (negative = below)
+        public float DistanceAU;
+        public char  Sun;          // '*' day · 'C' civil / 'N' nautical / 'A' astronomical twilight · ' ' night
+
+        public bool IsDaytime   => Sun == '*' || Sun == 'C';
+        public bool AboveHorizon => Altitude > 0f;
+    }
+
     public class NasaHorizons : MonoBehaviour
     {
-        // NASA Horizons body IDs
+        const string Api = "https://ssd.jpl.nasa.gov/api/horizons.api";
+
         private static readonly Dictionary<string, string> BodyIds = new()
         {
-            { "mercury", "199" },
-            { "venus",   "299" },
-            { "mars",    "499" },
-            { "jupiter", "599" },
-            { "saturn",  "699" },
-            { "uranus",  "799" },
-            { "neptune", "899" },
+            { "mercury", "199" }, { "venus", "299" }, { "mars", "499" }, { "jupiter", "599" },
+            { "saturn", "699" }, { "uranus", "799" }, { "neptune", "899" },
         };
 
-        // Fallback azimuths (due south = 180) when API unavailable
+        // Used only by the flight when Horizons can't be reached
         private static readonly Dictionary<string, float> FallbackAzimuth = new()
         {
             { "mercury", 180f }, { "venus", 220f }, { "mars", 190f },
             { "jupiter", 160f }, { "saturn", 150f }, { "uranus", 140f }, { "neptune", 135f },
         };
 
-        public IEnumerator GetPlanetPosition(
-            string planetId,
-            float  latitude,
-            float  longitude,
-            System.Action<float, float, float> onResult) // azimuth, altitude, distAU
+        // Real sky position seen from (latitude, longitude) right now
+        public IEnumerator GetSky(string planetId, float latitude, float longitude, System.Action<SkyPosition> onResult)
         {
-            if (!BodyIds.TryGetValue(planetId, out var bodyId))
-            {
-                onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 30f, 1f);
-                yield break;
-            }
+            if (!BodyIds.TryGetValue(planetId, out var bodyId)) { onResult(default); yield break; }
 
-            string now   = System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm");
-            string later = System.DateTime.UtcNow.AddMinutes(1).ToString("yyyy-MM-dd HH:mm");
-            string site  = $"coord@399";  // Earth center fallback
-            // Full site coord: $"coord,{longitude},{latitude},0@399"
+            var ci    = CultureInfo.InvariantCulture;
+            string now   = System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm", ci);
+            string later = System.DateTime.UtcNow.AddMinutes(1).ToString("yyyy-MM-dd HH:mm", ci);
+            // Geodetic site: east longitude, latitude (degrees), altitude (km)
+            string site  = $"{longitude.ToString("F4", ci)},{latitude.ToString("F4", ci)},0";
 
-            string url = "https://ssd.jpl.nasa.gov/api/horizons.api?" +
-                         $"format=text&COMMAND='{bodyId}'&OBJ_DATA='NO'" +
-                         $"&MAKE_EPHEM='YES'&EPHEM_TYPE='OBSERVER'" +
-                         $"&CENTER='{site}'" +
-                         $"&START_TIME='{UnityWebRequest.EscapeURL(now)}'" +
-                         $"&STOP_TIME='{UnityWebRequest.EscapeURL(later)}'" +
-                         "&STEP_SIZE='1 m'&QUANTITIES='4,20'";
+            string url = Api + "?format=text" +
+                         Q("COMMAND", bodyId) + Q("OBJ_DATA", "NO") + Q("MAKE_EPHEM", "YES") +
+                         Q("EPHEM_TYPE", "OBSERVER") + Q("CENTER", "coord@399") +
+                         Q("COORD_TYPE", "GEODETIC") + Q("SITE_COORD", site) +
+                         Q("START_TIME", now) + Q("STOP_TIME", later) + Q("STEP_SIZE", "1 m") +
+                         Q("QUANTITIES", "4,20") + Q("CSV_FORMAT", "YES");
 
             using var req = UnityWebRequest.Get(url);
-            req.timeout = 8;
+            req.timeout = 10;
             yield return req.SendWebRequest();
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning($"[Horizons] {planetId}: API failed, using fallback");
-                onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
+                Debug.LogWarning($"[Horizons] {planetId}: {req.error}");
+                onResult(default);
                 yield break;
             }
-
-            ParseAndReturn(req.downloadHandler.text, planetId, onResult);
+            var pos = Parse(req.downloadHandler.text);
+            if (pos.Ok) Debug.Log($"[Horizons] {planetId}: az={pos.Azimuth:F1} alt={pos.Altitude:F1} dist={pos.DistanceAU:F3} AU sun='{pos.Sun}'");
+            else        Debug.LogWarning($"[Horizons] {planetId}: could not parse the ephemeris");
+            onResult(pos);
         }
 
-        private void ParseAndReturn(
-            string text,
-            string planetId,
-            System.Action<float, float, float> onResult)
+        // Flight helper: always answers, falling back to a plausible direction
+        public IEnumerator GetPlanetPosition(string planetId, float latitude, float longitude,
+                                             System.Action<float, float, float> onResult) // azimuth, altitude, distAU
         {
-            // Horizons returns a text table. Find the data rows after "$$SOE"
-            int soe = text.IndexOf("$$SOE");
-            int eoe = text.IndexOf("$$EOE");
-            if (soe < 0 || eoe < 0)
-            {
-                onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
-                return;
-            }
+            SkyPosition sky = default;
+            yield return GetSky(planetId, latitude, longitude, p => sky = p);
+            if (sky.Ok) onResult(sky.Azimuth, sky.Altitude, sky.DistanceAU);
+            else        onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
+        }
 
-            string dataBlock = text[(soe + 5)..eoe].Trim();
-            string[] lines   = dataBlock.Split('\n');
-            if (lines.Length < 2)
-            {
-                onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
-                return;
-            }
+        static string Q(string key, string value) => $"&{key}={UnityWebRequest.EscapeURL($"'{value}'")}";
 
-            // Line format: date_time  az  alt  ... delta(AU) ...
-            // Quantities 4=az/alt, 20=delta. Positions vary — parse carefully.
-            try
+        // CSV row: " 2026-Sep-26 05:00, *, m,  123.4567,  45.1234, 1.23456789,  -12.3456,"
+        //           date            sun moon  azimuth    elevation delta(AU)   deldot
+        static SkyPosition Parse(string text)
+        {
+            int soe = text.IndexOf("$$SOE"), eoe = text.IndexOf("$$EOE");
+            if (soe < 0 || eoe < soe) return default;
+
+            foreach (var raw in text[(soe + 5)..eoe].Split('\n'))
             {
-                string[] parts = lines[1].Trim().Split(new[]{' ','\t'},
-                    System.StringSplitOptions.RemoveEmptyEntries);
-                float az   = float.Parse(parts[3]);
-                float alt  = float.Parse(parts[4]);
-                float dist = float.Parse(parts[5]);
-                onResult(az, alt, dist);
-                Debug.Log($"[Horizons] {planetId}: az={az:F1} alt={alt:F1} dist={dist:F3} AU");
+                var f = raw.Split(',');
+                if (f.Length < 6) continue;
+                var ci = CultureInfo.InvariantCulture;
+                if (!float.TryParse(f[3].Trim(), NumberStyles.Float, ci, out var az))    continue;
+                if (!float.TryParse(f[4].Trim(), NumberStyles.Float, ci, out var el))    continue;
+                if (!float.TryParse(f[5].Trim(), NumberStyles.Float, ci, out var delta)) continue;
+                string sun = f[1].Trim();
+                return new SkyPosition
+                {
+                    Ok = true, Azimuth = az, Altitude = el, DistanceAU = delta,
+                    Sun = sun.Length > 0 ? sun[0] : ' ',
+                };
             }
-            catch
-            {
-                Debug.LogWarning($"[Horizons] {planetId}: Parse failed, using fallback");
-                onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
-            }
+            return default;
         }
     }
 }

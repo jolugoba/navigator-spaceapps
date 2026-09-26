@@ -40,6 +40,10 @@ namespace Navigator.UI
         [Header("Idioma")]
         public Button   LanguageButton;
 
+        [Header("Retos y cielo")]
+        public Button   PasteChallengeButton;   // código recibido por chat
+        public Button   SkyButton;              // ¿Dónde está esta noche?
+
         [Header("Componentes")]
         public Navigator.Network.SendaBridge      Senda;
         public Navigator.Network.ShipSyncService  Sync;
@@ -58,6 +62,8 @@ namespace Navigator.UI
             }
             if (ScanButton != null) ScanButton.onClick.AddListener(ToggleScan);
             if (LanguageButton != null) LanguageButton.onClick.AddListener(Loc.Toggle);
+            if (PasteChallengeButton != null) PasteChallengeButton.onClick.AddListener(PasteChallenge);
+            if (SkyButton != null) SkyButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.OpenSkyFinder("mars"); });
             Loc.Changed += OnLanguageChanged;
             if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
             UpdateConnectedLabel();
@@ -97,7 +103,7 @@ namespace Navigator.UI
 
         // QR from ZXing's bit matrix: dark modules black, light modules white.
         // ZXing's row 0 is the top; Unity's texture row 0 is the bottom, so rows are flipped.
-        private static Texture2D GenerateQR(string content, int size)
+        public static Texture2D GenerateQR(string content, int size)
         {
             var hints = new System.Collections.Generic.Dictionary<EncodeHintType, object>
             {
@@ -212,16 +218,30 @@ namespace Navigator.UI
             }
         }
 
+        void PasteChallenge()
+        {
+            if (Challenge.TryDecode(GUIUtility.systemCopyBuffer, out var mission))
+            {
+                StopScan();
+                GameManager.Instance?.StartChallenge(mission);
+            }
+            else SetScanStatus(Loc.T("lobby.badcode"));
+        }
+
+        // The same scanner joins a game (a NodeId) or accepts a shared challenge (NAVC1:…)
         void ConnectToScanned(string remoteNodeId)
         {
+            if (Challenge.TryDecode(remoteNodeId, out var mission))
+            {
+                GameManager.Instance?.StartChallenge(mission);
+                return;
+            }
             SetScanStatus(Loc.T("lobby.connecting"));
             bool ok = Senda.ConnectToNode(remoteNodeId);
             if (ScanStatusText != null) ScanStatusText.text = ok
                 ? Loc.F("lobby.connected", remoteNodeId[..Mathf.Min(12, remoteNodeId.Length)])
                 : Loc.T("lobby.connecterror");
         }
-
-        public const int MaxPlayers = 4;
 
         void OnPeerConnected(string nodeId)
         {
@@ -242,7 +262,6 @@ namespace Navigator.UI
         {
             foreach (var id in peers)
             {
-                if (Senda.ConnectedPeers.Count >= MaxPlayers - 1) return;
                 if (id == Senda.NodeId || Senda.ConnectedPeers.Contains(id)) continue;
                 Senda.ConnectToNode(id);
             }
@@ -261,7 +280,7 @@ namespace Navigator.UI
             if (ConnectedPlayersText == null) return;
             ConnectedPlayersText.text = _peersConnected == 0
                 ? Loc.T("lobby.waiting")
-                : Loc.F("lobby.players", _peersConnected + 1, MaxPlayers);
+                : Loc.F("lobby.players", _peersConnected + 1);
         }
 
         void OnLanguageChanged()
