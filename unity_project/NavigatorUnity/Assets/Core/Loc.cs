@@ -266,7 +266,7 @@ namespace Navigator.Core
 
             // ── Where is it tonight? ─────────────────────────────────────────
             { "lobby.sky",     ("WHERE IS IT TONIGHT?", "¿DÓNDE ESTÁ ESTA NOCHE?") },
-            { "lobby.paste",   ("PASTE CHALLENGE", "PEGAR RETO") },
+            { "lobby.paste",   ("PASTE CODE", "PEGAR CÓDIGO") },
             { "lobby.badcode", ("No challenge code found. Copy the whole message and try again.", "No hay un código de reto. Copia el mensaje completo e intenta de nuevo.") },
             { "sky.title",     ("REAL SKY · NASA JPL HORIZONS", "CIELO REAL · NASA JPL HORIZONS") },
             { "sky.close",     ("CLOSE", "CERRAR") },
@@ -581,9 +581,10 @@ namespace Navigator.Core
             { "pod.GravityAssist", ("GRAVITY ASSIST · +200 pts", "ASISTENCIA GRAVITATORIA · +200 pts") },
             { "ev.header", ("MISSION CONTROL · ANOMALY", "CONTROL DE MISIÓN · ANOMALÍA") },
             { "lobby.web.preparing",  ("Preparing your code…", "Preparando tu código…") },
-            { "lobby.web.offer",      ("Your friend scans this QR to join you", "Tu amigo escanea este QR para unirse") },
-            { "lobby.web.answer",     ("Now your friend scans THIS QR", "Ahora tu amigo escanea ESTE QR") },
-            { "lobby.web.showanswer", ("Step 2: show your QR to your friend so they scan it back", "Paso 2: muéstrale tu QR a tu amigo para que lo escanee") },
+            { "lobby.web.offer",      ("Your friend scans this QR to join you (or tap it to copy the code)", "Tu amigo escanea este QR para unirse (o tócalo para copiar el código)") },
+            { "lobby.web.answer",     ("Now your friend scans THIS QR (or tap it to copy)", "Ahora tu amigo escanea ESTE QR (o tócalo para copiarlo)") },
+            { "lobby.web.copied",     ("Code copied: send it by message; your friend taps PASTE CODE", "Código copiado: envíalo por mensaje; tu amigo toca PEGAR CÓDIGO") },
+            { "lobby.web.showanswer", ("Step 2: your friend scans your QR (or tap it, send the code and they paste it)", "Paso 2: tu amigo escanea tu QR (o tócalo, envíale el código y él lo pega)") },
             { "set.button",         ("SETTINGS", "AJUSTES") },
             { "set.title",          ("Settings", "Ajustes") },
             { "set.lang",           ("Language", "Idioma") },

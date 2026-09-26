@@ -90,6 +90,21 @@ namespace Navigator.UI
             Senda.ShareCodeChanged += RefreshMyQR;
             Senda.ConnectError     += OnConnectError;
             RefreshMyQR();
+
+            // Web backup for cameras that can't read the QR: tap it to copy the code and send it
+            // by any messenger; the friend pastes it with the PASTE CODE button
+            if (Navigator.Network.SendaBridge.IsWeb && MyQRImage != null)
+            {
+                MyQRImage.raycastTarget = true;
+                if (!MyQRImage.TryGetComponent<Button>(out var tap)) tap = MyQRImage.gameObject.AddComponent<Button>();
+                tap.transition = Selectable.Transition.None;
+                tap.onClick.AddListener(() =>
+                {
+                    if (string.IsNullOrEmpty(Senda.ShareCode)) return;
+                    WebPlatform.Copy(Senda.ShareCode);
+                    SetScanStatus(Loc.T("lobby.web.copied"));
+                });
+            }
         }
 
         // Web build: the QR is an OFFER (scan me to join) or, after scanning a friend, the ANSWER
@@ -258,6 +273,14 @@ namespace Navigator.UI
         {
             WebPlatform.Paste(text =>
             {
+                // Web: a friend's join code sent by message works like scanning their QR
+                var join = System.Text.RegularExpressions.Regex.Match(text ?? "", @"NV[OA][01]\.[A-Za-z0-9_-]+");
+                if (Navigator.Network.SendaBridge.IsWeb && join.Success)
+                {
+                    StopScan();
+                    ConnectToScanned(join.Value);
+                    return;
+                }
                 if (Challenge.TryDecode(text, out var mission))
                 {
                     StopScan();
