@@ -3,8 +3,8 @@
   <Project Path="Navigator.Network.csproj" />
   <Project Path="Navigator.AR.csproj" />
   <Project Path="Navigator.Editor.csproj" />
+  <Project Path="Navigator.UI.csproj" />
   <Project Path="Navigator.Core.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="Navigator.UI.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>
