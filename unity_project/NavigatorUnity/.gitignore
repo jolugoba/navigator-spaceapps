@@ -60,3 +60,13 @@ crashlytics-build.properties
 # Assets/          → scripts, prefabs, escenas, modelos, shaders
 # Packages/        → manifest.json (referencias de paquetes)
 # ProjectSettings/ → todas las settings del proyecto
+
+# ── Salidas de build hechas dentro del proyecto (NO subir) ────────────
+# Construye siempre FUERA de esta carpeta (ej. C:\builds\navigator)
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
+.utmp/
+/Data/
+/build desktop/
+/build */
+*.slnx
