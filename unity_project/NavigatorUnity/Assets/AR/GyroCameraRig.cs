@@ -78,7 +78,12 @@ namespace Navigator.AR
                 _mousePitch -= Input.GetAxis("Mouse Y") * MouseSensitivity;
                 _mousePitch  = Mathf.Clamp(_mousePitch, -85f, 85f);
             }
+            // A/D or ←/→ turn; ↑/↓ or R/F pitch (W/S are thrust and brake)
             _mouseYaw += Input.GetAxis("Horizontal") * 90f * Time.deltaTime;
+            float pitch = 0f;
+            if (Input.GetKey(KeyCode.UpArrow)   || Input.GetKey(KeyCode.R)) pitch -= 1f;
+            if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.F)) pitch += 1f;
+            _mousePitch = Mathf.Clamp(_mousePitch + pitch * 70f * Time.deltaTime, -85f, 85f);
             return Quaternion.Euler(_mousePitch, _mouseYaw, 0f);
         }
     }

@@ -2,7 +2,8 @@
 // Pilotaje AR: la nave gira hacia donde apuntas el celular (giroscopio vía GyroCameraRig)
 //   1 dedo en pantalla  → empuje
 //   2 dedos o doble toque → boost
-// Editor: clic izquierdo / W = empuje, Espacio = boost, clic derecho + arrastrar = mirar
+// Editor: W / clic izq = empuje · S = freno · A/D = girar · ↑/↓ o R/F = subir/bajar
+//         Espacio = boost · clic derecho + arrastrar = apuntar con el mouse
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;
@@ -96,6 +97,10 @@ namespace Navigator.AR
 
             Ship.ThrustMain = thrusting || boosting ? TouchThrottle : 0f;
             Ship.Boosting   = boosting;
+
+            // Editor brake: bleed off speed without spending fuel
+            if (Application.isEditor && Input.GetKey(KeyCode.S) && _rb != null && !_rb.isKinematic)
+                _rb.linearVelocity *= Mathf.Clamp01(1f - 2.5f * Time.deltaTime);
         }
 
         static bool IsOverUI(int pointerId) =>
