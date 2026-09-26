@@ -1,12 +1,10 @@
 // Navigator 2.0 — SendaBridge.cs
-// Wraps the same native Senda library used by the Flutter plugin senda_p2p_chat
-// Iroh P2P + Dilithium-5 signatures — same as Navigator Flutter
-// P/Invoke to senda_core.dll (Android: libsenda_core.so, iOS: senda_core.a)
-//
-// Protocol: identical JSON to Flutter NavMessage — Flutter ↔ Unity interoperable
+// P/Invoke to senda_iroh_ffi (copied as senda_core.dll / libsenda_core.so)
+// Matches the actual exported symbols in senda/senda_iroh_ffi/src/lib.rs
 // Guacalita Inc. — SAL / Claude
 
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Text;
@@ -15,63 +13,51 @@ using UnityEngine.Events;
 
 namespace Navigator.Network
 {
-    // ── Native function signatures (senda_core Rust FFI) ─────────────────────
-    // These match the exported functions in senda/native/senda_core/src/ffi.rs
+    // ── Native bindings — match lib.rs exports exactly ───────────────────────
     internal static class SendaFFI
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
-        private const string LIB = "senda_core";
+        private const string LIB = "senda_core";   // libsenda_core.so
 #elif UNITY_IOS && !UNITY_EDITOR
         private const string LIB = "__Internal";
 #else
-        private const string LIB = "senda_core";  // senda_core.dll on Windows/Editor
+        private const string LIB = "senda_core";   // senda_core.dll (Windows/Editor)
 #endif
 
-        // Initialize Iroh node — returns node_id as null-terminated UTF-8
-        [DllImport(LIB)] internal static extern IntPtr senda_init();
+        // iroh_init() — 0=OK, negative=error
+        [DllImport(LIB)] internal static extern int  iroh_init();
 
-        // Get our node_id string
-        [DllImport(LIB)] internal static extern IntPtr senda_node_id();
+        // iroh_node_id() — returns heap string, free with iroh_free_string
+        [DllImport(LIB)] internal static extern IntPtr iroh_node_id();
 
-        // Connect to a remote node by node_id string
-        // Returns 1 on success, 0 on failure
+        // iroh_connect(node_id_cstr) — 0=OK, negative=error
         [DllImport(LIB, CharSet = CharSet.Ansi)]
-        internal static extern int senda_connect(string remoteNodeId);
+        internal static extern int iroh_connect(string remoteNodeId);
 
-        // Send UTF-8 text to a connected node
-        // Returns 1 on success
+        // iroh_send(node_id_cstr, data_ptr, data_len) — returns bytes sent or negative
         [DllImport(LIB, CharSet = CharSet.Ansi)]
-        internal static extern int senda_send(string remoteNodeId, string message);
+        internal static extern long iroh_send(string remoteNodeId,
+                                              [In] byte[] data, ulong dataLen);
 
-        // Broadcast to all connected nodes
+        // iroh_set_message_callback — called from Rust background thread
+        [DllImport(LIB)]
+        internal static extern void iroh_set_message_callback(OnMessageDelegate cb);
+
+        // iroh_disconnect(node_id_cstr)
         [DllImport(LIB, CharSet = CharSet.Ansi)]
-        internal static extern int senda_broadcast(string message);
+        internal static extern int iroh_disconnect(string remoteNodeId);
 
-        // Poll for next received message — returns null if none
-        // Caller must free with senda_free_string
-        [DllImport(LIB)] internal static extern IntPtr senda_poll_message();
+        // iroh_shutdown — close endpoint cleanly
+        [DllImport(LIB)] internal static extern void iroh_shutdown();
 
-        // Poll for next peer-connected event — returns nodeId or null
-        [DllImport(LIB)] internal static extern IntPtr senda_poll_connected();
+        // iroh_free_string — free strings returned by iroh_node_id
+        [DllImport(LIB)] internal static extern void iroh_free_string(IntPtr ptr);
 
-        // Poll for next peer-disconnected event — returns nodeId or null
-        [DllImport(LIB)] internal static extern IntPtr senda_poll_disconnected();
+        // Callback delegate — matches OnMessageCallback in lib.rs
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate void OnMessageDelegate(
+            IntPtr fromNodeCStr, IntPtr dataPtr, ulong dataLen);
 
-        // Sign a message with Dilithium-5
-        [DllImport(LIB, CharSet = CharSet.Ansi)]
-        internal static extern IntPtr senda_sign(string message);
-
-        // Verify a Dilithium-5 signature
-        [DllImport(LIB, CharSet = CharSet.Ansi)]
-        internal static extern int senda_verify(string message, string signature, string senderNodeId);
-
-        // Free a string returned by any senda_* function
-        [DllImport(LIB)] internal static extern void senda_free_string(IntPtr ptr);
-
-        // Shutdown node cleanly
-        [DllImport(LIB)] internal static extern void senda_shutdown();
-
-        // Helpers
         internal static string PtrToStringUtf8(IntPtr ptr)
         {
             if (ptr == IntPtr.Zero) return null;
@@ -81,119 +67,120 @@ namespace Navigator.Network
             Marshal.Copy(ptr, bytes, 0, len);
             return Encoding.UTF8.GetString(bytes);
         }
+
+        internal static string PtrBytesToString(IntPtr dataPtr, ulong dataLen)
+        {
+            if (dataPtr == IntPtr.Zero || dataLen == 0) return null;
+            byte[] bytes = new byte[dataLen];
+            Marshal.Copy(dataPtr, bytes, 0, (int)dataLen);
+            return Encoding.UTF8.GetString(bytes);
+        }
     }
 
     // ── SendaBridge MonoBehaviour ─────────────────────────────────────────────
 
     public class SendaBridge : MonoBehaviour
     {
-        // ── Events (same semantic as Flutter SendaP2PClient streams) ──────────
-        public UnityEvent<string>      OnPeerConnected    = new();  // remoteNodeId
-        public UnityEvent<string>      OnPeerDisconnected = new();  // remoteNodeId
-        public UnityEvent<NavMsg>      OnMessage          = new();  // parsed message
+        public UnityEvent<string> OnPeerConnected    = new();
+        public UnityEvent<string> OnPeerDisconnected = new();
+        public UnityEvent<NavMsg> OnMessage          = new();
 
-        // ── State ──────────────────────────────────────────────────────────────
-        public  string NodeId       { get; private set; }
-        public  bool   Initialized  { get; private set; }
+        public  string NodeId      { get; private set; }
+        public  bool   Initialized { get; private set; }
 
-        private readonly List<string> _connectedPeers = new();
-        public  IReadOnlyList<string>  ConnectedPeers => _connectedPeers;
+        private readonly List<string>          _connectedPeers = new();
+        public  IReadOnlyList<string>           ConnectedPeers => _connectedPeers;
+
+        // Thread-safe queue: Rust callback → Unity main thread
+        private readonly ConcurrentQueue<(string from, string json)> _inbox = new();
+
+        // Keep delegate alive to prevent GC collection
+        private SendaFFI.OnMessageDelegate _msgDelegate;
 
         // ── Init ──────────────────────────────────────────────────────────────
-
         public bool Init()
         {
             try
             {
-                IntPtr ptr = SendaFFI.senda_init();
-                NodeId      = SendaFFI.PtrToStringUtf8(ptr);
-                SendaFFI.senda_free_string(ptr);
+                int result = SendaFFI.iroh_init();
+                if (result != 0) { Debug.LogError($"[Senda] iroh_init failed: {result}"); return false; }
+
+                IntPtr ptr = SendaFFI.iroh_node_id();
+                NodeId = SendaFFI.PtrToStringUtf8(ptr);
+                SendaFFI.iroh_free_string(ptr);
                 Initialized = !string.IsNullOrEmpty(NodeId);
-                Debug.Log($"[Senda] Initialized. NodeId: {NodeId}");
+
+                // Register message callback (called from Rust background thread)
+                _msgDelegate = OnNativeMessage;
+                SendaFFI.iroh_set_message_callback(_msgDelegate);
+
+                Debug.Log($"[Senda] Init OK. NodeId: {NodeId}");
                 return Initialized;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[Senda] Init failed: {e.Message}");
+                Debug.LogError($"[Senda] Init exception: {e.Message}");
                 return false;
             }
         }
 
-        // ── Connect to another node (Flutter or Unity) ────────────────────────
-        public bool ConnectToNode(string remoteNodeId)
+        // Called from Rust thread — must be thread-safe, no Unity API here
+        private void OnNativeMessage(IntPtr fromPtr, IntPtr dataPtr, ulong dataLen)
         {
-            int ok = SendaFFI.senda_connect(remoteNodeId);
-            if (ok == 1)
-            {
-                if (!_connectedPeers.Contains(remoteNodeId))
-                    _connectedPeers.Add(remoteNodeId);
-                Debug.Log($"[Senda] Connected to {remoteNodeId}");
-            }
-            return ok == 1;
+            string from = SendaFFI.PtrToStringUtf8(fromPtr);
+            string json = SendaFFI.PtrBytesToString(dataPtr, dataLen);
+            if (json != null) _inbox.Enqueue((from, json));
         }
 
-        // ── Send NavMessage JSON to all peers ─────────────────────────────────
+        // ── Connect ───────────────────────────────────────────────────────────
+        public bool ConnectToNode(string remoteNodeId)
+        {
+            int result = SendaFFI.iroh_connect(remoteNodeId);
+            if (result == 0)
+            {
+                if (!_connectedPeers.Contains(remoteNodeId))
+                {
+                    _connectedPeers.Add(remoteNodeId);
+                    OnPeerConnected.Invoke(remoteNodeId);
+                }
+                Debug.Log($"[Senda] Connected to {remoteNodeId}");
+            }
+            return result == 0;
+        }
+
+        // ── Send / Broadcast ──────────────────────────────────────────────────
         public void Broadcast(NavMsg msg)
         {
-            string json = msg.ToJson();
-            SendaFFI.senda_broadcast(json);
+            byte[] data = Encoding.UTF8.GetBytes(msg.ToJson());
+            foreach (var peer in _connectedPeers)
+                SendaFFI.iroh_send(peer, data, (ulong)data.Length);
         }
 
         public void Send(string remoteNodeId, NavMsg msg)
         {
-            SendaFFI.senda_send(remoteNodeId, msg.ToJson());
+            byte[] data = Encoding.UTF8.GetBytes(msg.ToJson());
+            SendaFFI.iroh_send(remoteNodeId, data, (ulong)data.Length);
         }
 
-        // ── Poll loop — call every frame (Update) ──────────────────────────────
+        // ── Update: drain inbox on main thread ────────────────────────────────
         void Update()
         {
-            PollMessages();
-            PollConnected();
-            PollDisconnected();
-        }
-
-        private void PollMessages()
-        {
-            IntPtr ptr;
-            while ((ptr = SendaFFI.senda_poll_message()) != IntPtr.Zero)
+            while (_inbox.TryDequeue(out var item))
             {
-                string json = SendaFFI.PtrToStringUtf8(ptr);
-                SendaFFI.senda_free_string(ptr);
                 try
                 {
-                    var msg = NavMsg.FromJson(json);
+                    var msg = NavMsg.FromJson(item.json);
                     if (msg != null) OnMessage.Invoke(msg);
                 }
                 catch { /* malformed packet */ }
             }
         }
 
-        private void PollConnected()
+        void OnDestroy()
         {
-            IntPtr ptr;
-            while ((ptr = SendaFFI.senda_poll_connected()) != IntPtr.Zero)
-            {
-                string nodeId = SendaFFI.PtrToStringUtf8(ptr);
-                SendaFFI.senda_free_string(ptr);
-                if (!_connectedPeers.Contains(nodeId)) _connectedPeers.Add(nodeId);
-                OnPeerConnected.Invoke(nodeId);
-                Debug.Log($"[Senda] Peer connected: {nodeId}");
-            }
+            SendaFFI.iroh_set_message_callback(null);
+            SendaFFI.iroh_shutdown();
         }
-
-        private void PollDisconnected()
-        {
-            IntPtr ptr;
-            while ((ptr = SendaFFI.senda_poll_disconnected()) != IntPtr.Zero)
-            {
-                string nodeId = SendaFFI.PtrToStringUtf8(ptr);
-                SendaFFI.senda_free_string(ptr);
-                _connectedPeers.Remove(nodeId);
-                OnPeerDisconnected.Invoke(nodeId);
-            }
-        }
-
-        void OnDestroy() => SendaFFI.senda_shutdown();
     }
 
     // ── NavMsg — identical protocol to Flutter NavMessage ────────────────────
