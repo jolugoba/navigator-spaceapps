@@ -70,3 +70,6 @@ $RECYCLE.BIN/
 # ── Senda native binaries — no subir compilados ───────────────────────────────
 # Solo ignora el output de cargo build, no los .so ya incluidos en Assets/
 senda/native/**/target/
+
+# Originals kept by tools/optimize_models.mjs (to undo an optimization)
+unity_project/models_original/

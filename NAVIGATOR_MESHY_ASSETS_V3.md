@@ -71,9 +71,9 @@ Orbitan junto al planeta de destino y se escanean. Europa ya la tienes (PL-11).
 | 16 | `Models/Moons/MN-05_Miranda_FINAL.glb` | `Uranus moon Miranda, grey icy moon with patchwork terrain and huge cliffs, realistic, PBR` | Urano |
 | 17 | `Models/Moons/MN-06_Triton_FINAL.glb` | `Neptune moon Triton, pinkish icy sphere with cantaloupe-textured terrain and dark geyser streaks, realistic, PBR` | Neptuno |
 
-## E. Reserva (3) — prioridad 4 · **todavía NO conectados**
+## E. Reserva (3) — prioridad 4 · **conectados como puntos escaneables**
 
-Útiles para lo que viene. Genéralos solo si sobra cupo. Cuando los tengas, pídele a Claude que los conecte.
+Hoy aparecen para escanear: DART entre los asteroides, SLS junto al despegue y Perseverance junto a Marte. Más adelante pueden tener su propia mecánica.
 
 | # | Archivo | Prompt | Idea |
 |---|---|---|---|

@@ -92,6 +92,9 @@ namespace Navigator.Editor
                 assigned += Opt(ref sm.Hubble,         "OB-14");
                 assigned += Opt(ref sm.Jwst,           "OB-15");
                 assigned += Opt(ref sm.Iss,            "OB-16");
+                assigned += Opt(ref sm.Dart,           "OB-17");
+                assigned += Opt(ref sm.RocketSLS,      "LV-01");
+                assigned += Opt(ref sm.RoverPerseverance, "OB-18");
                 assigned += Opt(ref sm.MoonPhobos,     "MN-01");
                 assigned += Opt(ref sm.MoonIo,         "MN-02");
                 assigned += Opt(ref sm.MoonTitan,      "MN-03");

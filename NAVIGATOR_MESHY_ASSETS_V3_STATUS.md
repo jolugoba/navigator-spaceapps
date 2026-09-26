@@ -1,6 +1,5 @@
 # NAVIGATOR 2.0 — Estado generación Meshy v3 (2026-09-26)
 
-**Clave usada:** `msy_7piEK37EPJrZ1a9e4SXtHAqoUIqBRrL6cM2n`
 **Créditos usados (estimado):** ~140 de 730 disponibles
 **Nota:** Meshy no soporta imágenes 2D vía API. Solo genera modelos 3D (.glb).
 
@@ -57,13 +56,38 @@
 
 ## Para activar en Unity
 
-1. En Unity: **Navigator → Setup Scene**
-2. Los pods reemplazan automáticamente los puntos de colores
-3. Las sondas, telescopios y lunas aparecen como landmarks escaneables
-4. Los modelos de reserva (DART, SLS, Rover) están listos — pídele a Claude que los conecte cuando quieras
+1. **Primero reduce el peso** (ver abajo). Luego abre Unity y deja que reimporte.
+2. En Unity: **Navigator → Setup Scene**.
+3. Los pods reemplazan las figuras de colores.
+4. Las sondas, los telescopios y las lunas aparecen como puntos escaneables.
+5. La reserva **ya está conectada**, también como puntos escaneables:
+   - **DART**, entre los asteroides;
+   - **SLS**, junto al despegue;
+   - **Perseverance**, junto a Marte.
 
-## Nota sobre el tamaño
+## ⚠️ Tamaño: hay que reducirlo antes de hacer la app
 
-Los modelos salen 4-126 MB porque Meshy genera en alta resolución.
-El `target_polycount: 20000` se envió en todas las llamadas pero Meshy lo ignora en modo preview.
-Para reducir el tamaño en la app Android: Project Settings → Player → Texture Compression.
+Los 20 modelos suman **unos 600 MB**, y el Hubble solo pesa 126 MB. Así la app sería enorme y lenta en un celular.
+- *Texture Compression* de Unity **no** lo resuelve: los polígonos siguen ahí y el repositorio sigue pesado.
+- Meshy ignoró `target_polycount` en modo *preview*.
+
+**Solución (probada):** el script `tools/optimize_models.mjs` reduce polígonos y texturas de cada modelo.
+- Pods y lunas: texturas de 512 px.
+- Sondas: 1024 px.
+- Planetas: 2048 px.
+
+En la prueba bajó un modelo de 3,8 MB a 0,6 MB, sin extensiones especiales, así que glTFast lo abre igual.
+
+```bash
+# desde la raíz del repo (necesita Node 18+)
+node tools/optimize_models.mjs --dry   # muestra qué va a reducir
+node tools/optimize_models.mjs         # lo hace
+```
+
+Los originales quedan en `unity_project/models_original/`, que no se sube a git. Si un modelo se ve mal, copia de vuelta su original.
+Revisa en Unity cómo se ven los pods y las sondas. Si alguno perdió demasiada forma, sube su `ratio` en `profile()` dentro del script y vuelve a correrlo sobre el original.
+
+## 🔑 Clave de Meshy
+
+La clave se había escrito otra vez en este documento y ya la borré. Pero quedó en el historial de git, junto con las veces anteriores.
+**Cámbiala en meshy.ai → API** y no la pegues en archivos del repo. Si un script la necesita, guárdala en una variable de entorno (`MESHY_API_KEY`).

@@ -31,6 +31,7 @@ namespace Navigator.AR
         // Real probes waiting at their planet, moons, and telescopes near the launch point
         public GameObject ProbeMessenger, ProbeMagellan, ProbeMRO, ProbeJuno, ProbeCassini, ProbeVoyager;
         public GameObject Hubble, Jwst, Iss;
+        public GameObject Dart, RocketSLS, RoverPerseverance;
         public GameObject MoonPhobos, MoonIo, MoonTitan, MoonEnceladus, MoonMiranda, MoonTriton;
 
         [Header("Escala del viaje (unidades de juego)")]
@@ -119,6 +120,8 @@ namespace Navigator.AR
                 _         => (ProbeVoyager,   "voyager"),
             };
             Landmark(_planet.transform, probe, "probe", probeId, (side * 1.25f + Vector3.up * 0.35f) * PlanetDiameter, 12f, false);
+            if (planetId == "mars")   // the rover that's exploring it right now
+                Landmark(_planet.transform, RoverPerseverance, "probe", "perseverance", (-side * 0.9f - Vector3.up * 0.2f) * PlanetDiameter, 8f, false);
 
             // Its best-known moons (grey spheres until the Meshy models exist)
             (GameObject, string)[] moons = planetId switch
@@ -144,6 +147,9 @@ namespace Navigator.AR
             Landmark(_launchLandmarks.transform, Hubble, "probe", "hubble", dir * 160f + side * 70f + Vector3.up * 25f, 14f, false);
             Landmark(_launchLandmarks.transform, Jwst,   "probe", "jwst",   dir * 320f - side * 90f + Vector3.up * 40f, 18f, false);
             Landmark(_launchLandmarks.transform, Iss,    "probe", "iss",    dir * 90f - side * 55f - Vector3.up * 15f, 16f, false);
+            // The Moon rocket towering by the launch point, and DART out among the asteroids
+            Landmark(_launchLandmarks.transform, RocketSLS, "probe", "sls",  -dir * 25f + side * 30f, 30f, false);
+            Landmark(_launchLandmarks.transform, Dart,      "probe", "dart", dir * (JourneyDistance * 0.45f) + side * 55f + Vector3.up * 20f, 10f, false);
         }
 
         void Landmark(Transform parent, GameObject prefab, string kind, string id, Vector3 offset, float size, bool sphereIfMissing)
