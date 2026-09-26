@@ -262,12 +262,12 @@ namespace Navigator.UI
                        bool countdown = false, bool hud = false,
                        bool scienceOps = false, bool scoreboard = false)
         {
-            LobbyPanel?.SetActive(lobby);
-            MissionDesignPanel?.SetActive(missionDesign);
-            CountdownPanel?.SetActive(countdown);
-            HUDPanel?.SetActive(hud);
-            ScienceOpsPanel?.SetActive(scienceOps);
-            ScoreboardPanel?.SetActive(scoreboard);
+            if (LobbyPanel         != null) LobbyPanel.SetActive(lobby);
+            if (MissionDesignPanel != null) MissionDesignPanel.SetActive(missionDesign);
+            if (CountdownPanel     != null) CountdownPanel.SetActive(countdown);
+            if (HUDPanel           != null) HUDPanel.SetActive(hud);
+            if (ScienceOpsPanel    != null) ScienceOpsPanel.SetActive(scienceOps);
+            if (ScoreboardPanel    != null) ScoreboardPanel.SetActive(scoreboard);
         }
     }
 }

@@ -6,7 +6,8 @@
         "Navigator.Game",
         "Navigator.Network",
         "Navigator.AR",
-        "Navigator.UI"
+        "Navigator.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

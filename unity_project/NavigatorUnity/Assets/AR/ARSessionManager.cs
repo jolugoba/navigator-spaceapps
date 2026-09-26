@@ -39,7 +39,7 @@ namespace Navigator.AR
             ShowStatus("Cámara lista.");
             yield return new WaitForSeconds(0.5f);
 
-            LoadingPanel?.SetActive(false);
+            if (LoadingPanel != null) LoadingPanel.SetActive(false);
 
             ShipController?.CalibrateGyro();
             if (SpaceManager != null) SpaceManager.enabled = true;

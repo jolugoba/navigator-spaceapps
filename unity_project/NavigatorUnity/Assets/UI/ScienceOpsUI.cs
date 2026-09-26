@@ -1,8 +1,8 @@
-// Navigator 2.0 — ScienceOpsUI.cs
-// Pantalla de operaciones científicas al llegar al planeta objetivo
+﻿// Navigator 2.0 â€” ScienceOpsUI.cs
+// Pantalla de operaciones cientÃ­ficas al llegar al planeta objetivo
 // Muestra el progreso de cada instrumento, presupuesto de potencia y score final
 // Ported from Dart: navigator/lib/screens/science_ops_screen.dart
-// Guacalita Inc. — SAL / Claude
+// Guacalita Inc. â€” SAL / Claude
 
 using System;
 using System.Collections;
@@ -18,49 +18,49 @@ namespace Navigator.UI
 {
     public class ScienceOpsUI : MonoBehaviour
     {
-        [Header("Panel raíz")]
+        [Header("Panel raÃ­z")]
         public GameObject Panel;
 
-        // ── Cabecera ───────────────────────────────────────────────────────────
+        // â”€â”€ Cabecera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Cabecera")]
         public TMP_Text PlanetNameLabel;     // "MARTE"
         public TMP_Text ArrivalPositionLabel; // "#1 PRIMERO"
-        public TMP_Text MissionObjectiveLabel; // "Objetivo: Órbita"
-        public TMP_Text CommDelayLabel;       // "Señal: 3-22 min ida"
+        public TMP_Text MissionObjectiveLabel; // "Objetivo: Ã“rbita"
+        public TMP_Text CommDelayLabel;       // "SeÃ±al: 3-22 min ida"
 
-        // ── Presupuesto de potencia ────────────────────────────────────────────
+        // â”€â”€ Presupuesto de potencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Potencia")]
         public Image    PowerBar;            // fill: usado / disponible
         public TMP_Text PowerLabel;          // "148 / 280 W"
         public TMP_Text PowerStatusLabel;    // "OK" / "SIN POTENCIA"
 
-        // ── Instrumentos ───────────────────────────────────────────────────────
+        // â”€â”€ Instrumentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Instrumentos")]
         public Transform InstrumentsContainer; // padre donde se crean los items
         public GameObject InstrumentItemPrefab; // prefab: label + barra de progreso + pts
 
-        // ── Score en vivo ──────────────────────────────────────────────────────
+        // â”€â”€ Score en vivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Score")]
         public TMP_Text SciencePointsLabel;  // "2,400 pts ciencia"
         public TMP_Text TotalScoreLabel;     // "TOTAL: 4,650"
         public Image    ScoreBar;            // llena mientras se acumulan pts
 
-        // ── Combustible restante ───────────────────────────────────────────────
+        // â”€â”€ Combustible restante â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Combustible")]
         public Image    FuelBar;
         public TMP_Text FuelLabel;           // "38%"
 
-        // ── Gravedad del planeta ───────────────────────────────────────────────
+        // â”€â”€ Gravedad del planeta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Info planeta")]
-        public TMP_Text GravityLabel;        // "g = 3.72 m/s²"
-        public TMP_Text AtmosphereLabel;     // "Atmósfera: CO₂ delgada"
+        public TMP_Text GravityLabel;        // "g = 3.72 m/sÂ²"
+        public TMP_Text AtmosphereLabel;     // "AtmÃ³sfera: COâ‚‚ delgada"
 
-        // ── Botón completar ────────────────────────────────────────────────────
+        // â”€â”€ BotÃ³n completar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Completar")]
         public Button   CompleteMissionBtn;
-        public TMP_Text CompleteBtnLabel;    // "COMPLETAR MISIÓN" / "Operaciones en curso…"
+        public TMP_Text CompleteBtnLabel;    // "COMPLETAR MISIÃ“N" / "Operaciones en cursoâ€¦"
 
-        // ── Datos runtime ──────────────────────────────────────────────────────
+        // â”€â”€ Datos runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private MissionDesign   _design;
         private MissionScore    _score;
         private FuelSystem      _fuel;
@@ -71,7 +71,7 @@ namespace Navigator.UI
         private readonly Dictionary<ScienceInstrument, int>   _instEarned   = new();
         private bool _operationsComplete = false;
 
-        // Duración de escaneo por instrumento (segundos de juego)
+        // DuraciÃ³n de escaneo por instrumento (segundos de juego)
         private static readonly Dictionary<ScienceInstrument, float> ScanTime = new()
         {
             { ScienceInstrument.WideAngleCamera,   8f  },
@@ -84,19 +84,19 @@ namespace Navigator.UI
             { ScienceInstrument.RadarAltimeter,    30f },
         };
 
-        // Datos estáticos del planeta (gravedad superficial m/s², atmósfera)
+        // Datos estÃ¡ticos del planeta (gravedad superficial m/sÂ², atmÃ³sfera)
         private static readonly Dictionary<string, (float g, string atm)> PlanetData = new()
         {
-            { "mercury", (3.70f,  "Sin atmósfera") },
-            { "venus",   (8.87f,  "CO₂ densa — 92 atm") },
-            { "mars",    (3.72f,  "CO₂ delgada — 0.006 atm") },
-            { "jupiter", (24.79f, "H₂ + He — sin superficie sólida") },
-            { "saturn",  (10.44f, "H₂ + He — anillos de hielo") },
-            { "uranus",  (8.87f,  "H₂O + NH₃ + CH₄ — planeta helado") },
-            { "neptune", (11.15f, "H₂ + He + CH₄ — vientos 2,100 km/h") },
+            { "mercury", (3.70f,  "Sin atmÃ³sfera") },
+            { "venus",   (8.87f,  "COâ‚‚ densa â€” 92 atm") },
+            { "mars",    (3.72f,  "COâ‚‚ delgada â€” 0.006 atm") },
+            { "jupiter", (24.79f, "Hâ‚‚ + He â€” sin superficie sÃ³lida") },
+            { "saturn",  (10.44f, "Hâ‚‚ + He â€” anillos de hielo") },
+            { "uranus",  (8.87f,  "Hâ‚‚O + NHâ‚ƒ + CHâ‚„ â€” planeta helado") },
+            { "neptune", (11.15f, "Hâ‚‚ + He + CHâ‚„ â€” vientos 2,100 km/h") },
         };
 
-        // ── Ciclo de vida ──────────────────────────────────────────────────────
+        // â”€â”€ Ciclo de vida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void Awake()
         {
@@ -122,7 +122,7 @@ namespace Navigator.UI
             }
         }
 
-        // ── Activar pantalla al llegar al planeta ──────────────────────────────
+        // â”€â”€ Activar pantalla al llegar al planeta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void ShowOnArrival(MissionDesign design, int arrivalPosition)
         {
@@ -147,13 +147,13 @@ namespace Navigator.UI
             BuildInstrumentItems();
             RefreshHeader();
             RefreshPlanetInfo();
-            Panel?.SetActive(true);
+            if (Panel != null) Panel.SetActive(true);
 
             _chat?.ArrivalBroadcast(_score?.ArrivalPosition ?? 0);
-            Debug.Log($"[ScienceOps] Llegamos a {_design.TargetPlanetId} en posición #{arrivalPosition}");
+            Debug.Log($"[ScienceOps] Llegamos a {_design.TargetPlanetId} en posiciÃ³n #{arrivalPosition}");
         }
 
-        // ── Construcción dinámica de items de instrumentos ─────────────────────
+        // â”€â”€ ConstrucciÃ³n dinÃ¡mica de items de instrumentos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void BuildInstrumentItems()
         {
@@ -179,7 +179,7 @@ namespace Navigator.UI
             }
         }
 
-        // ── Progreso de escaneo ────────────────────────────────────────────────
+        // â”€â”€ Progreso de escaneo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void UpdateInstrumentProgress()
         {
@@ -211,7 +211,7 @@ namespace Navigator.UI
                         _instEarned[inst] = MissionDesign.InstrumentSciencePoints[inst];
                 }
 
-                // Actualiza el ítem en la lista
+                // Actualiza el Ã­tem en la lista
                 if (InstrumentsContainer != null && childIdx < InstrumentsContainer.childCount)
                 {
                     var item = InstrumentsContainer.GetChild(childIdx);
@@ -231,13 +231,13 @@ namespace Navigator.UI
                 foreach (var pts in _instEarned.Values) total += pts;
                 if (_score != null) _score.SciencePoints = total;
 
-                if (CompleteBtnLabel != null) CompleteBtnLabel.text = "COMPLETAR MISIÓN";
+                if (CompleteBtnLabel != null) CompleteBtnLabel.text = "COMPLETAR MISIÃ“N";
                 if (CompleteMissionBtn != null) CompleteMissionBtn.interactable = true;
-                Debug.Log($"[ScienceOps] Operaciones completas — {total} pts ciencia");
+                Debug.Log($"[ScienceOps] Operaciones completas â€” {total} pts ciencia");
             }
         }
 
-        // ── Actualizar potencia ────────────────────────────────────────────────
+        // â”€â”€ Actualizar potencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void UpdatePowerBudget()
         {
@@ -253,7 +253,7 @@ namespace Navigator.UI
             }
         }
 
-        // ── Actualizar combustible ─────────────────────────────────────────────
+        // â”€â”€ Actualizar combustible â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void UpdateFuel()
         {
@@ -262,7 +262,7 @@ namespace Navigator.UI
             if (FuelLabel != null) FuelLabel.text = $"{_fuel.FuelFraction:P0}";
         }
 
-        // ── Actualizar score ───────────────────────────────────────────────────
+        // â”€â”€ Actualizar score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void UpdateScore()
         {
@@ -279,7 +279,7 @@ namespace Navigator.UI
             if (ScoreBar           != null) ScoreBar.fillAmount     = Mathf.Clamp01(total / 5000f);
         }
 
-        // ── Completar misión ───────────────────────────────────────────────────
+        // â”€â”€ Completar misiÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void CompleteMission()
         {
@@ -287,18 +287,18 @@ namespace Navigator.UI
 
             _score.FuelFraction = _fuel != null ? _fuel.FuelFraction : 1f;
             string summary = _score.Summary();
-            Debug.Log($"[ScienceOps] Misión completada — {summary}");
+            Debug.Log($"[ScienceOps] MisiÃ³n completada â€” {summary}");
 
-            // Envía resultado vía Senda
+            // EnvÃ­a resultado vÃ­a Senda
             var senda = FindObjectOfType<Navigator.Network.SendaBridge>();
             senda?.Broadcast(NavMsg.Build(
                 NavMsgType.missionEnd, "",
                 $"{{\"score\":{_score.TotalScore()},\"summary\":\"{summary}\"}}"));
 
-            Panel?.SetActive(false);
+            if (Panel != null) Panel.SetActive(false);
         }
 
-        // ── Cabecera ───────────────────────────────────────────────────────────
+        // â”€â”€ Cabecera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void RefreshHeader()
         {
@@ -309,10 +309,10 @@ namespace Navigator.UI
                 MissionObjectiveLabel.text = $"Objetivo: {ObjectiveLabel(_design.Objective)}";
 
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var d))
-                CommDelayLabel.text = $"Señal: {d} ida";
+                CommDelayLabel.text = $"SeÃ±al: {d} ida";
 
             if (CompleteBtnLabel != null)
-                CompleteBtnLabel.text = "Operaciones en curso…";
+                CompleteBtnLabel.text = "Operaciones en cursoâ€¦";
             if (CompleteMissionBtn != null)
                 CompleteMissionBtn.interactable = false;
         }
@@ -320,29 +320,29 @@ namespace Navigator.UI
         void RefreshPlanetInfo()
         {
             if (!PlanetData.TryGetValue(_design.TargetPlanetId, out var data)) return;
-            if (GravityLabel    != null) GravityLabel.text    = $"g = {data.g:F2} m/s²";
-            if (AtmosphereLabel != null) AtmosphereLabel.text = $"Atmósfera: {data.atm}";
+            if (GravityLabel    != null) GravityLabel.text    = $"g = {data.g:F2} m/sÂ²";
+            if (AtmosphereLabel != null) AtmosphereLabel.text = $"AtmÃ³sfera: {data.atm}";
         }
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+        // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         string InstrumentDisplayName(ScienceInstrument inst) => inst switch
         {
-            ScienceInstrument.WideAngleCamera   => "Cámara gran angular",
-            ScienceInstrument.NarrowAngleCamera => "Cámara teleobjetivo",
-            ScienceInstrument.UVSpectrometer    => "Espectrómetro UV",
+            ScienceInstrument.WideAngleCamera   => "CÃ¡mara gran angular",
+            ScienceInstrument.NarrowAngleCamera => "CÃ¡mara teleobjetivo",
+            ScienceInstrument.UVSpectrometer    => "EspectrÃ³metro UV",
             ScienceInstrument.InfraredMapper    => "Mapeador infrarrojo",
-            ScienceInstrument.Magnetometer      => "Magnetómetro",
-            ScienceInstrument.ParticleDetector  => "Detector partículas",
+            ScienceInstrument.Magnetometer      => "MagnetÃ³metro",
+            ScienceInstrument.ParticleDetector  => "Detector partÃ­culas",
             ScienceInstrument.RadioScience      => "Radio ciencia",
-            ScienceInstrument.RadarAltimeter    => "Radar altímetro",
+            ScienceInstrument.RadarAltimeter    => "Radar altÃ­metro",
             _ => inst.ToString(),
         };
 
         string ObjectiveLabel(string obj) => obj switch
         {
             "flyby"   => "Sobrevuelo",
-            "orbit"   => "Órbita",
+            "orbit"   => "Ã“rbita",
             "landing" => "Aterrizaje",
             _ => obj,
         };

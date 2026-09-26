@@ -1,7 +1,7 @@
-// Navigator 2.0 — CockpitHUD.cs
+﻿// Navigator 2.0 â€” CockpitHUD.cs
 // HUD en vuelo: velocidad, combustible, distancia, barra Burnout, estado nave
 // Ported from Dart: navigator/lib/ui/hud_overlay.dart
-// Guacalita Inc. — SAL / Claude
+// Guacalita Inc. â€” SAL / Claude
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +14,7 @@ namespace Navigator.UI
 {
     public class CockpitHUD : MonoBehaviour
     {
-        // ── Referencias Inspector ─────────────────────────────────────────────
+        // â”€â”€ Referencias Inspector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         [Header("Velocidad")]
         public TMP_Text   SpeedLabel;       // "1,240 m/s"
         public Image      SpeedGaugeFill;   // gauge circular
@@ -22,7 +22,7 @@ namespace Navigator.UI
         [Header("Combustible")]
         public Image      FuelBar;          // barra horizontal
         public TMP_Text   FuelLabel;        // "72%"
-        public GameObject LowFuelWarning;   // "⚠ COMBUSTIBLE BAJO" — parpadea
+        public GameObject LowFuelWarning;   // "âš  COMBUSTIBLE BAJO" â€” parpadea
 
         [Header("Distancia al planeta")]
         public TMP_Text   DistanceLabel;    // "12.4 AU"
@@ -34,18 +34,18 @@ namespace Navigator.UI
         public TMP_Text   NearMissComboLabel;        // "x3 NEAR MISS!"
         public GameObject NearMissComboObj;
 
-        [Header("Estado nave (daño)")]
+        [Header("Estado nave (daÃ±o)")]
         public GameObject DamageIndicatorDamaged;   // panel naranja
         public GameObject DamageIndicatorCritical;  // panel rojo parpadeante
-        public TMP_Text   LivesLabel;               // "♥♥♥"
+        public TMP_Text   LivesLabel;               // "â™¥â™¥â™¥"
 
-        [Header("Retardo comunicación")]
-        public TMP_Text   CommDelayLabel;   // "Retraso señal: 22 min"
+        [Header("Retardo comunicaciÃ³n")]
+        public TMP_Text   CommDelayLabel;   // "Retraso seÃ±al: 22 min"
 
-        [Header("Posición en carrera")]
+        [Header("PosiciÃ³n en carrera")]
         public TMP_Text   RacePositionLabel; // "#1" "#2"
 
-        // ── Componentes de la nave ────────────────────────────────────────────
+        // â”€â”€ Componentes de la nave â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         private FuelSystem      _fuel;
         private BurnoutSystem   _burnout;
         private CollisionSystem _collision;
@@ -72,7 +72,7 @@ namespace Navigator.UI
             _burnout?.OnBurnoutStart.AddListener(OnBurnoutStart);
             _burnout?.OnBurnoutEnd.AddListener(OnBurnoutEnd);
             _burnout?.OnNearMiss.AddListener(OnNearMiss);
-            _fuel?.OnLowFuelWarning.AddListener(() => LowFuelWarning?.SetActive(true));
+            _fuel?.OnLowFuelWarning.AddListener(() => { if (LowFuelWarning != null) LowFuelWarning.SetActive(true); });
         }
 
         void Update()
@@ -86,7 +86,7 @@ namespace Navigator.UI
             UpdateNearMissCombo();
         }
 
-        // ── Actualizar ────────────────────────────────────────────────────────
+        // â”€â”€ Actualizar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void UpdateSpeed()
         {
@@ -129,7 +129,7 @@ namespace Navigator.UI
             if (_burnout == null || BurnoutBar == null) return;
             BurnoutBar.fillAmount = _burnout.BurnoutBar;
 
-            // Color: blanco cuando Burnout activo, cyan→naranja según nivel
+            // Color: blanco cuando Burnout activo, cyanâ†’naranja segÃºn nivel
             BurnoutBar.color = _burnout.BurnoutActive
                 ? Color.white
                 : Color.Lerp(Color.cyan, new Color(1f, 0.5f, 0f), _burnout.BurnoutBar);
@@ -139,13 +139,13 @@ namespace Navigator.UI
         {
             if (_collision == null) return;
             var state = _collision.DamageLevel;
-            DamageIndicatorDamaged?.SetActive(state == DamageState.Damaged);
-            DamageIndicatorCritical?.SetActive(state == DamageState.Critical);
+            if (DamageIndicatorDamaged != null) DamageIndicatorDamaged.SetActive(state == DamageState.Damaged);
+            if (DamageIndicatorCritical != null) DamageIndicatorCritical.SetActive(state == DamageState.Critical);
 
             if (LivesLabel != null)
             {
                 string hearts = "";
-                for (int i = 0; i < _collision.Lives; i++) hearts += "♥";
+                for (int i = 0; i < _collision.Lives; i++) hearts += "â™¥";
                 LivesLabel.text = hearts;
             }
         }
@@ -165,16 +165,16 @@ namespace Navigator.UI
             NearMissComboObj.SetActive(_comboTimer > 0f && _burnout.NearMissCombo >= 3);
         }
 
-        // ── Eventos ───────────────────────────────────────────────────────────
+        // â”€â”€ Eventos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         void OnBurnoutStart()
         {
-            BurnoutModeIndicator?.SetActive(true);
+            if (BurnoutModeIndicator != null) BurnoutModeIndicator.SetActive(true);
         }
 
         void OnBurnoutEnd()
         {
-            BurnoutModeIndicator?.SetActive(false);
+            if (BurnoutModeIndicator != null) BurnoutModeIndicator.SetActive(false);
         }
 
         void OnNearMiss(int combo)
@@ -190,12 +190,12 @@ namespace Navigator.UI
             }
         }
 
-        // ── Setters externos ──────────────────────────────────────────────────
+        // â”€â”€ Setters externos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void SetCommDelay(string delay)
         {
             if (CommDelayLabel != null)
-                CommDelayLabel.text = $"Señal: {delay}";
+                CommDelayLabel.text = $"SeÃ±al: {delay}";
         }
 
         public void SetRacePosition(int pos)

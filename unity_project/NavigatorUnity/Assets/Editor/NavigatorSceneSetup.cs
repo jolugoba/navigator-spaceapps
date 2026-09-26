@@ -37,6 +37,7 @@ namespace Navigator.Editor
 
             // ── LocalShip ─────────────────────────────────────────────────────
             var ship = GetOrCreate("LocalShip");
+            EnsureTag("LocalShip");
             ship.tag = "LocalShip";
 
             var rb = EnsureComp<Rigidbody>(ship);
@@ -154,6 +155,18 @@ namespace Navigator.Editor
         {
             var c = go.GetComponent<T>();
             return c != null ? c : go.AddComponent<T>();
+        }
+
+        static void EnsureTag(string tag)
+        {
+            var tagManager = new UnityEditor.SerializedObject(
+                AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var tagsProp = tagManager.FindProperty("tags");
+            for (int i = 0; i < tagsProp.arraySize; i++)
+                if (tagsProp.GetArrayElementAtIndex(i).stringValue == tag) return;
+            tagsProp.InsertArrayElementAtIndex(tagsProp.arraySize);
+            tagsProp.GetArrayElementAtIndex(tagsProp.arraySize - 1).stringValue = tag;
+            tagManager.ApplyModifiedProperties();
         }
     }
 }

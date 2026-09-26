@@ -1,6 +1,6 @@
-// Navigator 2.0 — ScoreboardUI.cs
-// Pantalla final: scores de ambos jugadores con animación de reveal
-// Guacalita Inc. — SAL / Claude
+﻿// Navigator 2.0 â€” ScoreboardUI.cs
+// Pantalla final: scores de ambos jugadores con animaciÃ³n de reveal
+// Guacalita Inc. â€” SAL / Claude
 
 using System.Collections;
 using UnityEngine;
@@ -12,13 +12,13 @@ namespace Navigator.UI
 {
     public class ScoreboardUI : MonoBehaviour
     {
-        [Header("Panel raíz")]
+        [Header("Panel raÃ­z")]
         public GameObject Panel;
 
         [Header("Jugador local")]
         public TMP_Text LocalPlayerName;
         public TMP_Text LocalScoreLabel;      // "4,650"
-        public TMP_Text LocalArrivalLabel;    // "#1 🏆"
+        public TMP_Text LocalArrivalLabel;    // "#1 ðŸ†"
         public TMP_Text LocalScienceLabel;    // "2,400 ciencia"
         public TMP_Text LocalFuelLabel;       // "Combustible: 38%"
         public TMP_Text LocalTakedownLabel;   // "3 takedowns"
@@ -31,22 +31,22 @@ namespace Navigator.UI
         public Image    RemoteScoreBar;
 
         [Header("Resultado")]
-        public TMP_Text WinnerLabel;          // "¡VICTORIA!" / "Derrota" / "EMPATE"
-        public TMP_Text WinnerSubLabel;       // "¡Misión completada!" / "Mejor suerte la próxima"
-        public GameObject VictoryFX;          // partículas celebración (opcional)
+        public TMP_Text WinnerLabel;          // "Â¡VICTORIA!" / "Derrota" / "EMPATE"
+        public TMP_Text WinnerSubLabel;       // "Â¡MisiÃ³n completada!" / "Mejor suerte la prÃ³xima"
+        public GameObject VictoryFX;          // partÃ­culas celebraciÃ³n (opcional)
 
         [Header("Botones")]
         public Button PlayAgainButton;
         public Button MainMenuButton;
 
-        [Header("Animación")]
+        [Header("AnimaciÃ³n")]
         public float RevealDelayS = 0.4f;
 
-        // ── Mostrar scores ─────────────────────────────────────────────────────
+        // â”€â”€ Mostrar scores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void Show(int localScore, int remoteScore, MissionScore scoreData)
         {
-            Panel?.SetActive(true);
+            if (Panel != null) Panel.SetActive(true);
             StartCoroutine(RevealAnimation(localScore, remoteScore, scoreData));
         }
 
@@ -60,7 +60,7 @@ namespace Navigator.UI
 
             yield return new WaitForSeconds(0.5f);
 
-            // ── Score local ────────────────────────────────────────────────────
+            // â”€â”€ Score local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (data != null)
             {
                 if (LocalArrivalLabel  != null)
@@ -73,17 +73,17 @@ namespace Navigator.UI
                     LocalTakedownLabel.text = $"{data.TakedownCount} takedown{(data.TakedownCount != 1 ? "s" : "")}";
             }
 
-            // Animación del score local (cuenta de 0 al total)
+            // AnimaciÃ³n del score local (cuenta de 0 al total)
             yield return AnimateScore(LocalScoreLabel, LocalScoreBar, 0, localScore, 1.2f);
 
             yield return new WaitForSeconds(RevealDelayS);
 
-            // ── Score rival ────────────────────────────────────────────────────
+            // â”€â”€ Score rival â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             yield return AnimateScore(RemoteScoreLabel, RemoteScoreBar, 0, remoteScore, 1.0f);
 
             yield return new WaitForSeconds(RevealDelayS);
 
-            // ── Resultado final ────────────────────────────────────────────────
+            // â”€â”€ Resultado final â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             ShowResult(localScore, remoteScore);
         }
 
@@ -92,7 +92,7 @@ namespace Navigator.UI
             if (label == null && bar == null) yield break;
 
             float elapsed = 0f;
-            int   maxRef  = 5000;   // score máximo de referencia para la barra
+            int   maxRef  = 5000;   // score mÃ¡ximo de referencia para la barra
 
             while (elapsed < duration)
             {
@@ -117,22 +117,22 @@ namespace Navigator.UI
             bool win  = local  > remote;
             bool draw = local == remote;
 
-            WinnerLabel.text = win  ? "¡VICTORIA!" :
+            WinnerLabel.text = win  ? "Â¡VICTORIA!" :
                                draw ? "EMPATE"      : "Derrota";
             WinnerLabel.color = win  ? new Color(1f, 0.85f, 0f) :   // dorado
                                 draw ? Color.white               :
                                        new Color(0.6f, 0.6f, 0.7f);
 
             if (WinnerSubLabel != null)
-                WinnerSubLabel.text = win  ? "¡Misión completada con éxito!" :
-                                      draw ? "¡Igualados al milímetro!" :
-                                             "Mejor suerte la próxima, cadete.";
+                WinnerSubLabel.text = win  ? "Â¡MisiÃ³n completada con Ã©xito!" :
+                                      draw ? "Â¡Igualados al milÃ­metro!" :
+                                             "Mejor suerte la prÃ³xima, cadete.";
 
             if (win && VictoryFX != null)
                 VictoryFX.SetActive(true);
         }
 
-        // ── Setters externos ───────────────────────────────────────────────────
+        // â”€â”€ Setters externos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public void SetLocalPlayerName(string name)
         {
@@ -144,14 +144,14 @@ namespace Navigator.UI
             if (RemotePlayerName != null) RemotePlayerName.text = name;
         }
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+        // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         string ArrivalText(int pos) => pos switch
         {
             1 => "#1 PRIMERO",
             2 => "#2 SEGUNDO",
             3 => "#3 TERCERO",
-            _ => "Llegó",
+            _ => "LlegÃ³",
         };
     }
 }

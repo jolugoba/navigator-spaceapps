@@ -4,7 +4,8 @@
     "references": [
         "Navigator.Core",
         "Navigator.Game",
-        "Navigator.Network"
+        "Navigator.Network",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

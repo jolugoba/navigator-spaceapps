@@ -1,0 +1,1353 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!29 &1
+OcclusionCullingSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_OcclusionBakeSettings:
+    smallestOccluder: 5
+    smallestHole: 0.25
+    backfaceThreshold: 100
+  m_SceneGUID: 00000000000000000000000000000000
+  m_OcclusionCullingData: {fileID: 0}
+--- !u!104 &2
+RenderSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 10
+  m_Fog: 0
+  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_FogMode: 3
+  m_FogDensity: 0.01
+  m_LinearFogStart: 0
+  m_LinearFogEnd: 300
+  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
+  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientIntensity: 1
+  m_AmbientMode: 0
+  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
+  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_HaloStrength: 0.5
+  m_FlareStrength: 1
+  m_FlareFadeSpeed: 3
+  m_HaloTexture: {fileID: 0}
+  m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
+  m_DefaultReflectionMode: 0
+  m_DefaultReflectionResolution: 128
+  m_ReflectionBounces: 1
+  m_ReflectionIntensity: 1
+  m_CustomReflection: {fileID: 0}
+  m_Sun: {fileID: 0}
+  m_UseRadianceAmbientProbe: 0
+--- !u!157 &3
+LightmapSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
+  m_GISettings:
+    serializedVersion: 2
+    m_BounceScale: 1
+    m_IndirectOutputScale: 1
+    m_AlbedoBoost: 1
+    m_EnvironmentLightingMode: 0
+    m_EnableBakedLightmaps: 1
+    m_EnableRealtimeLightmaps: 0
+  m_LightmapEditorSettings:
+    serializedVersion: 12
+    m_Resolution: 2
+    m_BakeResolution: 40
+    m_AtlasSize: 1024
+    m_AO: 0
+    m_AOMaxDistance: 1
+    m_CompAOExponent: 1
+    m_CompAOExponentDirect: 0
+    m_ExtractAmbientOcclusion: 0
+    m_Padding: 2
+    m_LightmapParameters: {fileID: 0}
+    m_LightmapsBakeMode: 1
+    m_TextureCompression: 1
+    m_ReflectionCompression: 2
+    m_MixedBakeMode: 2
+    m_BakeBackend: 2
+    m_PVRSampling: 1
+    m_PVRDirectSampleCount: 32
+    m_PVRSampleCount: 512
+    m_PVRBounces: 2
+    m_PVREnvironmentSampleCount: 256
+    m_PVREnvironmentReferencePointCount: 2048
+    m_PVRFilteringMode: 1
+    m_PVRDenoiserTypeDirect: 2
+    m_PVRDenoiserTypeIndirect: 2
+    m_PVRDenoiserTypeAO: 2
+    m_PVRFilterTypeDirect: 0
+    m_PVRFilterTypeIndirect: 0
+    m_PVRFilterTypeAO: 0
+    m_PVREnvironmentMIS: 1
+    m_PVRCulling: 1
+    m_PVRFilteringGaussRadiusDirect: 1
+    m_PVRFilteringGaussRadiusIndirect: 1
+    m_PVRFilteringGaussRadiusAO: 1
+    m_PVRFilteringAtrousPositionSigmaDirect: 0.5
+    m_PVRFilteringAtrousPositionSigmaIndirect: 2
+    m_PVRFilteringAtrousPositionSigmaAO: 1
+    m_ExportTrainingData: 0
+    m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
+  m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
+  m_LightingSettings: {fileID: 0}
+--- !u!196 &4
+NavMeshSettings:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_BuildSettings:
+    serializedVersion: 3
+    agentTypeID: 0
+    agentRadius: 0.5
+    agentHeight: 2
+    agentSlope: 45
+    agentClimb: 0.4
+    ledgeDropHeight: 0
+    maxJumpAcrossDistance: 0
+    minRegionArea: 2
+    manualCellSize: 0
+    cellSize: 0.16666667
+    manualTileSize: 0
+    tileSize: 256
+    buildHeightMesh: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
+    debug:
+      m_Flags: 0
+  m_NavMeshData: {fileID: 0}
+--- !u!1 &18864532
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 18864537}
+  - component: {fileID: 18864536}
+  - component: {fileID: 18864535}
+  - component: {fileID: 18864534}
+  - component: {fileID: 18864533}
+  m_Layer: 0
+  m_Name: CockpitHUD
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &18864533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 18864532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 244646a0319fe4a40ac22f62d1c4761e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.UI::Navigator.UI.CockpitHUD
+  SpeedLabel: {fileID: 0}
+  SpeedGaugeFill: {fileID: 0}
+  FuelBar: {fileID: 0}
+  FuelLabel: {fileID: 0}
+  LowFuelWarning: {fileID: 0}
+  DistanceLabel: {fileID: 0}
+  ArrowToPlanet: {fileID: 0}
+  BurnoutBar: {fileID: 0}
+  BurnoutModeIndicator: {fileID: 0}
+  NearMissComboLabel: {fileID: 0}
+  NearMissComboObj: {fileID: 0}
+  DamageIndicatorDamaged: {fileID: 0}
+  DamageIndicatorCritical: {fileID: 0}
+  LivesLabel: {fileID: 0}
+  CommDelayLabel: {fileID: 0}
+  RacePositionLabel: {fileID: 0}
+--- !u!114 &18864534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 18864532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &18864535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 18864532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
+  m_UiScaleMode: 0
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 800, y: 600}
+  m_ScreenMatchMode: 0
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+--- !u!223 &18864536
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 18864532}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
+--- !u!224 &18864537
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 18864532}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &59843680
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 59843682}
+  - component: {fileID: 59843681}
+  m_Layer: 0
+  m_Name: ARSessionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &59843681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59843680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55f12534f3e78fc4e92eb1a35c86625b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.AR::Navigator.AR.ARSessionManager
+  ARCamera: {fileID: 1186814848}
+  LoadingPanel: {fileID: 0}
+  StatusText: {fileID: 0}
+  CalibrateCameraBtn: {fileID: 0}
+  ShipController: {fileID: 1260970281}
+  SpaceManager: {fileID: 327174293}
+--- !u!4 &59843682
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59843680}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &295795821
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 295795823}
+  - component: {fileID: 295795822}
+  m_Layer: 0
+  m_Name: ScoreboardUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &295795822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295795821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d30d727893de824281de6eaf773b722, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.UI::Navigator.UI.ScoreboardUI
+  Panel: {fileID: 0}
+  LocalPlayerName: {fileID: 0}
+  LocalScoreLabel: {fileID: 0}
+  LocalArrivalLabel: {fileID: 0}
+  LocalScienceLabel: {fileID: 0}
+  LocalFuelLabel: {fileID: 0}
+  LocalTakedownLabel: {fileID: 0}
+  LocalScoreBar: {fileID: 0}
+  RemotePlayerName: {fileID: 0}
+  RemoteScoreLabel: {fileID: 0}
+  RemoteArrivalLabel: {fileID: 0}
+  RemoteScoreBar: {fileID: 0}
+  WinnerLabel: {fileID: 0}
+  WinnerSubLabel: {fileID: 0}
+  VictoryFX: {fileID: 0}
+  PlayAgainButton: {fileID: 0}
+  MainMenuButton: {fileID: 0}
+  RevealDelayS: 0.4
+--- !u!4 &295795823
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295795821}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &327174292
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 327174294}
+  - component: {fileID: 327174293}
+  m_Layer: 0
+  m_Name: ARSpaceManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &327174293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327174292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a3a95575a26e404fac3a7de306db509, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.AR::Navigator.AR.ARSpaceManager
+  Mode: 0
+  Session: {fileID: 0}
+  CameraManager: {fileID: 0}
+  ARCamera: {fileID: 1186814848}
+  PlanetMercury: {fileID: 0}
+  PlanetVenus: {fileID: 0}
+  PlanetMars: {fileID: 0}
+  PlanetJupiter: {fileID: 0}
+  PlanetSaturn: {fileID: 0}
+  PlanetUranus: {fileID: 0}
+  PlanetNeptune: {fileID: 0}
+  MetersPerAU: 0.5
+  ShipAnchor: {fileID: 0}
+--- !u!4 &327174294
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327174292}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &466066581
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 466066583}
+  - component: {fileID: 466066582}
+  m_Layer: 0
+  m_Name: PowerupSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &466066582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 466066581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa117005b1ec58242892bbec02cbbf7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.PowerupSystem
+  FuelPodPrefab: {fileID: 0}
+  BoostPodPrefab: {fileID: 0}
+  ShieldPodPrefab: {fileID: 0}
+  EMPPodPrefab: {fileID: 0}
+  GravityAssistPodPrefab: {fileID: 0}
+  MaxPodsActive: 8
+  SpawnRadiusMin: 15
+  SpawnRadiusMax: 60
+  RespawnDelayS: 12
+  ARCamera: {fileID: 1186814848}
+--- !u!4 &466066583
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 466066581}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &738574630
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 738574632}
+  - component: {fileID: 738574631}
+  m_Layer: 0
+  m_Name: MissionDesignUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &738574631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 738574630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f4a67120d0b30c4fa3afc6ea265ad35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.UI::Navigator.UI.MissionDesignUI
+  Panel: {fileID: 0}
+  PlanetButtons: []
+  PlanetLabel: {fileID: 0}
+  CommDelayLabel: {fileID: 0}
+  BtnChemical: {fileID: 0}
+  BtnIon: {fileID: 0}
+  BtnNuclear: {fileID: 0}
+  EngineFuelLabel: {fileID: 0}
+  EngineNasaLabel: {fileID: 0}
+  FuelSlider: {fileID: 0}
+  FuelValueLabel: {fileID: 0}
+  DeltaVBar: {fileID: 0}
+  DeltaVLabel: {fileID: 0}
+  DeltaVRequiredLabel: {fileID: 0}
+  DeltaVStatusLabel: {fileID: 0}
+  BtnSolar: {fileID: 0}
+  BtnRTG: {fileID: 0}
+  BtnNuclearReactor: {fileID: 0}
+  PowerOutputLabel: {fileID: 0}
+  PowerUsedLabel: {fileID: 0}
+  PowerNasaLabel: {fileID: 0}
+  SolarWarning: {fileID: 0}
+  BtnLowGain: {fileID: 0}
+  BtnMediumGain: {fileID: 0}
+  BtnHighGain: {fileID: 0}
+  AntennaDataRateLabel: {fileID: 0}
+  BtnFalcon9: {fileID: 0}
+  BtnFalconHeavy: {fileID: 0}
+  BtnSLS: {fileID: 0}
+  BtnStarship: {fileID: 0}
+  LaunchCapacityLabel: {fileID: 0}
+  InstrumentToggles: []
+  InstrumentMassLabel: {fileID: 0}
+  InstrumentScienceLabel: {fileID: 0}
+  TotalMassLabel: {fileID: 0}
+  TotalCostLabel: {fileID: 0}
+  MassFractionLabel: {fileID: 0}
+  BudgetBar: {fileID: 0}
+  MassBar: {fileID: 0}
+  ErrorLabel: {fileID: 0}
+  LaunchButton: {fileID: 0}
+  BtnFlyby: {fileID: 0}
+  BtnOrbit: {fileID: 0}
+  BtnLanding: {fileID: 0}
+--- !u!4 &738574632
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 738574630}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &872697157
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 872697159}
+  - component: {fileID: 872697158}
+  m_Layer: 0
+  m_Name: ARCompassTracker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &872697158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872697157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a25effa0b748cb429cb4dac9bb78ef4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.AR::Navigator.AR.ARCompassTracker
+  SpaceManager: {fileID: 327174293}
+  Horizons: {fileID: 0}
+  TargetPlanetId: mars
+  FallbackDirection: {x: 0, y: 0, z: 1}
+--- !u!4 &872697159
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872697157}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1099984393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1099984399}
+  - component: {fileID: 1099984398}
+  - component: {fileID: 1099984397}
+  - component: {fileID: 1099984396}
+  - component: {fileID: 1099984395}
+  - component: {fileID: 1099984394}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1099984394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103ef0ab36e5cb343973810736235444, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.UI::Navigator.UI.GameManager
+  LobbyPanel: {fileID: 0}
+  MissionDesignPanel: {fileID: 0}
+  CountdownPanel: {fileID: 0}
+  HUDPanel: {fileID: 0}
+  ScienceOpsPanel: {fileID: 0}
+  ScoreboardPanel: {fileID: 0}
+  CountdownLabel: {fileID: 0}
+  MissionDesignUI: {fileID: 738574631}
+  ScienceOpsUI: {fileID: 2101373674}
+  ScoreboardUI: {fileID: 295795822}
+  HUD: {fileID: 18864533}
+  Lobby: {fileID: 0}
+  Ship: {fileID: 1260970286}
+  Physics: {fileID: 1260970285}
+  ARShip: {fileID: 1260970281}
+  SpaceManager: {fileID: 327174293}
+  Compass: {fileID: 872697158}
+  Senda: {fileID: 1099984398}
+  SyncService: {fileID: 1099984397}
+  Chat: {fileID: 1099984396}
+  ArrivalDistanceM: 0.6
+  MaxFlightTimeS: 300
+  OnStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1099984395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd1345959c579b49b107a61f2dcdc0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.RemoteShipManager
+  RemoteShipPrefab: {fileID: 0}
+  NameTagPrefab: {fileID: 0}
+  BurnoutParticlesPrefab: {fileID: 0}
+  ARCamera: {fileID: 1186814848}
+--- !u!114 &1099984396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 865714a9f3c3d444ebd75e3a398ef2fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Network::Navigator.Network.P2PChatSystem
+  OnMessageReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  OnSystemEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnNewMessageNotify:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1099984397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd1710163308549ad6a5b49d1afb43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Network::Navigator.Network.ShipSyncService
+  OnRemoteUpdate:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRemoteScore:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1099984398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6abc5b12d29073544a6ab478ee6a7923, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Network::Navigator.Network.SendaBridge
+  OnPeerConnected:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPeerDisconnected:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMessage:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1099984399
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1099984393}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1186814847
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1186814850}
+  - component: {fileID: 1186814848}
+  - component: {fileID: 1186814849}
+  m_Layer: 0
+  m_Name: Main Camera
+  m_TagString: MainCamera
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!20 &1186814848
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186814847}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: -1
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!81 &1186814849
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186814847}
+  m_Enabled: 1
+--- !u!4 &1186814850
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186814847}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1260970280
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1260970290}
+  - component: {fileID: 1260970289}
+  - component: {fileID: 1260970288}
+  - component: {fileID: 1260970287}
+  - component: {fileID: 1260970286}
+  - component: {fileID: 1260970285}
+  - component: {fileID: 1260970284}
+  - component: {fileID: 1260970283}
+  - component: {fileID: 1260970282}
+  - component: {fileID: 1260970281}
+  m_Layer: 0
+  m_Name: LocalShip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1260970281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf698f8a532072f4ebc0df7b01b87374, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.AR::Navigator.AR.ARShipController
+  Ship: {fileID: 0}
+  ARCamera: {fileID: 1186814848}
+  TiltSensitivity: 1.8
+  TouchThrottle: 0.9
+  TapBoostDuration: 0.3
+--- !u!114 &1260970282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d04efb23bcedfb4b8fbdbf805b1d31b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.ShipAnimator
+  NozzlesLeft: {fileID: 0}
+  NozzlesRight: {fileID: 0}
+  WingLeft: {fileID: 0}
+  WingRight: {fileID: 0}
+  LandingGearFL: {fileID: 0}
+  LandingGearFR: {fileID: 0}
+  NozzleRenderer: {fileID: 0}
+  ExhaustLeft: {fileID: 0}
+  ExhaustRight: {fileID: 0}
+  BurnoutExhaust: {fileID: 0}
+--- !u!114 &1260970283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 112af141c7f897b4598315a27317a96c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.ShipCustomizer
+  ShipRenderer: {fileID: 0}
+  Colors:
+    Primary: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    Secondary: {r: 0, g: 0.9, b: 1, a: 1}
+    Engine: {r: 0, g: 0.9, b: 1, a: 1}
+    ShipName: NAVIGATOR-01
+--- !u!114 &1260970284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e297189b472bd549850fba26a469fef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.FuelSystem
+  MaxFuelKg: 1200
+  Engine: 0
+  FuelFraction: 1
+  OnFuelEmpty:
+    m_PersistentCalls:
+      m_Calls: []
+  OnFuelChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnLowFuelWarning:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1260970285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ccb0428fc151df4280f009736e7b937, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Core::Navigator.Core.PhysicsEngine
+  ShipRb: {fileID: 1260970289}
+  ThrustMain: 0
+  Boosting: 0
+  FuelFraction: 0
+  ThrustMultiplier: 1
+--- !u!114 &1260970286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0a1ce4d38ef68d43913e20ed0231091, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.ShipController
+  NodeId: 
+  DisplayName: 
+  IsLocalPlayer: 1
+  Physics: {fileID: 1260970285}
+  BaseMaxSpeed: 80
+  Mission:
+    TargetPlanetId: 
+    Objective: 
+    Engine: 0
+    FuelMassKg: 0
+    Instruments: 
+    Power: 0
+    Antenna: 0
+    LaunchVeh: 0
+  YawSpeed: 60
+  PitchSpeed: 45
+  ThrustMain: 0
+  SteerYaw: 0
+  SteerPitch: 0
+  Boosting: 0
+--- !u!114 &1260970287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3eeb8f1e87f17a74dac5a4721f538ae4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.CollisionSystem
+  FuelMassKg: 1200
+  DryMassKg: 500
+  Lives: 3
+  InvincibilityTime: 3
+  ExplosionPrefab: {fileID: 0}
+--- !u!114 &1260970288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c445f485c82294ba3c2056982f314c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Game::Navigator.Game.BurnoutSystem
+  BurnoutBar: 0
+  BurnoutDuration: 10
+  SpeedMultiplier: 2.5
+  NearMissAsteroidDist: 3
+  NearMissShipDist: 5
+  NearMissWindow: 3
+  OnBurnoutStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnBurnoutEnd:
+    m_PersistentCalls:
+      m_Calls: []
+  OnNearMiss:
+    m_PersistentCalls:
+      m_Calls: []
+  OnTakedown:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!54 &1260970289
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0.02
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!4 &1260970290
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260970280}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1355110983
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1355110986}
+  - component: {fileID: 1355110985}
+  - component: {fileID: 1355110984}
+  m_Layer: 0
+  m_Name: Directional Light
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1355110984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355110983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
+--- !u!108 &1355110985
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355110983}
+  m_Enabled: 1
+  serializedVersion: 13
+  m_Type: 1
+  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
+  m_Intensity: 1
+  m_Range: 10
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 2
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShapeRadius: 0.025
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
+--- !u!4 &1355110986
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355110983}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &1697555963
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1697555965}
+  - component: {fileID: 1697555964}
+  m_Layer: 0
+  m_Name: MissionScore
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1697555964
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1697555963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 707f5e3ae0cbf46429f7ad86b5762fcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.Core::Navigator.Core.MissionScore
+  ArrivalPosition: 0
+  SciencePoints: 0
+  FuelFraction: 1
+  FlightTimeS: 0
+  TakedownCount: 0
+  GravityAssistUsed: 0
+--- !u!4 &1697555965
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1697555963}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2101373673
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2101373675}
+  - component: {fileID: 2101373674}
+  m_Layer: 0
+  m_Name: ScienceOpsUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2101373674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2101373673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 323b2ec58c803e64e9798f76f4ba1035, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Navigator.UI::Navigator.UI.ScienceOpsUI
+  Panel: {fileID: 0}
+  PlanetNameLabel: {fileID: 0}
+  ArrivalPositionLabel: {fileID: 0}
+  MissionObjectiveLabel: {fileID: 0}
+  CommDelayLabel: {fileID: 0}
+  PowerBar: {fileID: 0}
+  PowerLabel: {fileID: 0}
+  PowerStatusLabel: {fileID: 0}
+  InstrumentsContainer: {fileID: 0}
+  InstrumentItemPrefab: {fileID: 0}
+  SciencePointsLabel: {fileID: 0}
+  TotalScoreLabel: {fileID: 0}
+  ScoreBar: {fileID: 0}
+  FuelBar: {fileID: 0}
+  FuelLabel: {fileID: 0}
+  GravityLabel: {fileID: 0}
+  AtmosphereLabel: {fileID: 0}
+  CompleteMissionBtn: {fileID: 0}
+  CompleteBtnLabel: {fileID: 0}
+--- !u!4 &2101373675
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2101373673}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 1186814850}
+  - {fileID: 1355110986}
+  - {fileID: 1099984399}
+  - {fileID: 1260970290}
+  - {fileID: 872697159}
+  - {fileID: 327174294}
+  - {fileID: 59843682}
+  - {fileID: 18864537}
+  - {fileID: 466066583}
+  - {fileID: 1697555965}
+  - {fileID: 738574632}
+  - {fileID: 295795823}
+  - {fileID: 2101373675}

@@ -2,55 +2,48 @@
 // Flujo de conexión P2P por QR:
 //   Jugador A → muestra su NodeId como QR en pantalla
 //   Jugador B → escanea el QR → Iroh conecta directo sin servidor
-//
-// Requiere: ZXing.Net.Unity (Assets/Plugins/ZXing) para generar/leer QR
+// ZXing.Net 0.16.9 estándar (netstandard2.0) — sin ZXing.Unity
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using ZXing;          // ZXing.Net.Unity — asset gratuito en Unity Asset Store
+using ZXing;
 using ZXing.QrCode;
-using ZXing.Unity;
+using ZXing.Common;
 
 namespace Navigator.UI
 {
     public class LobbyManager : MonoBehaviour
     {
-        // ── Inspector refs ────────────────────────────────────────────────────
         [Header("Mi QR (Jugador A — Host)")]
-        public RawImage  MyQRImage;          // muestra el QR de mi NodeId
-        public TMP_Text  MyNodeIdLabel;      // texto del NodeId debajo del QR
-        public TMP_Text  MyNameLabel;        // nombre del jugador local
+        public RawImage MyQRImage;
+        public TMP_Text MyNodeIdLabel;
+        public TMP_Text MyNameLabel;
 
         [Header("Escanear QR (Jugador B — Guest)")]
-        public Button    ScanButton;         // abre cámara para escanear
-        public TMP_Text  ScanStatusText;     // "Esperando..." / "Conectado!"
+        public Button  ScanButton;
+        public TMP_Text ScanStatusText;
 
         [Header("Estado de la sesión")]
-        public TMP_Text  ConnectedPlayersText;
-        public Button    StartGameButton;    // activo cuando hay ≥2 jugadores
+        public TMP_Text ConnectedPlayersText;
+        public Button   StartGameButton;
 
         [Header("Componentes")]
-        public Navigator.Network.SendaBridge Senda;
-        public Navigator.Network.ShipSyncService Sync;
+        public Navigator.Network.SendaBridge      Senda;
+        public Navigator.Network.ShipSyncService  Sync;
 
-        // ── Runtime ────────────────────────────────────────────────────────────
         private WebCamTexture _cam;
         private bool          _scanning = false;
         private int           _peersConnected = 0;
-
-        // ── Init ──────────────────────────────────────────────────────────────
 
         void Start()
         {
             if (!Senda.Initialized) Senda.Init();
 
-            // Muestra mi propio NodeId como QR
             ShowMyQR(Senda.NodeId);
 
-            // Eventos Senda
             Senda.OnPeerConnected.AddListener(OnPeerConnected);
             Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
 
@@ -60,39 +53,46 @@ namespace Navigator.UI
             UpdateConnectedLabel();
         }
 
-        // ── Genera y muestra el QR de mi NodeId ──────────────────────────────
-
         void ShowMyQR(string nodeId)
         {
             if (MyNodeIdLabel != null)
                 MyNodeIdLabel.text = nodeId[..Mathf.Min(20, nodeId.Length)] + "…";
 
-            // Genera textura QR 256×256
             Texture2D qrTex = GenerateQR(nodeId, 256);
             if (MyQRImage != null) MyQRImage.texture = qrTex;
         }
 
+        // Genera textura QR usando BarcodeWriterPixelData (API estándar ZXing.Net)
         private static Texture2D GenerateQR(string content, int size)
         {
-            var writer  = new BarcodeWriter<Color32[]>
+            var writer = new BarcodeWriterPixelData
             {
-                Format   = BarcodeFormat.QR_CODE,
-                Options  = new QrCodeEncodingOptions { Width = size, Height = size, Margin = 1 },
-                Renderer = new Color32Renderer(),
+                Format  = BarcodeFormat.QR_CODE,
+                Options = new QrCodeEncodingOptions { Width = size, Height = size, Margin = 1 }
             };
-            Color32[] pixels = writer.Write(content);
-            var tex = new Texture2D(size, size);
-            tex.SetPixels32(pixels);
+            var pd  = writer.Write(content);
+            var tex = new Texture2D(pd.Width, pd.Height, TextureFormat.RGBA32, false);
+
+            // Convierte int[] ARGB → Color32[]
+            var c32 = new Color32[pd.Pixels.Length];
+            for (int i = 0; i < pd.Pixels.Length; i++)
+            {
+                int p = pd.Pixels[i];
+                c32[i] = new Color32(
+                    (byte)((p >> 16) & 0xFF),
+                    (byte)((p >> 8)  & 0xFF),
+                    (byte)( p        & 0xFF),
+                    (byte)((p >> 24) & 0xFF));
+            }
+            tex.SetPixels32(c32);
             tex.Apply();
             return tex;
         }
 
-        // ── Escanear QR del otro jugador ──────────────────────────────────────
-
         void ToggleScan()
         {
             if (_scanning) StopScan();
-            else StartScan();
+            else           StartScan();
         }
 
         void StartScan()
@@ -116,26 +116,38 @@ namespace Navigator.UI
 
         IEnumerator ScanLoop()
         {
-            var reader = new BarcodeReader();
             while (_scanning && _cam != null && _cam.isPlaying)
             {
-                // Decodifica un frame de la cámara
-                Result result = reader.Decode(
-                    _cam.GetPixels32(), _cam.width, _cam.height);
+                Color32[] pixels = _cam.GetPixels32();
+
+                // Convierte Color32[] → byte[] RGBA
+                byte[] rgba = new byte[pixels.Length * 4];
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    rgba[i * 4]     = pixels[i].r;
+                    rgba[i * 4 + 1] = pixels[i].g;
+                    rgba[i * 4 + 2] = pixels[i].b;
+                    rgba[i * 4 + 3] = pixels[i].a;
+                }
+
+                // API de bajo nivel ZXing.Net — evita BarcodeReader<T> genérico
+                var lum    = new RGBLuminanceSource(rgba, _cam.width, _cam.height,
+                                                    RGBLuminanceSource.BitmapFormat.RGBA32);
+                var bitmap = new BinaryBitmap(new HybridBinarizer(lum));
+                Result result = null;
+                try { result = new MultiFormatReader().decode(bitmap); }
+                catch (ReaderException) { }
 
                 if (result != null)
                 {
-                    string scannedNodeId = result.Text;
-                    Debug.Log($"[Lobby] QR escaneado: {scannedNodeId}");
+                    Debug.Log($"[Lobby] QR escaneado: {result.Text}");
                     StopScan();
-                    ConnectToScanned(scannedNodeId);
+                    ConnectToScanned(result.Text);
                     yield break;
                 }
                 yield return new WaitForSeconds(0.1f);
             }
         }
-
-        // ── Conectar al NodeId escaneado ──────────────────────────────────────
 
         void ConnectToScanned(string remoteNodeId)
         {
@@ -146,14 +158,11 @@ namespace Navigator.UI
                 : "Error de conexión. Intenta de nuevo.";
         }
 
-        // ── Eventos de conexión ───────────────────────────────────────────────
-
         void OnPeerConnected(string nodeId)
         {
             _peersConnected++;
             UpdateConnectedLabel();
 
-            // Envía tu info de jugador al peer recién conectado
             string lobbyJson = $"{{\"name\":\"{MyNameLabel?.text ?? "Cadete"}\"," +
                                $"\"nodeId\":\"{Senda.NodeId}\"}}";
             Senda.Broadcast(Navigator.Network.NavMsg.Build(
@@ -161,7 +170,6 @@ namespace Navigator.UI
                 Senda.NodeId,
                 lobbyJson));
 
-            // Con ≥1 peer ya se puede iniciar la carrera
             StartGameButton.interactable = _peersConnected >= 1;
         }
 
@@ -177,12 +185,9 @@ namespace Navigator.UI
             if (ConnectedPlayersText == null) return;
             ConnectedPlayersText.text = _peersConnected == 0
                 ? "Esperando jugadores…\nMuestra tu QR o escanea el de otro jugador"
-                : $"✓ {_peersConnected + 1} jugador(es) conectados — ¡listo para despegar!";
+                : $"{_peersConnected + 1} jugador(es) conectados — listo para despegar!";
         }
 
-        void OnDestroy()
-        {
-            _cam?.Stop();
-        }
+        void OnDestroy() { _cam?.Stop(); }
     }
 }
