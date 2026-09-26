@@ -1,7 +1,6 @@
 # NAVIGATOR 2.0 — Arte de cielo y modelos 3D (estado 2026-09-26)
 
 > **✅ GENERADO COMPLETAMENTE — 2026-09-26**
-> Clave usada: `msy_7piEK37EPJrZ1a9e4SXtHAqoUIqBRrL6cM2n`
 > Nota: la API de Meshy solo genera modelos 3D (.glb). Las imágenes del cielo se descargaron de **NASA / Hubble / JWST / EHT** (dominio público, hasta 3840px).
 
 ---
@@ -47,9 +46,14 @@
 | `OB-10_Asteroid_FINAL.glb` | 28.6 |
 
 ### Cómo activarlo en Unity
-1. Abre el proyecto en Unity
-2. Menú **Navigator → Setup Scene** — configura las texturas del cielo automáticamente
-3. Menú **Navigator → Assign Models** — asigna los 11 planetas y los objetos
+1. Abre el proyecto en Unity.
+2. Menú **Navigator → Setup Scene**. Asigna los modelos y prepara el cielo: cada foto se copia a
+   `Assets/Art/Sky/Baked/` en 1024 px, con el fondo llevado a negro y los bordes desvanecidos
+   (las fotos del Hubble llegan hasta el borde y sin esto se verían cuadrados en el cielo).
+   Si cambias una foto, la próxima vez que corras Setup Scene se vuelve a preparar sola.
+
+> Voyager, Cassini, Juno, cometa, OB-10, Luna, Plutón y Europa todavía no aparecen en el juego.
+> Unity solo mete en el APK lo que la escena usa, así que no hacen más pesada la app.
 
 ---
 

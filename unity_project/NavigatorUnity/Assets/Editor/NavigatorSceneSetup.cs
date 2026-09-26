@@ -363,25 +363,91 @@ namespace Navigator.Editor
             return mat;
         }
 
-        // Meshy sky art dropped in Assets/Art/Sky (e.g. nebula_01.png, galaxy_01.png, blackhole_01.png)
+        // Sky art dropped in Assets/Art/Sky (nebula_01.jpg, galaxy_01.png, blackhole_01.jpg…).
+        // Real Hubble/JWST photos fill the frame edge to edge, which would show as squares in
+        // the sky, so each one is baked once into Assets/Art/Sky/Baked: max 1024 px, the dark
+        // background pulled to black, and an oval fade to transparent toward the edges.
+        const string SkyDir = "Assets/Art/Sky", BakedDir = "Assets/Art/Sky/Baked";
+
         static Texture2D[] SkyTextures(string prefix)
         {
             var list = new System.Collections.Generic.List<Texture2D>();
-            if (!AssetDatabase.IsValidFolder("Assets/Art/Sky")) return list.ToArray();
-            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Art/Sky" }))
+            if (!AssetDatabase.IsValidFolder(SkyDir)) return list.ToArray();
+            var sources = new System.Collections.Generic.List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { SkyDir }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!System.IO.Path.GetFileName(path).StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) continue;
-                if (AssetImporter.GetAtPath(path) is TextureImporter ti && (!ti.alphaIsTransparency || ti.wrapMode != TextureWrapMode.Clamp))
-                {
-                    ti.alphaIsTransparency = true;
-                    ti.wrapMode = TextureWrapMode.Clamp;
-                    ti.SaveAndReimport();
-                }
-                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (Path.GetDirectoryName(path).Replace('\\', '/') != SkyDir) continue;   // skip Baked/
+                if (!Path.GetFileName(path).StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) continue;
+                sources.Add(path);
+            }
+            sources.Sort(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var path in sources)
+            {
+                var tex = BakeSkyTexture(path);
                 if (tex != null) list.Add(tex);
             }
             return list.ToArray();
+        }
+
+        static Texture2D BakeSkyTexture(string srcPath)
+        {
+            string outPath = $"{BakedDir}/{Path.GetFileNameWithoutExtension(srcPath)}.png";
+            if (File.Exists(outPath) && File.GetLastWriteTimeUtc(outPath) >= File.GetLastWriteTimeUtc(srcPath))
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(outPath);
+
+            var src = AssetDatabase.LoadAssetAtPath<Texture2D>(srcPath);
+            if (src == null) return null;
+
+            const int MaxSize = 1024;
+            float scale = Mathf.Min(1f, MaxSize / (float)Mathf.Max(src.width, src.height));
+            int w = Mathf.Max(8, Mathf.RoundToInt(src.width * scale));
+            int h = Mathf.Max(8, Mathf.RoundToInt(src.height * scale));
+
+            // GPU copy: works whatever the importer's compression or read/write setting
+            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            var prev = RenderTexture.active;
+            Graphics.Blit(src, rt);
+            RenderTexture.active = rt;
+            var outTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            outTex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            outTex.Apply();
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+
+            var px = outTex.GetPixels();
+            const float BlackPoint = 0.06f;   // sensor noise / sky glow → pure black
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float u = (x + 0.5f) / w * 2f - 1f, v = (y + 0.5f) / h * 2f - 1f;
+                float r = Mathf.Sqrt(u * u + v * v);
+                float fade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 0.98f, r));
+                Color c = px[y * w + x];
+                c.r = Mathf.Max(0f, c.r - BlackPoint) / (1f - BlackPoint);
+                c.g = Mathf.Max(0f, c.g - BlackPoint) / (1f - BlackPoint);
+                c.b = Mathf.Max(0f, c.b - BlackPoint) / (1f - BlackPoint);
+                c.a = fade;
+                px[y * w + x] = c;
+            }
+            outTex.SetPixels(px);
+            outTex.Apply();
+
+            Directory.CreateDirectory(BakedDir);
+            File.WriteAllBytes(outPath, outTex.EncodeToPNG());
+            Object.DestroyImmediate(outTex);
+            AssetDatabase.ImportAsset(outPath, ImportAssetOptions.ForceUpdate);
+
+            if (AssetImporter.GetAtPath(outPath) is TextureImporter ti)
+            {
+                ti.alphaIsTransparency = true;
+                ti.wrapMode       = TextureWrapMode.Clamp;
+                ti.maxTextureSize = MaxSize;
+                ti.mipmapEnabled  = true;
+                ti.SaveAndReimport();
+            }
+            Debug.Log($"[Navigator] Cielo: {Path.GetFileName(srcPath)} → {outPath} ({w}×{h}, bordes desvanecidos)");
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(outPath);
         }
 
         static GameObject NameTagPrefab()

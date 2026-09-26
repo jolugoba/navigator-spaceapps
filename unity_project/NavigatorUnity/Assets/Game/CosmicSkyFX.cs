@@ -40,20 +40,22 @@ namespace Navigator.Game
             Random.InitState(Seed);
 
             BuildStars();
-            int nebulae = 4;
+            // Every real image gets a place in the sky (up to 6); procedural ones fill in otherwise
+            int nebulae = Mathf.Clamp(NebulaTextures != null ? NebulaTextures.Length : 0, 4, 6);
             for (int i = 0; i < nebulae; i++)
             {
                 var art = Pick(NebulaTextures, i);   // Meshy art keeps its own colours
                 Billboard("Nebula", art ?? NebulaTexture(i), RandomSkyDir(), Random.Range(2200f, 3400f),
                           art != null ? Color.white : NebulaTint(i), additive: true);
             }
-            Billboard("Galaxy", Pick(GalaxyTextures, 0) ?? GalaxyTexture(), RandomSkyDir(), 1300f,
-                      new Color(1f, 0.95f, 0.9f), additive: true);
-            // A JPG on black has no alpha: add it like a glow instead of pasting a black square
-            bool hasAlpha = BlackHoleTexture == null ||
-                UnityEngine.Experimental.Rendering.GraphicsFormatUtility.HasAlphaChannel(BlackHoleTexture.graphicsFormat);
+            int galaxies = Mathf.Clamp(GalaxyTextures != null ? GalaxyTextures.Length : 0, 1, 2);
+            for (int i = 0; i < galaxies; i++)
+                Billboard("Galaxy", Pick(GalaxyTextures, i) ?? GalaxyTexture(), RandomSkyDir(), i == 0 ? 1300f : 900f,
+                          new Color(1f, 0.95f, 0.9f), additive: true);
+            // Real images (EHT ring on black) glow additively; only the procedural one has a true
+            // opaque shadow and needs alpha blending to darken the room behind it
             Billboard("BlackHole", BlackHoleTexture != null ? BlackHoleTexture : BlackHoleTex(), RandomSkyDir(), 1100f,
-                      Color.white, additive: !hasAlpha);
+                      Color.white, additive: BlackHoleTexture != null);
             BuildMeteors();
 
             Random.state = saved;
@@ -120,7 +122,10 @@ namespace Navigator.Game
             go.name = name;
             go.transform.SetParent(_root, false);
             go.transform.localPosition = dir * SkyDistance;
-            go.transform.localScale    = Vector3.one * size;
+            // Keep the picture's proportions: the longer side is `size`
+            float aspect = tex != null && tex.height > 0 ? tex.width / (float)tex.height : 1f;
+            go.transform.localScale = aspect >= 1f ? new Vector3(size, size / aspect, 1f)
+                                                   : new Vector3(size * aspect, size, 1f);
 
             // Additive glows can only brighten; the black hole's shadow has to darken, so it blends
             var mat = additive ? new Material(GlowMaterial) : AlphaBlend(new Material(GlowMaterial));
