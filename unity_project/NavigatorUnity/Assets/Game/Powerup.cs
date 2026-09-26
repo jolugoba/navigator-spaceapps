@@ -31,6 +31,8 @@ namespace Navigator.Game
         public Renderer PodRenderer;        // índice 0 = color del tipo
         public GameObject CollectFX;        // partículas al recoger
         public TMP_Text   LabelWorld;       // etiqueta en world space (opcional)
+        public Transform  Visual;           // what spins (the label stays upright and faces you)
+        public bool       TintRenderer = true;   // false for textured Meshy models
 
         private Vector3 _startPos;
         private float   _bobPhase;
@@ -45,10 +47,15 @@ namespace Navigator.Game
             _bobPhase = Random.value * Mathf.PI * 2f;
 
             ApplyColor();
-            if (LabelWorld != null) LabelWorld.text = TypeLabel();
+            if (LabelWorld != null)
+            {
+                LabelWorld.text  = TypeLabel();
+                LabelWorld.color = TypeColor();
+            }
 
             // El collider debe ser trigger
             GetComponent<Collider>().isTrigger = true;
+            Scannable.Tag(gameObject, "pod", Type.ToString(), 3f);
         }
 
         void Update()
@@ -58,7 +65,15 @@ namespace Navigator.Game
             transform.position = _startPos + Vector3.up * y;
 
             // Rotación
-            transform.Rotate(Vector3.up, RotateSpeed * Time.deltaTime, Space.World);
+            (Visual != null ? Visual : transform).Rotate(Vector3.up, RotateSpeed * Time.deltaTime, Space.World);
+        }
+
+        void LateUpdate()
+        {
+            // The name always faces the player so you know what you're flying into
+            var cam = Camera.main;
+            if (LabelWorld != null && cam != null)
+                LabelWorld.transform.rotation = Quaternion.LookRotation(LabelWorld.transform.position - cam.transform.position);
         }
 
         void OnTriggerEnter(Collider other)
@@ -145,7 +160,7 @@ namespace Navigator.Game
 
         void ApplyColor()
         {
-            if (PodRenderer == null) return;
+            if (PodRenderer == null || !TintRenderer) return;
             Color c = TypeColor();
             _mpb ??= new MaterialPropertyBlock();
             _mpb.SetColor(_colorId, c);
@@ -153,7 +168,7 @@ namespace Navigator.Game
             PodRenderer.SetPropertyBlock(_mpb);
         }
 
-        Color TypeColor() => Type switch
+        public Color TypeColor() => Type switch
         {
             PowerupType.Fuel          => new Color(0.2f, 1f, 0.3f),    // verde
             PowerupType.Boost         => new Color(1f, 0.6f, 0f),      // naranja
@@ -163,14 +178,6 @@ namespace Navigator.Game
             _ => Color.white,
         };
 
-        string TypeLabel() => Type switch
-        {
-            PowerupType.Fuel          => "COMBUSTIBLE",
-            PowerupType.Boost         => "BOOST",
-            PowerupType.Shield        => "ESCUDO",
-            PowerupType.EMP           => "EMP",
-            PowerupType.GravityAssist => "GRAVITY ASSIST",
-            _ => Type.ToString(),
-        };
+        public string TypeLabel() => Navigator.Core.Loc.T("podname." + Type);
     }
 }

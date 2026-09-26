@@ -91,6 +91,9 @@ namespace Navigator.Editor
             thruster.ParticleMaterial = ParticleMaterial();
             thruster.ShipLength       = NavigatorAssignModels.ShipSize;
             EnsureComp<ShieldFX>(ship).BubbleMaterial = ParticleMaterial();
+            var tools = EnsureComp<ShipTools>(ship);   // SCAN ("what is that?") and FIRE
+            tools.GlowMaterial = ParticleMaterial();
+            tools.ImpactFX     = PickupBurstPrefab();
 
             shipCtrl.Physics      = physics;
             shipCtrl.IsLocalPlayer = true;
@@ -198,6 +201,19 @@ namespace Navigator.Editor
 
         // ── Prefabs generados ─────────────────────────────────────────────────
 
+        // Meshy models for the pods (NAVIGATOR_MESHY_ASSETS_V3.md); primitives until they exist
+        static string PodModelPrefix(PowerupType type) => type switch
+        {
+            PowerupType.Fuel          => "PD-01",
+            PowerupType.Boost         => "PD-02",
+            PowerupType.Shield        => "PD-03",
+            PowerupType.EMP           => "PD-04",
+            PowerupType.GravityAssist => "PD-05",
+            _                         => "PD-00",
+        };
+
+        const float PodSize = 6f;
+
         static GameObject PodPrefab(PowerupType type)
         {
             string path = $"{FxDir}/Pod_{type}.prefab";
@@ -206,16 +222,81 @@ namespace Navigator.Editor
             if (existing != null) AssetDatabase.DeleteAsset(path);
 
             Directory.CreateDirectory(FxDir);
-            var pod = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            pod.name = $"Pod_{type}";
-            pod.transform.localScale = Vector3.one * 6f;
-            var r = pod.GetComponent<MeshRenderer>();
-            r.sharedMaterial = GlowMaterial();
+            var pod = new GameObject($"Pod_{type}");
+            var trigger = pod.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius    = PodSize * 0.6f;
+
             var p = pod.AddComponent<Powerup>();
-            p.Type        = type;
-            p.PodRenderer = r;
+            p.Type         = type;
             p.BobAmplitude = 1.5f;
             p.CollectFX    = PickupBurstPrefab();
+
+            // Shape: the Meshy model if there is one, otherwise a primitive that differs per type,
+            // so fuel, shield, boost… read at a glance even before the label
+            var model = NavigatorAssignModels.LoadOptionalGLB(PodModelPrefix(type));
+            GameObject visual;
+            if (model != null)
+            {
+                visual = (GameObject)PrefabUtility.InstantiatePrefab(model, pod.transform);
+                ModelFit.FitToSize(visual, PodSize);
+                p.TintRenderer = false;
+                p.PodRenderer  = visual.GetComponentInChildren<Renderer>();
+            }
+            else
+            {
+                visual = GameObject.CreatePrimitive(type switch
+                {
+                    PowerupType.Fuel   => PrimitiveType.Capsule,    // a fuel canister
+                    PowerupType.Boost  => PrimitiveType.Cylinder,   // a flat booster disc
+                    PowerupType.EMP    => PrimitiveType.Cube,       // a diamond
+                    _                  => PrimitiveType.Sphere,     // shield bubble, gravity well
+                });
+                Object.DestroyImmediate(visual.GetComponent<Collider>());
+                visual.transform.SetParent(pod.transform, false);
+                visual.transform.localScale = type switch
+                {
+                    PowerupType.Fuel   => new Vector3(0.55f, 0.5f, 0.55f) * PodSize,
+                    PowerupType.Boost  => new Vector3(1f, 0.18f, 1f) * PodSize,
+                    PowerupType.EMP    => Vector3.one * PodSize * 0.6f,
+                    PowerupType.GravityAssist => Vector3.one * PodSize * 0.7f,
+                    _                  => Vector3.one * PodSize,
+                };
+                if (type == PowerupType.EMP) visual.transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
+                var r = visual.GetComponent<MeshRenderer>();
+                r.sharedMaterial = GlowMaterial();
+                p.PodRenderer = r;
+            }
+            visual.name = "Visual";
+            p.Visual = visual.transform;
+
+            // Soft halo in the pod's colour: visible from far away over the camera feed
+            var halo = new GameObject("Halo");
+            halo.transform.SetParent(pod.transform, false);
+            var ps = halo.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = true; main.prewarm = true;
+            main.startLifetime = 1.2f; main.startSpeed = 0f;
+            main.startSize  = PodSize * 2.2f;
+            main.startColor = new Color(p.TypeColor().r, p.TypeColor().g, p.TypeColor().b, 0.35f);
+            main.maxParticles = 3;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var em = ps.emission; em.rateOverTime = 2f;
+            var sh = ps.shape; sh.enabled = false;
+            halo.GetComponent<ParticleSystemRenderer>().sharedMaterial = ParticleMaterial();
+
+            // Name above it, in the player's language (set at runtime by Powerup)
+            var label = new GameObject("Label").AddComponent<TextMeshPro>();
+            label.transform.SetParent(pod.transform, false);
+            label.transform.localPosition = new Vector3(0f, PodSize * 0.95f, 0f);
+            label.text      = type.ToString();
+            label.fontSize  = 14f;
+            label.alignment = TextAlignmentOptions.Center;
+            label.fontStyle = FontStyles.Bold;
+            label.rectTransform.sizeDelta = new Vector2(30f, 5f);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            p.LabelWorld = label;
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(pod, path);
             Object.DestroyImmediate(pod);

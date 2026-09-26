@@ -93,7 +93,7 @@ namespace Navigator.Game
             else OnBlocked.Invoke();
 
             // The rival simulates their own ship: tell them they were hit and how they bounce
-            if (other._rb.isKinematic) SendHit(severity, vf2);
+            if (other._rb.isKinematic) SendHit(other.RemoteNodeId, severity, vf2);
             else other.ApplyDamage(severity);
 
             // Determine takedown — faster lighter ship vs heavier slower = takedown
@@ -122,13 +122,15 @@ namespace Navigator.Game
             return string.CompareOrdinal(senda.NodeId, rivalId) < 0;
         }
 
-        void SendHit(CollisionSeverity severity, Vector3 newVelocity)
+        // Addressed to the rammed ship only ("to"): everyone receives broadcasts
+        void SendHit(string targetNodeId, CollisionSeverity severity, Vector3 newVelocity)
         {
             var senda = FindObjectOfType<SendaBridge>();
             if (senda == null || !senda.Initialized) return;
             var ci = System.Globalization.CultureInfo.InvariantCulture;
             senda.Broadcast(NavMsg.Build(NavMsgType.shipEvent, senda.NodeId,
                 "{\"hit\":" + (int)severity +
+                ",\"to\":\"" + targetNodeId + "\"" +
                 ",\"vx\":" + newVelocity.x.ToString("F2", ci) +
                 ",\"vy\":" + newVelocity.y.ToString("F2", ci) +
                 ",\"vz\":" + newVelocity.z.ToString("F2", ci) +
@@ -144,6 +146,17 @@ namespace Navigator.Game
             _rb.linearVelocity = newVelocity;
             ApplyDamage(severity);
             StartInvincibility();
+        }
+
+        // A rival's laser hit us: like a heavy crash (one hull point), unless shielded
+        public bool ReceiveLaser()
+        {
+            if (_rb == null || _rb.isKinematic) return false;
+            if (IsInvincible || (_burnout != null && _burnout.BurnoutActive)) { OnBlocked.Invoke(); return false; }
+            ExplosionVFX.Spawn(ExplosionPrefab, _rb.position, false);
+            ApplyDamage(CollisionSeverity.Heavy);
+            StartInvincibility();
+            return true;
         }
 
         // ── Damage model ──────────────────────────────────────────────────────

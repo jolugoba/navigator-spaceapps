@@ -117,6 +117,10 @@ namespace Navigator.Editor
             return 1;
         }
 
+        // Optional models: null (and no warning) when nothing with that prefix was dropped in
+        public static GameObject LoadOptionalGLB(string namePrefix) =>
+            AssetDatabase.FindAssets(namePrefix, new[] { "Assets/Models" }).Length > 0 ? LoadGLB(namePrefix) : null;
+
         // Prefers the "_FINAL" (PBR-textured) export when both exist
         static GameObject LoadGLB(string namePrefix)
         {

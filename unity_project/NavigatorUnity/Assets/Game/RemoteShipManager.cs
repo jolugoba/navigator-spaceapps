@@ -61,6 +61,15 @@ namespace Navigator.Game
             }
         }
 
+        // Latest hull / fuel a rival reported (for the scanner)
+        public bool TryGetStatus(string nodeId, out int lives, out float fuel)
+        {
+            lives = 0; fuel = 0f;
+            if (!_ships.TryGetValue(nodeId, out var inst)) return false;
+            lives = inst.Lives; fuel = inst.FuelFraction;
+            return true;
+        }
+
         public string NameOf(string nodeId) =>
             _names.TryGetValue(nodeId, out var n) ? n : Short(nodeId);
 
@@ -162,6 +171,7 @@ namespace Navigator.Game
             rb.isKinematic = true;
             rb.useGravity  = false;
             root.AddComponent<CollisionSystem>().RemoteNodeId = nodeId;
+            Scannable.Tag(root, "ship", nodeId, ShipSize);
             var thruster = root.AddComponent<ThrusterFX>();
             thruster.ShipLength = ShipSize;
             thruster.SetMaterial(ExhaustMaterial);

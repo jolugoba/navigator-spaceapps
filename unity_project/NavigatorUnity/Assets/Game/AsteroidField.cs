@@ -73,6 +73,7 @@ namespace Navigator.Game
                     go.transform.localScale = Vector3.one * radius * 2f;
                 }
                 go.name = $"Asteroid_{i}";
+                Scannable.Tag(go, "asteroid", "asteroid", radius);
 
                 _rocks.Add(new Rock
                 {

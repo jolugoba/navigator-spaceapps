@@ -133,6 +133,7 @@ namespace Navigator.UI
                 SyncService.OnRemoteArrived.AddListener(OnRemoteArrived);
             }
             GravityField.AssistGained += OnGravityAssist;
+            ShipTools.Scanned += OnScanDiscovery;
             GravityField.BodyImpact   += OnBodyImpact;
 
             EnterLobby();
@@ -141,6 +142,7 @@ namespace Navigator.UI
         void OnDestroy()
         {
             GravityField.AssistGained -= OnGravityAssist;
+            ShipTools.Scanned -= OnScanDiscovery;
             GravityField.BodyImpact   -= OnBodyImpact;
         }
 
@@ -160,6 +162,14 @@ namespace Navigator.UI
             var names = new List<string>();
             foreach (var b in GravityField.RealFlybys[target].bodies) names.Add(Loc.Planet(b));
             HUD?.Flash(null, UIStyle.Accent, 0f, Loc.F("grav.intro", probe, string.Join(" → ", names)));
+        }
+
+        // Scanning something new is science: it counts in the score and the debrief
+        void OnScanDiscovery(ScanInfo info)
+        {
+            if (!info.Discovery || State != GameState.InFlight) return;
+            Outcome.EventBonusPoints += ShipTools.DiscoveryPoints;
+            Outcome.EventLog.Add(Loc.F("scan.log", info.Title));
         }
 
         void OnBodyImpact(string body)
@@ -361,6 +371,7 @@ namespace Navigator.UI
                 if (!string.IsNullOrEmpty(Gravity.Probe)) StartCoroutine(FlybyHint(Mission.TargetPlanetId, Gravity.Probe));
             }
             CosmicSkyFX.MeteorShower(4f);
+            ShipTools.ResetDiscoveries();
 
             if (HUD != null)
             {
@@ -625,12 +636,42 @@ namespace Navigator.UI
             }
 
             // Rival rammed us: their device resolved the crash and sent our new velocity
-            if (msg.pl_json.Contains("\"hit\""))
+            if (msg.pl_json.Contains("\"hit\"") && IsForMe(msg.pl_json))
             {
                 var sev = (CollisionSeverity)Mathf.Clamp((int)Num(msg.pl_json, "hit"), 0, 2);
                 var v   = new Vector3(Num(msg.pl_json, "vx"), Num(msg.pl_json, "vy"), Num(msg.pl_json, "vz"));
                 Ship.GetComponent<CollisionSystem>()?.ReceiveHit(sev, v);
             }
+
+            // A rival's laser hit us (one hull point unless shielded) or they scanned us to say hi
+            if (msg.pl_json.Contains("\"laser\"") && IsForMe(msg.pl_json))
+            {
+                string who = Str(msg.pl_json, "name") ?? "Rival";
+                bool hurt = Ship.GetComponent<CollisionSystem>()?.ReceiveLaser() ?? false;
+                HUD?.Flash(null, hurt ? UIStyle.Bad : UIStyle.Accent, hurt ? 1f : 0.3f, Loc.F("laser.got", who));
+            }
+            if (msg.pl_json.Contains("\"scan\"") && IsForMe(msg.pl_json))
+            {
+                AudioFX.Play(Sfx.Scan, 0.6f);
+                HUD?.Flash(null, UIStyle.Accent, 0f, Loc.F("scan.got", Str(msg.pl_json, "name") ?? "Rival"));
+            }
+        }
+
+        // Events aimed at one ship carry "to"; older clients omit it (then it's for everyone)
+        bool IsForMe(string json)
+        {
+            string to = Str(json, "to");
+            return string.IsNullOrEmpty(to) || Senda == null || to == Senda.NodeId;
+        }
+
+        static string Str(string json, string key)
+        {
+            string k = $"\"{key}\":\"";
+            int i = json.IndexOf(k);
+            if (i < 0) return null;
+            i += k.Length;
+            int e = json.IndexOf('"', i);
+            return e > i ? json[i..e] : "";
         }
 
         static float Num(string json, string key)
@@ -670,6 +711,8 @@ namespace Navigator.UI
         void SetControls(bool on)
         {
             if (ARShip != null) ARShip.ControlsEnabled = on;
+            var tools = Ship != null ? Ship.GetComponent<ShipTools>() : null;
+            if (tools != null) tools.ControlsEnabled = on;
         }
 
         void SetState(GameState s)

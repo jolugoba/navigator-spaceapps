@@ -120,6 +120,9 @@ namespace Navigator.Game
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             Destroy(go.GetComponent<Collider>());
             go.name = name;
+            // Real photos are scanned by their file name (nebula_01 = Orion…); generated ones by kind
+            string id = tex != null && !string.IsNullOrEmpty(tex.name) && tex.name.Contains("_") ? tex.name : name.ToLowerInvariant();
+            Scannable.Tag(go, "sky", id, size * 0.5f, atInfinity: true);
             go.transform.SetParent(_root, false);
             go.transform.localPosition = dir * SkyDistance;
             // Keep the picture's proportions: the longer side is `size`

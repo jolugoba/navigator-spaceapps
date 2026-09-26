@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Navigator.Game
 {
-    public enum Sfx { Explosion, Hit, Pickup, Alert, NearMiss, Burnout, Beep, Go }
+    public enum Sfx { Explosion, Hit, Pickup, Alert, NearMiss, Burnout, Beep, Go, Laser, Scan }
 
     public class AudioFX : MonoBehaviour
     {
@@ -50,6 +50,8 @@ namespace Navigator.Game
             _clips[Sfx.Burnout]   = Sweep(0.9f, 180f, 1100f);
             _clips[Sfx.Beep]      = Chirp(new[] { 880f }, 0.14f);
             _clips[Sfx.Go]        = Chirp(new[] { 1320f }, 0.45f);
+            _clips[Sfx.Laser]     = Sweep(0.18f, 1800f, 300f);
+            _clips[Sfx.Scan]      = Chirp(new[] { 1200f, 1500f, 1800f, 2400f }, 0.05f);
         }
 
         void Update()

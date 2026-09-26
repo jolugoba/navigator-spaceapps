@@ -52,6 +52,16 @@ namespace Navigator.UI
         public Button     GyroButton;        // apagar el giroscopio para jugar sentado o con control
         public TMP_Text   GyroLabel;
 
+        [Header("Escáner y láser")]
+        public Button        ScanButton;
+        public Button        FireButton;
+        public Image         FireCooldown;     // fills back up while the laser recharges
+        public RectTransform Reticle;          // follows what's in your sights
+        public TMP_Text      ReticleLabel;
+        public GameObject    InfoCard;         // "what is that?" answer
+        public TMP_Text      InfoTitle;
+        public TMP_Text      InfoBody;
+
         [Header("Avisos de impacto")]
         public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
 
@@ -70,11 +80,15 @@ namespace Navigator.UI
         private float _lowFuelFlash = 0f;
         private float _impactTimer  = 0f;
         private GyroCameraRig _rig;
+        private ShipTools     _tools;
+        private float         _infoTimer;
 
         void OnDestroy()
         {
             Powerup.Collected -= OnPodCollected;
             Loc.Changed -= RefreshGyroLabel;
+            ShipTools.Scanned -= OnScanned;
+            ShipTools.FiredAt -= OnFiredAt;
         }
 
         void RefreshGyroLabel()
@@ -154,6 +168,18 @@ namespace Navigator.UI
             _collision?.OnDamaged.AddListener(_ => AudioFX.Play(Sfx.Hit));
             Powerup.Collected += OnPodCollected;
             if (ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
+
+            var shipGo = GameObject.FindWithTag("LocalShip");
+            _tools = shipGo != null ? shipGo.GetComponent<ShipTools>() : null;
+            ScanButton?.onClick.AddListener(() => _tools?.Scan());
+            FireButton?.onClick.AddListener(() =>
+            {
+                if (!ShipTools.WeaponsAllowed) { Flash("laser.off", UIStyle.Muted, 0f); return; }
+                _tools?.Fire();
+            });
+            ShipTools.Scanned += OnScanned;
+            ShipTools.FiredAt += OnFiredAt;
+            if (InfoCard != null) InfoCard.SetActive(false);
         }
 
         void Update()
@@ -168,12 +194,59 @@ namespace Navigator.UI
             UpdateTime();
 
             UpdateVignette();
+            UpdateTools();
 
             if (_impactTimer > 0f)
             {
                 _impactTimer -= Time.deltaTime;
                 if (_impactTimer <= 0f && ImpactLabel != null) ImpactLabel.gameObject.SetActive(false);
             }
+        }
+
+        // ── Scanner / laser ───────────────────────────────────────────────────
+        void OnScanned(ScanInfo info)
+        {
+            if (InfoCard == null) return;
+            InfoCard.SetActive(true);
+            _infoTimer = info.Kind == "none" ? 3f : 8f;
+            if (InfoTitle != null) InfoTitle.text = info.Title;
+            if (InfoBody != null)
+                InfoBody.text = (info.Discovery ? $"<color=#FFD633><b>{Loc.F("scan.discovery", ShipTools.DiscoveryPoints)}</b></color>\n" : "") + info.Body;
+        }
+
+        void OnFiredAt(string what) =>
+            Flash(null, what != null ? UIStyle.Burnout : UIStyle.Muted, what != null ? 0.15f : 0f,
+                  what != null ? Loc.F("laser.hit", what) : Loc.T("laser.miss"));
+
+        void UpdateTools()
+        {
+            if (_infoTimer > 0f)
+            {
+                _infoTimer -= Time.deltaTime;
+                if (_infoTimer <= 0f && InfoCard != null) InfoCard.SetActive(false);
+            }
+            if (FireCooldown != null && _tools != null) FireCooldown.fillAmount = 1f - _tools.Cooldown01;
+            if (FireButton != null) FireButton.interactable = ShipTools.WeaponsAllowed;
+
+            if (Reticle == null || _tools == null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            // On the target when there is one; otherwise straight ahead of the ship
+            bool locked = _tools.Target != null;
+            Vector3 world = locked ? _tools.Target.transform.position
+                                   : _tools.transform.position + _tools.transform.forward * 200f;
+            Vector3 sp = cam.WorldToScreenPoint(world);
+            bool visible = sp.z > 0f;
+            if (Reticle.gameObject.activeSelf != visible) Reticle.gameObject.SetActive(visible);
+            if (!visible) return;
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Reticle.parent, sp, null, out var local);
+            Reticle.anchoredPosition = Vector2.Lerp(Reticle.anchoredPosition, local, 1f - Mathf.Exp(-18f * Time.deltaTime));
+            var img = Reticle.GetComponent<Image>();
+            if (img != null) img.color = locked ? new Color(1f, 0.84f, 0.3f, 0.9f) : new Color(1f, 1f, 1f, 0.35f);
+            Reticle.localScale = Vector3.one * (locked ? 1f + 0.08f * Mathf.Sin(Time.time * 8f) : 0.8f);
+            if (ReticleLabel != null) ReticleLabel.text = locked ? _tools.TargetName : "";
         }
 
         void UpdateTime()

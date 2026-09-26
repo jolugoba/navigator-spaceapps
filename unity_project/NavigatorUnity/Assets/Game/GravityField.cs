@@ -127,6 +127,7 @@ namespace Navigator.Game
             AddAtmosphereGlow(root, id, radius);
             var ring = AddAssistRing(root, radius * AssistRingFactor);
 
+            Scannable.Tag(root.gameObject, "flyby", id, radius);
             return new Body
             {
                 Id = id, T = root, Radius = radius,

@@ -417,38 +417,101 @@ namespace Navigator.Editor
 
         static Button _campaignButton;   // created with the lobby, wired to the campaign screen
 
+        // World map: Earth at the bottom, eight worlds zig-zagging up to Neptune
         static void BuildCampaign(Transform root, CampaignUI camp)
         {
             var go = UIKit.Stretch(root, "CampaignPanel").gameObject;
             var bg = go.AddComponent<Image>();
-            bg.color = UIStyle.Backdrop;
+            bg.color = new Color(0.02f, 0.03f, 0.08f, 0.94f);
             bg.raycastTarget = true;
             var safe = UIKit.Stretch(go.transform, "Content");
             safe.gameObject.AddComponent<SafeAreaFitter>();
             var p = UIKit.Column(safe);
 
-            UIKit.Text(p, "Title", "@camp.title", 64, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
-            UIKit.Text(p, "Subtitle", "@camp.subtitle", 28, new Vector4(0.05f, 0.85f, 0.95f, 0.9f), TextAlignmentOptions.TopLeft, UIStyle.Muted);
-            camp.TotalLabel = UIKit.Text(p, "Total", "", 30, new Vector4(0.05f, 0.81f, 0.95f, 0.85f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            UIKit.Text(p, "Title", "@camp.title", 60, new Vector4(0.05f, 0.925f, 0.7f, 0.98f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            camp.BackButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.72f, 0.93f, 0.95f, 0.975f), UIStyle.ButtonIdle, UIStyle.Text, 28);
+            UIKit.Text(p, "Subtitle", "@camp.subtitle", 26, new Vector4(0.05f, 0.87f, 0.95f, 0.925f), TextAlignmentOptions.TopLeft, UIStyle.Muted);
+            camp.TotalLabel = UIKit.Text(p, "Total", "", 30, new Vector4(0.05f, 0.84f, 0.95f, 0.87f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
 
+            var map = UIKit.Rect(p, "Map", new Vector4(0.02f, 0.04f, 0.98f, 0.83f));
+            camp.PathLayer = UIKit.Stretch(map, "Path");   // first child: drawn behind the worlds
+
+            // Earth: the launch base
+            var home = MapPoint(map, "Home", new Vector2(0.5f, 0.035f), 96f);
+            var earth = home.gameObject.AddComponent<Image>();
+            earth.sprite = UIKit.KnobSprite;
+            earth.color  = CampaignUI.PlanetColor("earth");
+            earth.raycastTarget = false;
+            var homeLabel = UIKit.Text(home, "Label", "@camp.home", 22, new Vector4(0f, 0f, 0f, 0f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            homeLabel.rectTransform.anchorMin = homeLabel.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+            homeLabel.rectTransform.pivot = new Vector2(0f, 0.5f);
+            homeLabel.rectTransform.sizeDelta = new Vector2(340f, 40f);
+            homeLabel.rectTransform.anchoredPosition = new Vector2(16f, 0f);
+            camp.Home = home;
+
+            // Zig-zag path upward
+            float[] xs = { 0.28f, 0.66f, 0.3f, 0.7f, 0.32f, 0.68f, 0.3f, 0.6f };
             int n = Campaign.Missions.Length;
-            camp.MissionButtons = new Button[n];
-            float top = 0.8f, bottom = 0.15f, h = (top - bottom) / n;
+            camp.Nodes = new MapNode[n];
             for (int i = 0; i < n; i++)
             {
-                float y1 = top - i * h, y0 = y1 - h + 0.012f;
-                var b = UIKit.Button(p, $"Mission_{i}", "", new Vector4(0.05f, y0, 0.95f, y1), UIStyle.Card, UIStyle.Text, 32);
-                var label = b.GetComponentInChildren<TMP_Text>();
-                label.alignment = TextAlignmentOptions.Left;
-                label.textWrappingMode = TextWrappingModes.Normal;
-                label.rectTransform.offsetMin = new Vector2(24, 0);
-                camp.MissionButtons[i] = b;
+                float y = Mathf.Lerp(0.15f, 0.93f, n == 1 ? 0f : i / (float)(n - 1));
+                var node = new MapNode();
+                // Halo first so it's drawn behind the planet disc
+                var at = new Vector2(xs[i % xs.Length], y);
+                node.Glow = MapPoint(map, $"Glow_{i + 1}", at, 168f).gameObject.AddComponent<Image>();
+                node.Glow.sprite = UIKit.KnobSprite;
+                node.Glow.color  = new Color(0f, 0f, 0f, 0f);
+                node.Glow.raycastTarget = false;
+
+                var point = MapPoint(map, $"World_{i + 1}", at, 104f);
+                node.Planet = point.gameObject.AddComponent<Image>();
+                node.Planet.sprite = UIKit.KnobSprite;
+                node.Planet.color  = CampaignUI.PlanetColor(Campaign.Missions[i].Planet);
+                node.Button = point.gameObject.AddComponent<Button>();
+                node.Button.targetGraphic = node.Planet;
+
+                // Name on the open side of the screen
+                bool left = xs[i % xs.Length] > 0.5f;
+                node.Name = UIKit.Text(point, "Name", "", 26, Vector4.zero, left ? TextAlignmentOptions.Right : TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+                var nr = node.Name.rectTransform;
+                nr.anchorMin = nr.anchorMax = new Vector2(left ? 0f : 1f, 0.5f);
+                nr.pivot = new Vector2(left ? 1f : 0f, 0f);
+                nr.sizeDelta = new Vector2(360f, 44f);
+                nr.anchoredPosition = new Vector2(left ? -18f : 18f, -4f);
+
+                node.Stars = UIKit.Text(point, "Stars", "", 26, Vector4.zero, left ? TextAlignmentOptions.Right : TextAlignmentOptions.Left, UIStyle.Gold);
+                var sr = node.Stars.rectTransform;
+                sr.anchorMin = sr.anchorMax = new Vector2(left ? 0f : 1f, 0.5f);
+                sr.pivot = new Vector2(left ? 1f : 0f, 1f);
+                sr.sizeDelta = new Vector2(360f, 38f);
+                sr.anchoredPosition = new Vector2(left ? -18f : 18f, -6f);
+
+                camp.Nodes[i] = node;
             }
-            camp.BackButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.05f, 0.04f, 0.95f, 0.12f), UIStyle.ButtonIdle, UIStyle.Text, 36);
+
+            // Briefing card for the tapped world
+            var card = UIKit.Card(p, "Detail", new Vector4(0.03f, 0.02f, 0.97f, 0.3f), UIStyle.Card);
+            camp.Detail = card.gameObject;
+            card.GetComponent<Image>().raycastTarget = true;
+            camp.DetailTitle = UIKit.Text(card, "Title", "", 34, new Vector4(0.05f, 0.8f, 0.85f, 0.95f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            camp.CloseDetailButton = UIKit.Button(card, "Close", "X", new Vector4(0.86f, 0.8f, 0.96f, 0.95f), UIStyle.ButtonIdle, UIStyle.Text, 30, FontStyles.Bold);
+            camp.DetailBody = UIKit.Text(card, "Body", "", 26, new Vector4(0.05f, 0.3f, 0.95f, 0.79f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            camp.LaunchButton = UIKit.Button(card, "Launch", "@camp.launch", new Vector4(0.05f, 0.05f, 0.95f, 0.27f), UIStyle.Accent, UIStyle.Text, 34, FontStyles.Bold);
+            camp.Detail.SetActive(false);
+
             camp.OpenButton = _campaignButton;
             camp.Panel = go;
             go.transform.SetAsLastSibling();
             go.SetActive(false);
+        }
+
+        // A fixed-size point placed at a normalized position of `parent`, centred on it
+        static RectTransform MapPoint(RectTransform parent, string name, Vector2 at, float size)
+        {
+            var rt = UIKit.Rect(parent, name, new Vector4(at.x, at.y, at.x, at.y));
+            rt.sizeDelta = new Vector2(size, size);
+            return rt;
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -599,16 +662,21 @@ namespace Navigator.Editor
         static void BuildTouchControls(Transform p, CockpitHUD hud, ARShipController ship)
         {
             // Thumb-sized and pinned to the bottom corners, whatever the screen shape
-            var area = UIKit.Pin(p, "Joystick", new Vector2(0f, 0f), new Vector2(36f, 36f), new Vector2(230f, 230f));
-            var baseImg = area.gameObject.AddComponent<Image>();
-            baseImg.sprite = UIKit.KnobSprite;
-            baseImg.color  = new Color(1f, 1f, 1f, 0.10f);
-            baseImg.raycastTarget = true;
-            var knob = UIKit.Image(area, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.5f));
+            // Touch zone (invisible, generous) with a floating stick that appears under the thumb
+            var area = UIKit.Pin(p, "Joystick", new Vector2(0f, 0f), new Vector2(12f, 12f), new Vector2(330f, 330f));
+            var zone = area.gameObject.AddComponent<Image>();
+            zone.color = new Color(1f, 1f, 1f, 0f);   // invisible but still catches touches
+            zone.raycastTarget = true;
+            var ring = UIKit.Image(area, "Base", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(1f, 1f, 1f, 0.12f));
+            ring.sprite = UIKit.KnobSprite;
+            ring.type   = UnityEngine.UI.Image.Type.Simple;
+            ring.rectTransform.sizeDelta = new Vector2(200, 200);
+            var knob = UIKit.Image(ring.rectTransform, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.55f));
             knob.sprite = UIKit.KnobSprite;
             knob.type   = UnityEngine.UI.Image.Type.Simple;
-            knob.rectTransform.sizeDelta = new Vector2(90, 90);
+            knob.rectTransform.sizeDelta = new Vector2(84, 84);
             var stick = area.gameObject.AddComponent<VirtualJoystick>();
+            stick.Base  = ring.rectTransform;
             stick.Knob  = knob.rectTransform;
             stick.Range = 80f;
 
@@ -616,6 +684,44 @@ namespace Navigator.Editor
                                       new Color(0.2f, 0.8f, 1f, 0.42f), 28);
             var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector2(-36f, 196f), new Vector2(190f, 70f),
                                       new Color(1f, 0.5f, 0.1f, 0.42f), 22);
+
+            // SCAN and FIRE above BOOST, same column
+            var fire = UIKit.Button(p, "FireButton", "@hud.fire", new Vector4(1f, 0f, 1f, 0f),
+                                    new Color(0.9f, 0.25f, 0.2f, 0.45f), UIStyle.Text, 24, FontStyles.Bold);
+            PinButton(fire, new Vector2(-36f, 282f), new Vector2(190f, 72f));
+            hud.FireButton = fire;
+            hud.FireCooldown = UIKit.Image(fire.transform, "Charge", new Vector4(0f, 0f, 1f, 0.12f), new Color(1f, 0.8f, 0.4f, 0.8f));
+            hud.FireCooldown.sprite = null;
+            hud.FireCooldown.type   = UnityEngine.UI.Image.Type.Filled;
+            hud.FireCooldown.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
+
+            var scan = UIKit.Button(p, "ScanButton", "@hud.scan", new Vector4(1f, 0f, 1f, 0f),
+                                    new Color(0.2f, 0.9f, 0.7f, 0.42f), UIStyle.Text, 24, FontStyles.Bold);
+            PinButton(scan, new Vector2(-36f, 366f), new Vector2(190f, 72f));
+            hud.ScanButton = scan;
+
+            // Reticle that locks onto what the ship points at
+            var ret = UIKit.Image(p, "Reticle", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(1f, 1f, 1f, 0.35f));
+            ret.sprite = ReticleSprite();
+            ret.type   = UnityEngine.UI.Image.Type.Simple;
+            ret.rectTransform.sizeDelta = new Vector2(110f, 110f);
+            ret.raycastTarget = false;
+            hud.Reticle = ret.rectTransform;
+            hud.ReticleLabel = UIKit.Text(ret.rectTransform, "Name", "", 24, Vector4.zero, TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
+            var rl = hud.ReticleLabel.rectTransform;
+            rl.anchorMin = rl.anchorMax = new Vector2(0.5f, 0f);
+            rl.pivot = new Vector2(0.5f, 1f);
+            rl.sizeDelta = new Vector2(420f, 36f);
+            rl.anchoredPosition = new Vector2(0f, -4f);
+
+            // "What is that?" card, under the top bar
+            var info = UIKit.Card(p, "ScanInfo", new Vector4(0.03f, 1f, 0.97f, 1f), new Color(0.04f, 0.08f, 0.16f, 0.85f));
+            info.pivot = new Vector2(0.5f, 1f);
+            info.offsetMin = new Vector2(0f, -400f); info.offsetMax = new Vector2(0f, -150f);
+            info.GetComponent<Image>().raycastTarget = false;
+            hud.InfoCard  = info.gameObject;
+            hud.InfoTitle = UIKit.Text(info, "Title", "", 34, new Vector4(0.04f, 0.74f, 0.96f, 0.96f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            hud.InfoBody  = UIKit.Text(info, "Body", "", 26, new Vector4(0.04f, 0.05f, 0.96f, 0.74f), TextAlignmentOptions.TopLeft, UIStyle.Text);
 
             hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(1f, 1f, 1f, 1f),
                                           new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 20, FontStyles.Bold);
@@ -632,6 +738,46 @@ namespace Navigator.Editor
                 ship.BoostButton  = boost;
                 EditorUtility.SetDirty(ship);
             }
+        }
+
+        static void PinButton(Button b, Vector2 pos, Vector2 size)
+        {
+            var rt = (RectTransform)b.transform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 0f);
+            rt.sizeDelta = size;
+            rt.anchoredPosition = pos;
+        }
+
+        // Thin ring with four ticks, generated once
+        static Sprite ReticleSprite()
+        {
+            const string path = "Assets/UI/Generated/Reticle.png";
+            var existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (existing != null) return existing;
+            const int N = 128;
+            var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            var px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+            for (int x = 0; x < N; x++)
+            {
+                float u = (x + 0.5f) / N * 2f - 1f, v = (y + 0.5f) / N * 2f - 1f;
+                float r = Mathf.Sqrt(u * u + v * v);
+                float ring = Mathf.Clamp01(1f - Mathf.Abs(r - 0.78f) / 0.045f);
+                bool tick = (Mathf.Abs(u) < 0.04f || Mathf.Abs(v) < 0.04f) && r > 0.82f && r < 0.98f;
+                float a = Mathf.Max(ring, tick ? 1f : 0f);
+                px[y * N + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels(px);
+            tex.Apply();
+            System.IO.Directory.CreateDirectory("Assets/UI/Generated");
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.textureType = TextureImporterType.Sprite;
+            ti.alphaIsTransparency = true;
+            ti.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         // Pinned to the bottom-right corner

@@ -5,6 +5,7 @@
 
 using UnityEngine;
 using Navigator.Core;
+using Navigator.Game;
 
 namespace Navigator.AR
 {
@@ -80,6 +81,7 @@ namespace Navigator.AR
             if (_planet != null) Destroy(_planet);
             _planet = new GameObject($"Planet_{planetId}");
             _planet.transform.position = TargetPosition;
+            Scannable.Tag(_planet, "planet", planetId, PlanetRadius);
 
             GameObject prefab = GetPlanetPrefab(planetId);
             GameObject model  = prefab != null

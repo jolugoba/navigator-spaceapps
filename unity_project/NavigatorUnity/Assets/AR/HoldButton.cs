@@ -19,10 +19,25 @@ namespace Navigator.AR
 
         void Awake() { if (Target != null) _idle = Target.color; }
 
-        public void OnPointerDown(PointerEventData e) { Held = true; _downFrame = Time.frameCount; Tint(true); }
-        public void OnPointerUp(PointerEventData e)   { Held = false; Tint(false); }
-        public void OnPointerExit(PointerEventData e) { Held = false; Tint(false); }
-        void OnDisable() { Held = false; Tint(false); }
+        // Counts fingers: lifting one of two fingers on the same button doesn't release it
+        private readonly System.Collections.Generic.HashSet<int> _pointers = new();
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (_pointers.Count == 0) _downFrame = Time.frameCount;
+            _pointers.Add(e.pointerId);
+            Held = true; Tint(true);
+        }
+        public void OnPointerUp(PointerEventData e)   => Lift(e.pointerId);
+        public void OnPointerExit(PointerEventData e) { if (_pointers.Contains(e.pointerId)) Lift(e.pointerId); }   // finger slid off
+        void OnDisable() { _pointers.Clear(); Held = false; Tint(false); }
+
+        void Lift(int id)
+        {
+            _pointers.Remove(id);
+            Held = _pointers.Count > 0;
+            if (!Held) Tint(false);
+        }
 
         void Tint(bool on)
         {
