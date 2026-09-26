@@ -93,8 +93,9 @@ namespace Navigator.UI
         public MissionOutcome Outcome { get; } = new();
 
         private float  _flightTimer;
-        private bool   _rivalArrived;
-        private int    _remoteScore = Navigator.UI.ScoreboardUI.RemotePending;
+        private readonly HashSet<string>         _rivalsArrived = new();
+        private readonly Dictionary<string, int> _rivalScores   = new();
+        private int _rivalsAtStart;   // how many final scores the scoreboard waits for
         private string _lastPlanet  = "mars";
 
         // ── Init ──────────────────────────────────────────────────────────────
@@ -118,8 +119,7 @@ namespace Navigator.UI
             if (SyncService != null)
             {
                 SyncService.OnRemoteScore.AddListener(OnRemoteScore);
-                SyncService.OnRemoteArrived.AddListener(_ => OnRemoteArrived());
-                SyncService.OnRemoteName.AddListener((_, n) => ScoreboardUI?.SetRemotePlayerName(n));
+                SyncService.OnRemoteArrived.AddListener(OnRemoteArrived);
             }
 
             EnterLobby();
@@ -136,15 +136,50 @@ namespace Navigator.UI
             if (CameraFeed != null) CameraFeed.Stop();
         }
 
-        // Lobby "Despegar" / Scoreboard "Jugar otra vez"
+        // Campaign mission being played (null = free play)
+        public CampaignMission ActiveCampaign { get; private set; }
+
+        // Lobby "Play solo / Lift off": free play
         public void OnLobbyReady()
         {
             if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+            ActiveCampaign = null;
+            BeginDesign();
+        }
+
+        // Campaign screen: start mission i
+        public void StartCampaignMission(int index)
+        {
+            if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+            if (index < 0 || index >= Campaign.Missions.Length || !Campaign.IsUnlocked(index)) return;
+            ActiveCampaign = Campaign.Missions[index];
+            BeginDesign();
+        }
+
+        // Scoreboard: same mission again, keeping the design to iterate on it
+        public void Retry()
+        {
+            if (State != GameState.Scoreboard) return;
+            BeginDesign();
+        }
+
+        public bool HasNextCampaignMission =>
+            ActiveCampaign != null && ActiveCampaign.Index + 1 < Campaign.Missions.Length &&
+            Campaign.IsUnlocked(ActiveCampaign.Index + 1);
+
+        public void NextMission()
+        {
+            if (HasNextCampaignMission) StartCampaignMission(ActiveCampaign.Index + 1);
+        }
+
+        void BeginDesign()
+        {
             Time.timeScale = 1f;
             Events?.Cancel();
 
-            _rivalArrived = false;
-            _remoteScore  = Navigator.UI.ScoreboardUI.RemotePending;
+            _rivalsArrived.Clear();
+            _rivalScores.Clear();
+            SyncService?.ClearRound();
             ArrivalPos    = 0;
             FailReason    = null;
             Mission       = null;
@@ -164,7 +199,7 @@ namespace Navigator.UI
             if (CameraFeed != null) CameraFeed.Play();
 
             // "Play again" keeps the previous design so the player can iterate on it
-            MissionDesignUI?.Show(_lastPlanet, keepDesign: true);
+            MissionDesignUI?.Show(_lastPlanet, keepDesign: true, ActiveCampaign);
             Tutorial?.ShowIfFirstTime();
         }
 
@@ -234,6 +269,7 @@ namespace Navigator.UI
 
             _flightTimer = 0f;
             Events?.BeginFlight(Mission, Outcome, Ship);
+            _rivalsAtStart = Senda != null ? Senda.ConnectedPeers.Count : 0;
             SetState(GameState.InFlight);
             SetPanels(hud: true);
             SetControls(true);
@@ -259,16 +295,18 @@ namespace Navigator.UI
             }
         }
 
-        // Two ships starting on the same point would overlap colliders: each player gets a
-        // side of the launch pad, agreed on without messages by comparing NodeIds
+        // Ships starting on the same point would overlap colliders: every player takes a lane on
+        // the launch pad, agreed on without messages by sorting everyone's NodeId
         Vector3 LaneOffset(Vector3 facing)
         {
             if (Senda == null || string.IsNullOrEmpty(Senda.NodeId) || Senda.ConnectedPeers.Count == 0)
                 return Vector3.zero;
-            float side = string.CompareOrdinal(Senda.NodeId, Senda.ConnectedPeers[0]) < 0 ? -1f : 1f;
+            var ids = new List<string>(Senda.ConnectedPeers) { Senda.NodeId };
+            ids.Sort(string.CompareOrdinal);
+            float lane = ids.IndexOf(Senda.NodeId) - (ids.Count - 1) * 0.5f;
             Vector3 right = Vector3.Cross(Vector3.up, facing);
             if (right.sqrMagnitude < 1e-6f) right = Vector3.right;
-            return right.normalized * side * LaneSpacing;
+            return right.normalized * lane * LaneSpacing;
         }
 
         void ConfigureShipFromDesign()
@@ -359,7 +397,7 @@ namespace Navigator.UI
             Powerups?.ClearAll();
             Asteroids?.Clear();
 
-            ArrivalPos = _rivalArrived ? 2 : 1;
+            ArrivalPos = _rivalsArrived.Count + 1;
             SyncService?.BroadcastArrival(ArrivalPos);
             Chat?.ArrivalBroadcast(ArrivalPos);
 
@@ -420,8 +458,17 @@ namespace Navigator.UI
             SetState(GameState.Scoreboard);
             SetPanels(scoreboard: true);
             ScoreboardUI?.SetLocalPlayerName(PlayerName);
-            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason != null ? Loc.T(FailReason) : null,
+            if (ActiveCampaign != null)
+            {
+                int stars    = Campaign.StarsFor(ActiveCampaign, total, ArrivalPos > 0);
+                bool improved = Campaign.Record(ActiveCampaign.Index, stars);
+                ScoreboardUI?.SetCampaignResult(ActiveCampaign, stars, improved, HasNextCampaignMission);
+            }
+            else ScoreboardUI?.SetCampaignResult(null, 0, false, false);
+
+            ScoreboardUI?.Show(total, solo ? 0 : _rivalsAtStart, Score, FailReason != null ? Loc.T(FailReason) : null,
                                MissionReport.Build(Mission, Outcome));
+            PushRivalScores();
         }
 
         void StopShip()
@@ -470,16 +517,24 @@ namespace Navigator.UI
                                   System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 0f;
         }
 
-        void OnRemoteArrived()
+        void OnRemoteArrived(string nodeId)
         {
-            _rivalArrived = true;
-            if (State == GameState.InFlight) HUD?.SetRacePosition(2);
+            _rivalsArrived.Add(nodeId);
+            if (State == GameState.InFlight) HUD?.SetRacePosition(_rivalsArrived.Count + 1);
         }
 
         void OnRemoteScore(Dictionary<string, int> scores)
         {
-            foreach (var v in scores.Values) _remoteScore = v;
-            if (State == GameState.Scoreboard) ScoreboardUI?.SetRemoteScore(_remoteScore);
+            foreach (var kv in scores) _rivalScores[kv.Key] = kv.Value;
+            if (State == GameState.Scoreboard) PushRivalScores();
+        }
+
+        void PushRivalScores()
+        {
+            var named = new Dictionary<string, int>();
+            foreach (var kv in _rivalScores)
+                named[RemoteShips != null ? RemoteShips.NameOf(kv.Key) : kv.Key] = kv.Value;
+            ScoreboardUI?.SetRivalScores(named);
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

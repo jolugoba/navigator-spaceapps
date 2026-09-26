@@ -185,7 +185,9 @@ namespace Navigator.Editor
         {
             string path = $"{FxDir}/Pod_{type}.prefab";
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (existing != null) return existing;
+            // Pods saved while Powerup lived inside PowerupSystem.cs lost their script: rebuild them
+            if (existing != null && existing.GetComponent<Powerup>() != null) return existing;
+            if (existing != null) AssetDatabase.DeleteAsset(path);
 
             Directory.CreateDirectory(FxDir);
             var pod = GameObject.CreatePrimitive(PrimitiveType.Sphere);

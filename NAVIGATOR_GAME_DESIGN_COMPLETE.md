@@ -465,6 +465,28 @@ Jugador A  ◄──── QUIC directo (Iroh) ────►  Jugador B
 
 ---
 
+## 10a. Campaña · Programa NASA — `Core/Campaign.cs`, `UI/CampaignUI.cs`
+Seis misiones de dificultad creciente. Cada una fija destino, objetivo y **presupuesto**, y tiene metas
+de puntaje para 1, 2 y 3 estrellas (● ○ ○). Con 1 estrella se desbloquea la siguiente; se guarda el récord.
+
+| # | Misión | Destino · objetivo | Presupuesto | Metas ●/●●/●●● |
+|---|---|---|---|---|
+| 1 | First Light / Primera luz | Marte · sobrevuelo | $600M | 2,000 / 3,500 / 5,000 |
+| 2 | Beneath the Clouds / Bajo las nubes | Venus · órbita | $800M | 4,000 / 7,000 / 10,000 |
+| 3 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,000M | 5,000 / 9,000 / 13,000 |
+| 4 | King of Planets / El rey de los planetas | Júpiter · órbita | $1,000M | 4,000 / 8,000 / 12,000 |
+| 5 | Lord of the Rings / El señor de los anillos | Saturno · órbita | $1,100M | 4,000 / 8,000 / 12,000 |
+| 6 | The Last Giant / El último gigante | Neptuno · sobrevuelo | $1,200M | 3,000 / 6,000 / 9,000 |
+
+Cada meta se verificó con un diseño real posible (por ejemplo, Venus en órbita exige 7,500 m/s: solo con motor iónico).
+Al terminar, el marcador muestra las estrellas y los botones **Reintentar** (con tu diseño) y **Siguiente misión**.
+
+## 10c. Multijugador de hasta 4
+Al conectarse, cada celular comparte su lista de jugadores en `lobbyInfo` y los demás se conectan a los que les falten:
+una red en malla sin anfitrión. Un nuevo jugador puede escanear el QR de **cualquier** celular ya conectado.
+Cada nave sale en su carril, la posición de llegada cuenta a todos los rivales y el marcador muestra la clasificación
+completa, esperando el puntaje final de todos.
+
 ## 10b. Idiomas — `Core/Loc.cs`
 Todo el juego está en **inglés por defecto** y en **español**; el botón de idioma del lobby cambia
 entre ambos al instante y la elección se guarda (`PlayerPrefs`). Los textos fijos de la UI usan

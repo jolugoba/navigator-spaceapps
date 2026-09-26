@@ -88,6 +88,7 @@ namespace Navigator.Editor
             // Overlays go last so they draw above every panel
             BuildEvents(root.transform, events);
             BuildTutorial(root.transform, tutor, gm.MissionDesignPanel);
+            BuildCampaign(root.transform, root.AddComponent<CampaignUI>());
             gm.Events   = events;
             gm.Tutorial = tutor;
 
@@ -146,16 +147,18 @@ namespace Navigator.Editor
                                              new Vector4(0.05f, 0.03f, 0.95f, 0.14f),
                                              TextAlignmentOptions.Center, UIStyle.Muted);
 
-            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Scan QR", new Vector4(0.08f, 0.37f, 0.92f, 0.44f),
+            lobby.ScanButton = UIKit.Button(p, "ScanButton", "Scan QR", new Vector4(0.08f, 0.395f, 0.92f, 0.455f),
                                             UIStyle.ButtonIdle, UIStyle.Text, 40);
-            lobby.ScanStatusText = UIKit.Text(p, "ScanStatus", "", 30, new Vector4(0.08f, 0.31f, 0.92f, 0.36f),
+            lobby.ScanStatusText = UIKit.Text(p, "ScanStatus", "", 28, new Vector4(0.08f, 0.355f, 0.92f, 0.39f),
                                               TextAlignmentOptions.Center, UIStyle.Muted);
-            lobby.ConnectedPlayersText = UIKit.Text(p, "Connected", "", 34, new Vector4(0.08f, 0.2f, 0.92f, 0.3f),
+            lobby.ConnectedPlayersText = UIKit.Text(p, "Connected", "", 30, new Vector4(0.08f, 0.27f, 0.92f, 0.35f),
                                                     TextAlignmentOptions.Center, UIStyle.Text);
             lobby.StartGameButton = UIKit.Button(p, "StartGameButton", "PLAY SOLO",
                                                  new Vector4(0.08f, 0.07f, 0.92f, 0.17f),
                                                  UIStyle.Accent, UIStyle.Ink, 52, FontStyles.Bold);
             lobby.StartGameLabel = lobby.StartGameButton.GetComponentInChildren<TMP_Text>();
+            _campaignButton = UIKit.Button(p, "CampaignButton", "@camp.button", new Vector4(0.08f, 0.18f, 0.92f, 0.26f),
+                                           UIStyle.Gold, UIStyle.Ink, 40, FontStyles.Bold);
 
             lobby.LanguageButton = UIKit.Button(p, "LanguageButton", "@lang.button", new Vector4(0.7f, 0.962f, 0.97f, 0.996f),
                                                 UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
@@ -175,12 +178,12 @@ namespace Navigator.Editor
             var p = panel.content;
             ui.Panel = panel.go;
 
-            UIKit.Text(p, "Title", "@design.title", 58, new Vector4(0.05f, 0.94f, 0.95f, 0.99f),
+            UIKit.Text(p, "Title", "@design.title", 54, new Vector4(0.05f, 0.955f, 0.85f, 0.995f),
                        TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
-            UIKit.Text(p, "Subtitle", "@design.subtitle", 28,
-                       new Vector4(0.05f, 0.915f, 0.95f, 0.945f), TextAlignmentOptions.Left, UIStyle.Muted);
+            ui.BriefLabel = UIKit.Text(p, "Brief", "", 26, new Vector4(0.05f, 0.91f, 0.95f, 0.955f),
+                                       TextAlignmentOptions.TopLeft, UIStyle.Muted);
 
-            var content = UIKit.Scroll(p, "Scroll", new Vector4(0f, 0.25f, 1f, 0.91f));
+            var content = UIKit.Scroll(p, "Scroll", new Vector4(0f, 0.25f, 1f, 0.905f));
 
             // Destino
             var s = UIKit.Section(content, "@design.destination", 450);
@@ -292,7 +295,7 @@ namespace Navigator.Editor
             var dim = go.AddComponent<Image>();
             dim.color = new Color(0f, 0f, 0f, 0.6f);
             dim.raycastTarget = true;
-            var card = UIKit.Card(go.transform, "Card", new Vector4(0.05f, 0.24f, 0.95f, 0.76f), UIStyle.Card);
+            var card = UIKit.Card(UIKit.Column(go.transform), "Card", new Vector4(0.05f, 0.24f, 0.95f, 0.76f), UIStyle.Card);
 
             UIKit.Text(card, "Tag", "@ev.header", 26, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Warn, FontStyles.Bold);
             ev.TitleLabel = UIKit.Text(card, "Title", "", 54, new Vector4(0.05f, 0.78f, 0.95f, 0.9f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
@@ -311,6 +314,46 @@ namespace Navigator.Editor
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // CAMPAÑA · PROGRAMA NASA
+        // ══════════════════════════════════════════════════════════════════════
+
+        static Button _campaignButton;   // created with the lobby, wired to the campaign screen
+
+        static void BuildCampaign(Transform root, CampaignUI camp)
+        {
+            var go = UIKit.Stretch(root, "CampaignPanel").gameObject;
+            var bg = go.AddComponent<Image>();
+            bg.color = UIStyle.Backdrop;
+            bg.raycastTarget = true;
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = UIKit.Column(safe);
+
+            UIKit.Text(p, "Title", "@camp.title", 64, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            UIKit.Text(p, "Subtitle", "@camp.subtitle", 28, new Vector4(0.05f, 0.85f, 0.95f, 0.9f), TextAlignmentOptions.TopLeft, UIStyle.Muted);
+            camp.TotalLabel = UIKit.Text(p, "Total", "", 30, new Vector4(0.05f, 0.81f, 0.95f, 0.85f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+
+            int n = Campaign.Missions.Length;
+            camp.MissionButtons = new Button[n];
+            float top = 0.8f, bottom = 0.15f, h = (top - bottom) / n;
+            for (int i = 0; i < n; i++)
+            {
+                float y1 = top - i * h, y0 = y1 - h + 0.012f;
+                var b = UIKit.Button(p, $"Mission_{i}", "", new Vector4(0.05f, y0, 0.95f, y1), UIStyle.Card, UIStyle.Text, 32);
+                var label = b.GetComponentInChildren<TMP_Text>();
+                label.alignment = TextAlignmentOptions.Left;
+                label.textWrappingMode = TextWrappingModes.Normal;
+                label.rectTransform.offsetMin = new Vector2(24, 0);
+                camp.MissionButtons[i] = b;
+            }
+            camp.BackButton = UIKit.Button(p, "Back", "@camp.back", new Vector4(0.05f, 0.04f, 0.95f, 0.12f), UIStyle.ButtonIdle, UIStyle.Text, 36);
+            camp.OpenButton = _campaignButton;
+            camp.Panel = go;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // TUTORIAL DE LA PRIMERA MISIÓN
         // ══════════════════════════════════════════════════════════════════════
 
@@ -320,7 +363,7 @@ namespace Navigator.Editor
             var dim = go.AddComponent<Image>();
             dim.color = new Color(0f, 0f, 0f, 0.7f);
             dim.raycastTarget = true;
-            var card = UIKit.Card(go.transform, "Card", new Vector4(0.05f, 0.2f, 0.95f, 0.8f), UIStyle.Card);
+            var card = UIKit.Card(UIKit.Column(go.transform), "Card", new Vector4(0.05f, 0.2f, 0.95f, 0.8f), UIStyle.Card);
 
             UIKit.Text(card, "Tag", "@tut.tag", 26, new Vector4(0.05f, 0.91f, 0.7f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
             tut.CounterLabel = UIKit.Text(card, "Counter", "1 / 8", 26, new Vector4(0.7f, 0.91f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
@@ -334,7 +377,7 @@ namespace Navigator.Editor
             Object.DestroyImmediate(tut.NextLabel.GetComponent<LocalizedText>());
 
             // "?" on the mission design header reopens the briefing
-            var content = designPanel.transform.Find("Content");
+            var content = designPanel.transform.Find("Content/Column");
             tut.HelpButton = UIKit.Button(content != null ? content : designPanel.transform, "HelpButton", "?",
                                           new Vector4(0.86f, 0.935f, 0.96f, 0.99f), UIStyle.ButtonIdle, UIStyle.Accent, 44, FontStyles.Bold);
 
@@ -522,7 +565,7 @@ namespace Navigator.Editor
             ui.WinnerLabel    = UIKit.Text(p, "Winner", "", 100, new Vector4(0.03f, 0.9f, 0.97f, 0.975f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
             ui.WinnerSubLabel = UIKit.Text(p, "WinnerSub", "", 32, new Vector4(0.05f, 0.86f, 0.95f, 0.9f), TextAlignmentOptions.Center, UIStyle.Text);
 
-            var local = UIKit.Card(p, "Local", new Vector4(0.05f, 0.645f, 0.95f, 0.855f), UIStyle.Card);
+            var local = UIKit.Card(p, "Local", new Vector4(0.05f, 0.69f, 0.95f, 0.855f), UIStyle.Card);
             ui.LocalPlayerName   = UIKit.Text(local, "Name",  "You", 40, new Vector4(0.05f, 0.8f, 0.55f, 0.95f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.LocalScoreLabel   = UIKit.Text(local, "Score", "0", 96, new Vector4(0.45f, 0.62f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Accent, FontStyles.Bold);
             ui.LocalArrivalLabel = UIKit.Text(local, "Arrival", "", 34, new Vector4(0.05f, 0.64f, 0.55f, 0.8f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
@@ -531,20 +574,23 @@ namespace Navigator.Editor
             ui.LocalFuelLabel     = UIKit.Text(local, "Fuel",      "", 32, new Vector4(0.05f, 0.18f, 0.95f, 0.32f), TextAlignmentOptions.Left, UIStyle.Text);
             ui.LocalTakedownLabel = UIKit.Text(local, "Takedowns", "", 32, new Vector4(0.05f, 0.03f, 0.95f, 0.17f), TextAlignmentOptions.Left, UIStyle.Text);
 
-            var remote = UIKit.Card(p, "Remote", new Vector4(0.05f, 0.535f, 0.95f, 0.635f), UIStyle.Card);
+            var remote = UIKit.Card(p, "Remote", new Vector4(0.05f, 0.535f, 0.95f, 0.68f), UIStyle.Card);
             ui.RemoteBlock        = remote.gameObject;
-            ui.RemotePlayerName   = UIKit.Text(remote, "Name", "Rival", 40, new Vector4(0.05f, 0.62f, 0.55f, 0.92f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
-            ui.RemoteScoreLabel   = UIKit.Text(remote, "Score", "—", 80, new Vector4(0.45f, 0.45f, 0.95f, 0.95f), TextAlignmentOptions.Right, UIStyle.Bad, FontStyles.Bold);
-            ui.RemoteArrivalLabel = UIKit.Text(remote, "Status", "", 30, new Vector4(0.05f, 0.35f, 0.55f, 0.6f), TextAlignmentOptions.Left, UIStyle.Muted);
-            ui.RemoteScoreBar     = UIKit.Bar(remote, "Bar", new Vector4(0.05f, 0.15f, 0.95f, 0.25f), UIStyle.Bad);
+            ui.RemotePlayerName   = UIKit.Text(remote, "Name", "", 30, new Vector4(0.04f, 0.78f, 0.6f, 0.96f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            ui.RemoteScoreLabel   = UIKit.Text(remote, "Score", "-", 64, new Vector4(0.6f, 0.55f, 0.96f, 0.96f), TextAlignmentOptions.Right, UIStyle.Gold, FontStyles.Bold);
+            ui.RemoteArrivalLabel = UIKit.Text(remote, "Status", "", 26, new Vector4(0.04f, 0.14f, 0.96f, 0.78f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            ui.RemoteScoreBar     = UIKit.Bar(remote, "Bar", new Vector4(0.04f, 0.04f, 0.96f, 0.1f), UIStyle.Gold);
 
             var debrief = UIKit.Card(p, "Debrief", new Vector4(0.05f, 0.245f, 0.95f, 0.525f), UIStyle.Card);
             ui.DebriefLabel = UIKit.Text(debrief, "Text", "", 27, new Vector4(0.04f, 0.03f, 0.96f, 0.97f),
                                          TextAlignmentOptions.TopLeft, UIStyle.Text);
             ui.DebriefLabel.fontSizeMin = 16f;
 
-            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.13f, 0.95f, 0.23f),
-                                              UIStyle.Accent, UIStyle.Ink, 48, FontStyles.Bold);
+            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.13f, 0.49f, 0.23f),
+                                              UIStyle.ButtonIdle, UIStyle.Text, 32, FontStyles.Bold);
+            ui.NextMissionButton = UIKit.Button(p, "NextMission", "@sb.next", new Vector4(0.51f, 0.13f, 0.95f, 0.23f),
+                                                UIStyle.Accent, UIStyle.Ink, 40, FontStyles.Bold);
+            ui.NextMissionButton.gameObject.SetActive(false);
             ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "@sb.menu", new Vector4(0.05f, 0.03f, 0.95f, 0.11f),
                                               UIStyle.ButtonIdle, UIStyle.Text, 38);
             return panel.go;
@@ -645,10 +691,18 @@ namespace Navigator.Editor
 
             var content = Stretch(go.transform, "Content");
             content.gameObject.AddComponent<SafeAreaFitter>();
-            return new PanelParts { go = go, content = content };
+            return new PanelParts { go = go, content = Column(content) };
         }
 
         public static RectTransform Stretch(Transform parent, string name) => Rect(parent, name, new Vector4(0, 0, 1, 1));
+
+        // Phone-shaped centred column so layouts never squash in landscape windows
+        public static RectTransform Column(Transform parent)
+        {
+            var col = Stretch(parent, "Column");
+            col.gameObject.AddComponent<PortraitColumn>();
+            return col;
+        }
 
         public static RectTransform Rect(Transform parent, string name, Vector4 a)
         {
@@ -734,7 +788,7 @@ namespace Navigator.Editor
             t.fontStyle = style;
             t.richText  = true;
             t.textWrappingMode = TextWrappingModes.Normal;
-            t.overflowMode     = TextOverflowModes.Ellipsis;
+            t.overflowMode     = TextOverflowModes.Truncate;
             t.raycastTarget    = false;
             return t;
         }

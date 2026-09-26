@@ -34,6 +34,7 @@ namespace Navigator.Core
         public PowerSystem               Power;
         public AntennaType               Antenna;
         public LaunchVehicle             LaunchVeh;
+        public float                     BudgetM = BudgetLimitM;   // campaign missions set their own
 
         // ── Static lookup tables ───────────────────────────────────────────────
 
@@ -391,7 +392,7 @@ namespace Navigator.Core
         public int MaxSciencePoints =>
             Instruments.Sum(i => InstrumentPoints(i));
 
-        public bool IsBudgetOk  => TotalCostM  <= BudgetLimitM;
+        public bool IsBudgetOk  => TotalCostM  <= BudgetM;
         public bool IsMassOk    => WetMassKg   <= LaunchCapacityKg[LaunchVeh];
         public bool IsPowerOk   => PowerUsedW  <= EffectivePowerW;
         public bool HasDeltaV   => DeltaVms    >= RequiredDeltaV;

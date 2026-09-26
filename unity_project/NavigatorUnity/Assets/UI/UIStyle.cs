@@ -8,7 +8,7 @@ namespace Navigator.UI
 {
     public static class UIStyle
     {
-        public static readonly Color Backdrop   = new(0.02f, 0.04f, 0.09f, 0.94f);
+        public static readonly Color Backdrop   = new(0.02f, 0.04f, 0.09f, 0.97f);
         public static readonly Color Card       = new(0.07f, 0.10f, 0.18f, 0.96f);
         public static readonly Color HudCard    = new(0.02f, 0.05f, 0.11f, 0.62f);
         public static readonly Color ButtonIdle = new(0.12f, 0.16f, 0.27f, 1f);

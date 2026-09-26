@@ -95,8 +95,8 @@ namespace Navigator.UI
         static void Budget(StringBuilder sb, MissionDesign d)
         {
             float cap   = MissionDesign.LaunchCapacityKg[d.LaunchVeh];
-            float spare = MissionDesign.BudgetLimitM - d.TotalCostM;
-            string msg  = Loc.F("rep.budget", d.TotalCostM, d.WetMassKg, cap);
+            float spare = d.BudgetM - d.TotalCostM;
+            string msg  = Loc.F("rep.budget", d.TotalCostM, d.WetMassKg, cap, d.BudgetM);
             if (spare > 150f) msg += Loc.F("rep.budget.spare", spare);
             Line(sb, spare > 150f ? Warn : Good, msg);
         }

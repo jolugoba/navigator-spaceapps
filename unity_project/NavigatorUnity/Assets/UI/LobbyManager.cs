@@ -6,6 +6,7 @@
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 #if UNITY_ANDROID
 using UnityEngine.Android;
@@ -73,6 +74,7 @@ namespace Navigator.UI
 
             Senda.OnPeerConnected.AddListener(OnPeerConnected);
             Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
+            if (Sync != null) Sync.OnPeerList.AddListener(OnPeerList);
             ShowMyQR(Senda.NodeId);
         }
 
@@ -219,23 +221,36 @@ namespace Navigator.UI
                 : Loc.T("lobby.connecterror");
         }
 
+        public const int MaxPlayers = 4;
+
         void OnPeerConnected(string nodeId)
         {
-            _peersConnected++;
+            _peersConnected = Senda.ConnectedPeers.Count;
             UpdateConnectedLabel();
 
+            // Share who we know so everyone connects to everyone (full mesh, no host)
             string myName = GameManager.Instance != null ? GameManager.Instance.PlayerName : Loc.T("player.default");
-            string lobbyJson = $"{{\"name\":\"{myName}\"," +
-                               $"\"nodeId\":\"{Senda.NodeId}\"}}";
+            string peers  = string.Join(";", Senda.ConnectedPeers);
+            string lobbyJson = $"{{\"name\":\"{myName}\",\"nodeId\":\"{Senda.NodeId}\",\"peers\":\"{peers}\"}}";
             Senda.Broadcast(Navigator.Network.NavMsg.Build(
                 Navigator.Network.NavMsgType.lobbyInfo,
                 Senda.NodeId,
                 lobbyJson));
         }
 
+        void OnPeerList(string[] peers)
+        {
+            foreach (var id in peers)
+            {
+                if (Senda.ConnectedPeers.Count >= MaxPlayers - 1) return;
+                if (id == Senda.NodeId || Senda.ConnectedPeers.Contains(id)) continue;
+                Senda.ConnectToNode(id);
+            }
+        }
+
         void OnPeerDisconnected(string nodeId)
         {
-            _peersConnected = Mathf.Max(0, _peersConnected - 1);
+            _peersConnected = Senda.ConnectedPeers.Count;
             UpdateConnectedLabel();
         }
 
@@ -246,7 +261,7 @@ namespace Navigator.UI
             if (ConnectedPlayersText == null) return;
             ConnectedPlayersText.text = _peersConnected == 0
                 ? Loc.T("lobby.waiting")
-                : Loc.F("lobby.players", _peersConnected + 1);
+                : Loc.F("lobby.players", _peersConnected + 1, MaxPlayers);
         }
 
         void OnLanguageChanged()

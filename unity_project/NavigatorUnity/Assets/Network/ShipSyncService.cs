@@ -16,6 +16,7 @@ namespace Navigator.Network
         public UnityEvent<Dictionary<string, int>>          OnRemoteScore  = new();
         public UnityEvent<string>                           OnRemoteArrived = new();  // nodeId
         public UnityEvent<string, string>                   OnRemoteName    = new();  // nodeId, name
+        public UnityEvent<string[]>                         OnPeerList      = new();  // peers a rival knows
 
         public float SendHz = 20f;
 
@@ -58,6 +59,9 @@ namespace Navigator.Network
             _senda?.Broadcast(NavMsg.Build(NavMsgType.missionEnd, nodeId, json));
         }
 
+        // New round: forget last round's final scores
+        public void ClearRound() => _remoteScores.Clear();
+
         public void BroadcastArrival(int position)
         {
             _senda?.Broadcast(NavMsg.Build(NavMsgType.missionSync, _nodeId,
@@ -94,6 +98,10 @@ namespace Navigator.Network
                 case NavMsgType.lobbyInfo:
                     string name = ExtractValue(msg.pl_json, "name");
                     if (!string.IsNullOrEmpty(name)) OnRemoteName.Invoke(msg.from, name);
+                    // ';'-separated so the simple parser (which stops at ',') keeps it whole
+                    string peers = ExtractValue(msg.pl_json, "peers");
+                    if (!string.IsNullOrEmpty(peers))
+                        OnPeerList.Invoke(peers.Split(';', System.StringSplitOptions.RemoveEmptyEntries));
                     break;
             }
         }

@@ -85,6 +85,9 @@ namespace Navigator.UI
         public Image    MassBar;
 
         // ── Estado global ──────────────────────────────────────────────────────
+        [Header("Campaña")]
+        public TMP_Text BriefLabel;       // objetivo de la misión de campaña o subtítulo libre
+
         [Header("Errores / Launch")]
         public TMP_Text ErrorLabel;       // primer error activo
         public Button   LaunchButton;     // se habilita solo cuando IsValid
@@ -97,7 +100,8 @@ namespace Navigator.UI
         public TMP_Text ObjectiveInfoLabel;  // costo en ΔV y multiplicador de ciencia
 
         // ── Datos ─────────────────────────────────────────────────────────────
-        private MissionDesign _design;
+        private MissionDesign   _design;
+        private CampaignMission _campaign;
         private static readonly string[] _planetIds =
             { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
 
@@ -211,6 +215,11 @@ namespace Navigator.UI
         void Refresh()
         {
             RefreshInstrumentLabels();
+            if (BriefLabel != null)
+                BriefLabel.text = _campaign == null
+                    ? Loc.T("design.subtitle")
+                    : Loc.F("camp.brief", _campaign.Index + 1, Loc.T($"camp.{_campaign.Key}.name"),
+                            Loc.T($"camp.{_campaign.Key}.brief"), _campaign.BudgetM, _campaign.StarGoals[0]);
             // Planeta
             if (PlanetLabel != null)
                 PlanetLabel.text = PlanetDisplayName(_design.TargetPlanetId);
@@ -310,9 +319,9 @@ namespace Navigator.UI
             // Resumen
             float maxMass = MissionDesign.LaunchCapacityKg[_design.LaunchVeh];
             if (TotalMassLabel  != null) TotalMassLabel.text  = $"{_design.WetMassKg:N0} / {maxMass:N0} kg";
-            if (TotalCostLabel  != null) TotalCostLabel.text  = $"${_design.TotalCostM:N0}M / $1,000M";
+            if (TotalCostLabel  != null) TotalCostLabel.text  = $"${_design.TotalCostM:N0}M / ${_design.BudgetM:N0}M";
             if (MassFractionLabel != null) MassFractionLabel.text = Loc.F("design.massfrac", _design.MassFraction);
-            if (BudgetBar != null) BudgetBar.fillAmount = Mathf.Clamp01(_design.TotalCostM / MissionDesign.BudgetLimitM);
+            if (BudgetBar != null) BudgetBar.fillAmount = Mathf.Clamp01(_design.TotalCostM / _design.BudgetM);
             if (MassBar   != null) MassBar.fillAmount   = Mathf.Clamp01(_design.WetMassKg  / maxMass);
 
             // Error + botón launch
@@ -362,12 +371,33 @@ namespace Navigator.UI
 
         public MissionDesign GetDesign() => _design;
 
-        public void Show(string planetId = "mars", bool keepDesign = false)
+        public void Show(string planetId = "mars", bool keepDesign = false, CampaignMission campaign = null)
         {
-            if (!keepDesign || _design == null) _design = MissionDesign.DefaultFor(planetId);
+            bool sameCampaign = campaign == _campaign;
+            _campaign = campaign;
+            if (!keepDesign || _design == null || !sameCampaign)
+                _design = MissionDesign.DefaultFor(campaign != null ? campaign.Planet : planetId);
+
+            // A campaign mission fixes the target, objective and budget; the rest is the player's call
+            if (campaign != null)
+            {
+                _design.TargetPlanetId = campaign.Planet;
+                _design.Objective      = campaign.Objective;
+                _design.BudgetM        = campaign.BudgetM;
+            }
+            else _design.BudgetM = MissionDesign.BudgetLimitM;
+
+            bool free = campaign == null;
+            foreach (var b in PlanetButtons) if (b != null) b.interactable = free;
+            if (BtnFlyby   != null) BtnFlyby.interactable   = free;
+            if (BtnOrbit   != null) BtnOrbit.interactable   = free;
+            if (BtnLanding != null) BtnLanding.interactable = free;
+
             SyncControls();
             Refresh();
             if (Panel != null) Panel.SetActive(true);
         }
+
+        public CampaignMission Campaign => _campaign;
     }
 }
