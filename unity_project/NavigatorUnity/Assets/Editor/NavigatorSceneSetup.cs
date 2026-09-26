@@ -171,6 +171,9 @@ namespace Navigator.Editor
             gm.Powerups     = powerups;
             gm.Asteroids    = asteroids;
             gm.Gravity      = gravity;
+
+            // Bridge to the Flutter app that embeds Unity (flutter_app/); no-op when run standalone
+            EnsureComp<FlutterBridge>(GetOrCreate(FlutterBridge.ObjectName));
             gm.Score        = score;
 
             // ── UI completa ───────────────────────────────────────────────────

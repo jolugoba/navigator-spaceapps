@@ -82,7 +82,13 @@ namespace Navigator.UI
         public float ArrivalMargin  = 40f;    // distancia a la superficie que cuenta como llegada
         public float LaneSpacing    = 6f;     // separación lateral entre jugadores en la salida
         public float MaxFlightTimeS = 240f;   // sin llegar a tiempo = misión fallida
-        public string PlayerName => Loc.T("player.default");
+        // Pilot name: set from the Flutter app (FlutterBridge) or the default "Cadet"
+        const string NameKey = "navigator.name";
+        public string PlayerName
+        {
+            get { string n = PlayerPrefs.GetString(NameKey, ""); return string.IsNullOrWhiteSpace(n) ? Loc.T("player.default") : n; }
+            set { PlayerPrefs.SetString(NameKey, (value ?? "").Trim()); PlayerPrefs.Save(); }
+        }
 
         // ── Estado runtime ─────────────────────────────────────────────────────
         public  GameState     State      { get; private set; } = GameState.Lobby;
@@ -587,6 +593,9 @@ namespace Navigator.UI
 
             ScoreboardUI?.Show(total, solo ? 0 : _rivalsAtStart, Score, FailReason != null ? Loc.T(FailReason) : null,
                                MissionReport.Build(Mission, Outcome));
+            FlutterBridge.ReportMission(Mission, Outcome, total, ArrivalPos,
+                                        ActiveCampaign != null && !ActiveCampaign.IsChallenge
+                                            ? Campaign.StarsFor(ActiveCampaign, total, ArrivalPos > 0) : -1);
             PushRivalScores();
         }
 

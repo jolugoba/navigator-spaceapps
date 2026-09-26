@@ -1,0 +1,2 @@
+# Small app icons: plain git, not LFS (the repo root sends *.png to LFS)
+*.png -filter -diff -merge binary

@@ -65,7 +65,15 @@ En macOS no hay librería nativa para el Editor: se juega en modo solo.
 Idioma: el juego arranca en **inglés**; el botón **ESPAÑOL / ENGLISH** del lobby lo cambia.
 Si la nave vuela de reversa (la llama sale por delante): **Navigator → Flip Ship Nose 180°** y Ctrl+S.
 
-## 5. Build Android
+## 5. App Flutter (la que se entrega)
+
+El juego de Unity corre **dentro de la app Flutter** `flutter_app/`, con el plugin `flutter_embed_unity`.
+1. En Unity: **Navigator → Flutter → Export Android → flutter_app**.
+2. En `flutter_app/`: `flutter pub get` y luego `flutter run`.
+
+La guía completa, con iOS y solución de problemas, está en [`flutter_app/README.md`](flutter_app/README.md).
+
+## 5b. Build Android solo con Unity (sin Flutter, para pruebas rápidas)
 
 1. **File → Build Profiles → Android → Switch Platform**
 2. **Build** (o *Build And Run* con el celular conectado por USB)

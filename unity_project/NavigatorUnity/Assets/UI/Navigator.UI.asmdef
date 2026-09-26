@@ -6,7 +6,9 @@
         "Navigator.Game",
         "Navigator.Network",
         "Navigator.AR",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "FlutterEmbed.Runtime",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
