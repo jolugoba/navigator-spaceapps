@@ -1,12 +1,12 @@
 // Navigator 2.0 — NavigatorSceneSetup.cs
 // Editor utility: crea y conecta toda la escena SpaceFlight con un clic
 // Menu: Navigator → Setup Scene
+// Sin AR Foundation — usa cámara estándar + giroscopio
 // Guacalita Inc. — SAL / Claude
 
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.XR.ARFoundation;
 using UnityEngine.UI;
 using TMPro;
 using Navigator.Core;
@@ -22,25 +22,18 @@ namespace Navigator.Editor
         [MenuItem("Navigator/Setup Scene")]
         public static void SetupScene()
         {
-            // ── GameManager GO — todos los Network scripts van aquí ───────────
+            // ── Main Camera ───────────────────────────────────────────────────
+            var mainCamGO = GetOrCreate("Main Camera");
+            mainCamGO.tag = "MainCamera";
+            var cam = EnsureComp<Camera>(mainCamGO);
+            cam.clearFlags = CameraClearFlags.Skybox;
+
+            // ── GameManager GO — todos los scripts de red van aquí ───────────
             var gmGO   = GetOrCreate("GameManager");
             var senda  = EnsureComp<SendaBridge>(gmGO);
             var sync   = EnsureComp<ShipSyncService>(gmGO);
             var chat   = EnsureComp<P2PChatSystem>(gmGO);
             var remote = EnsureComp<RemoteShipManager>(gmGO);
-
-            // ── AR Session ────────────────────────────────────────────────────
-            var arSession = GetOrCreate("AR Session");
-            EnsureComp<ARSession>(arSession);
-
-            // ── XR Origin ─────────────────────────────────────────────────────
-            var xrOrigin = GetOrCreate("XR Origin");
-            var camOffset = GetOrCreateChild(xrOrigin, "Camera Offset");
-            var mainCamGO = GetOrCreateChild(camOffset, "Main Camera");
-            mainCamGO.tag = "MainCamera";
-            var cam = EnsureComp<Camera>(mainCamGO);
-            EnsureComp<ARCameraManager>(mainCamGO);
-            EnsureComp<ARCameraBackground>(mainCamGO);
 
             // ── LocalShip ─────────────────────────────────────────────────────
             var ship = GetOrCreate("LocalShip");
@@ -59,35 +52,33 @@ namespace Navigator.Editor
             EnsureComp<ShipAnimator>(ship);
 
             var arShip = EnsureComp<ARShipController>(ship);
+            arShip.ARCamera = cam;
 
             // Wire ShipController.Physics
             shipCtrl.Physics = physics;
             physics.ShipRb   = rb;
 
             // ── ARCompassTracker ──────────────────────────────────────────────
-            var compass = GetOrCreate("ARCompassTracker");
+            var compass     = GetOrCreate("ARCompassTracker");
             var compassComp = EnsureComp<ARCompassTracker>(compass);
 
             // ── ARSpaceManager ────────────────────────────────────────────────
             var spaceMgrGO = GetOrCreate("ARSpaceManager");
             var spaceMgr   = EnsureComp<ARSpaceManager>(spaceMgrGO);
+            spaceMgr.ARCamera = cam;
 
             // ── ARSessionManager ──────────────────────────────────────────────
-            var arSessionMgr = GetOrCreate("ARSessionManager");
-            var arMgr = EnsureComp<ARSessionManager>(arSessionMgr);
-            arMgr.Session        = arSession.GetComponent<ARSession>();
-            arMgr.CameraManager  = mainCamGO.GetComponent<ARCameraManager>();
+            var arSessionMgrGO = GetOrCreate("ARSessionManager");
+            var arMgr          = EnsureComp<ARSessionManager>(arSessionMgrGO);
+            arMgr.ARCamera       = cam;
             arMgr.ShipController = arShip;
             arMgr.SpaceManager   = spaceMgr;
 
-            // ── ARShipController camera ref ───────────────────────────────────
-            arShip.ARCamera = cam;
+            // ── ARCompassTracker refs ─────────────────────────────────────────
+            compassComp.SpaceManager = spaceMgr;
 
             // ── RemoteShipManager camera ref ──────────────────────────────────
             remote.ARCamera = cam;
-
-            // ── ARCompassTracker refs ─────────────────────────────────────────
-            compassComp.SpaceManager = spaceMgr;
 
             // ── CockpitHUD Canvas ─────────────────────────────────────────────
             var hudGO = GetOrCreate("CockpitHUD");
@@ -101,7 +92,7 @@ namespace Navigator.Editor
             EnsureComp<CockpitHUD>(hudGO);
 
             // ── PowerupSystem ─────────────────────────────────────────────────
-            var powerupGO = GetOrCreate("PowerupSystem");
+            var powerupGO  = GetOrCreate("PowerupSystem");
             var powerupSys = EnsureComp<PowerupSystem>(powerupGO);
             powerupSys.ARCamera = cam;
 
@@ -109,7 +100,7 @@ namespace Navigator.Editor
             var scorerGO = GetOrCreate("MissionScore");
             EnsureComp<MissionScore>(scorerGO);
 
-            // ── GameManager — director de flujo (mismo GO que los Network scripts)
+            // ── GameManager — director de flujo ───────────────────────────────
             var gameManager      = EnsureComp<GameManager>(gmGO);
             gameManager.Ship         = ship.GetComponent<ShipController>();
             gameManager.Physics      = ship.GetComponent<PhysicsEngine>();
@@ -121,7 +112,6 @@ namespace Navigator.Editor
             gameManager.Compass      = compassComp;
             gameManager.HUD          = hudGO.GetComponent<CockpitHUD>();
 
-            // Canvas UI del GameManager
             var mduiGO = GetOrCreate("MissionDesignUI");
             gameManager.MissionDesignUI = EnsureComp<MissionDesignUI>(mduiGO);
             var sbGO = GetOrCreate("ScoreboardUI");
@@ -129,24 +119,20 @@ namespace Navigator.Editor
             var sciGO = GetOrCreate("ScienceOpsUI");
             gameManager.ScienceOpsUI = EnsureComp<ScienceOpsUI>(sciGO);
 
-            // ── Mark dirty ────────────────────────────────────────────────────
             UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
 
-            Debug.Log("[Navigator] Scene setup completo. Asigna los prefabs en el Inspector y guarda la escena.");
+            Debug.Log("[Navigator] Scene setup completo.");
             EditorUtility.DisplayDialog(
                 "Navigator Setup",
-                "¡Escena configurada!\n\n" +
-                "Pasos restantes en el Inspector:\n" +
-                "1. Asigna RemoteShipPrefab (NV-02) en RemoteShipManager\n" +
-                "2. Asigna modelos/sub-meshes en ShipAnimator\n" +
-                "3. Asigna planetas en ARSpaceManager\n" +
-                "4. Asigna prefabs de pods en PowerupSystem\n" +
-                "5. Copia senda_core.dll a Assets/Plugins/\n" +
-                "6. File → Save As → SpaceFlight.unity",
+                "Escena configurada!\n\n" +
+                "Pasos siguientes en el Inspector:\n" +
+                "1. LocalShip → asigna NV-01_FINAL.glb como hijo\n" +
+                "2. RemoteShipManager → RemoteShipPrefab = NV-02_FINAL.glb\n" +
+                "3. ARSpaceManager → asigna planetas PL-01 a PL-07\n" +
+                "4. PowerupSystem → asigna prefabs de pods\n" +
+                "5. File → Save As → SpaceFlight.unity",
                 "OK");
         }
-
-        // ── Helpers ────────────────────────────────────────────────────────────
 
         static GameObject GetOrCreate(string name)
         {
