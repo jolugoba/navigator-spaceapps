@@ -189,6 +189,7 @@ namespace Navigator.Editor
         static GameObject LoadGLB(string namePrefix)
         {
             GameObject fallback = null;
+            string broken = null;
             foreach (var guid in AssetDatabase.FindAssets(namePrefix, new[] { "Assets/Models" }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -197,13 +198,35 @@ namespace Navigator.Editor
                 if (!file.StartsWith(namePrefix, System.StringComparison.OrdinalIgnoreCase)) continue;
 
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (go == null) continue;
+                if (go == null) { broken = path + " — " + GlbProblem(path); continue; }
                 if (file.EndsWith("_FINAL", System.StringComparison.OrdinalIgnoreCase)) return go;
                 fallback ??= go;
             }
             if (fallback == null)
-                Debug.LogWarning($"[Navigator] No se pudo cargar {namePrefix}*.glb — ¿glTFast instalado?");
+                Debug.LogWarning(broken != null
+                    ? $"[Navigator] {broken}. Se usa una forma simple en su lugar."
+                    : $"[Navigator] No se pudo cargar {namePrefix}*.glb — ¿glTFast instalado?");
             return fallback;
+        }
+
+        // Why a .glb didn't import: Git LFS pointer, truncated download, or something else
+        static string GlbProblem(string path)
+        {
+            try
+            {
+                var info = new System.IO.FileInfo(path);
+                using var fs = System.IO.File.OpenRead(path);
+                var head = new byte[12];
+                int n = fs.Read(head, 0, 12);
+                string magic = n >= 4 ? System.Text.Encoding.ASCII.GetString(head, 0, 4) : "";
+                if (magic == "vers") return "es solo un puntero de Git LFS: ejecuta 'git lfs pull'";
+                if (magic != "glTF") return "no es un archivo GLB válido";
+                uint declared = System.BitConverter.ToUInt32(head, 8);
+                if (declared > info.Length)
+                    return $"archivo incompleto ({info.Length / 1048576f:F1} MB de {declared / 1048576f:F1} MB): vuelve a descargarlo de Meshy";
+                return "glTFast no pudo importarlo (revisa la consola del importador)";
+            }
+            catch (System.Exception e) { return e.Message; }
         }
     }
 }
