@@ -75,6 +75,11 @@ namespace Navigator.Editor
             arMgr.ShipController = arShip;
             arMgr.SpaceManager   = spaceMgr;
 
+            // ── CameraFeed — cámara trasera como fondo ────────────────────────
+            var feedGO = GetOrCreate("CameraFeed");
+            var feed   = EnsureComp<CameraFeedBackground>(feedGO);
+            feed.ARCamera = cam;
+
             // ── ARCompassTracker refs ─────────────────────────────────────────
             compassComp.SpaceManager = spaceMgr;
 
@@ -111,6 +116,7 @@ namespace Navigator.Editor
             gameManager.Chat         = chat;
             gameManager.SpaceManager = spaceMgr;
             gameManager.Compass      = compassComp;
+            gameManager.CameraFeed   = feed;
             gameManager.HUD          = hudGO.GetComponent<CockpitHUD>();
 
             var mduiGO = GetOrCreate("MissionDesignUI");

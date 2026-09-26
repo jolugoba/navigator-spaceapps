@@ -53,6 +53,7 @@ namespace Navigator.UI
         [Header("AR")]
         public ARSpaceManager   SpaceManager;
         public ARCompassTracker Compass;
+        public CameraFeedBackground CameraFeed;
 
         [Header("Red")]
         public SendaBridge      Senda;
@@ -110,6 +111,9 @@ namespace Navigator.UI
         {
             SetState(GameState.MissionDesign);
             SetPanels(missionDesign: true);
+
+            // The lobby QR scanner has released the camera by now
+            if (CameraFeed != null) CameraFeed.Play();
 
             string planet = "mars"; // default — se puede cambiar desde el diseño
             MissionDesignUI?.Show(planet);

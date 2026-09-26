@@ -5,7 +5,8 @@
         "Navigator.Core",
         "Navigator.Game",
         "Navigator.Network",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

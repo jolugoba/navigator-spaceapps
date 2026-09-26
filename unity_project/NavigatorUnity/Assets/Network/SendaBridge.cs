@@ -91,11 +91,11 @@ namespace Navigator.Network
         private readonly List<string>          _connectedPeers = new();
         public  IReadOnlyList<string>           ConnectedPeers => _connectedPeers;
 
-        // Thread-safe queue: Rust callback → Unity main thread
-        private readonly ConcurrentQueue<(string from, string json)> _inbox = new();
+        // Static because IL2CPP reverse P/Invoke only accepts static [MonoPInvokeCallback] methods
+        private static readonly ConcurrentQueue<(string from, string json)> _inbox = new();
 
         // Keep delegate alive to prevent GC collection
-        private SendaFFI.OnMessageDelegate _msgDelegate;
+        private static SendaFFI.OnMessageDelegate _msgDelegate;
 
         // ── Init ──────────────────────────────────────────────────────────────
         public bool Init()
@@ -111,7 +111,7 @@ namespace Navigator.Network
                 Initialized = !string.IsNullOrEmpty(NodeId);
 
                 // Register message callback (called from Rust background thread)
-                _msgDelegate = OnNativeMessage;
+                _msgDelegate ??= OnNativeMessage;
                 SendaFFI.iroh_set_message_callback(_msgDelegate);
 
                 Debug.Log($"[Senda] Init OK. NodeId: {NodeId}");
@@ -125,7 +125,8 @@ namespace Navigator.Network
         }
 
         // Called from Rust thread — must be thread-safe, no Unity API here
-        private void OnNativeMessage(IntPtr fromPtr, IntPtr dataPtr, ulong dataLen)
+        [AOT.MonoPInvokeCallback(typeof(SendaFFI.OnMessageDelegate))]
+        private static void OnNativeMessage(IntPtr fromPtr, IntPtr dataPtr, ulong dataLen)
         {
             string from = SendaFFI.PtrToStringUtf8(fromPtr);
             string json = SendaFFI.PtrBytesToString(dataPtr, dataLen);
@@ -167,6 +168,14 @@ namespace Navigator.Network
         {
             while (_inbox.TryDequeue(out var item))
             {
+                // The side that was dialed never calls ConnectToNode, so learn peers from traffic
+                if (!string.IsNullOrEmpty(item.from) && item.from != NodeId &&
+                    !_connectedPeers.Contains(item.from))
+                {
+                    _connectedPeers.Add(item.from);
+                    OnPeerConnected.Invoke(item.from);
+                }
+
                 try
                 {
                     var msg = NavMsg.FromJson(item.json);
