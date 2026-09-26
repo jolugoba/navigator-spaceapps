@@ -1,0 +1,22 @@
+﻿{
+    "name": "Navigator.Editor",
+    "rootNamespace": "Navigator.Editor",
+    "references": [
+        "GUID:Navigator.Core",
+        "GUID:Navigator.Game",
+        "GUID:Navigator.Network",
+        "GUID:Navigator.AR",
+        "GUID:Navigator.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

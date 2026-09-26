@@ -1,0 +1,65 @@
+name: navigator
+description: NAVIGATOR — Space multiplayer P2P game. NASA Space Apps Challenge 2026.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+  flutter: ">=3.27.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── Motor 3D Filament PBR ────────────────────────────────────────────
+  filament_scene:
+    path: ../tcna-packages-2.0/packages/filament_scene
+
+  # ── Red P2P post-cuántica (Kyber-1024 + Dilithium-5, sin servidor) ──
+  senda_p2p_chat:
+    path: ../senda_otf/senda_p2p_chat
+
+  # ── Cámara AR ────────────────────────────────────────────────────────
+  camera: ^0.11.0
+  permission_handler: ^11.3.1
+
+  # ── NASA Horizons API ────────────────────────────────────────────────
+  http: ^1.2.0
+
+  # ── GPS para posiciones astronómicas reales ──────────────────────────
+  geolocator: ^13.0.0
+
+  # ── Sensores del dispositivo (giroscopio, acelerómetro) ──────────────
+  sensors_plus: ^4.0.0
+
+  # ── Matemáticas 3D ───────────────────────────────────────────────────
+  vector_math: ^2.1.4
+
+  # ── Almacenamiento local ─────────────────────────────────────────────
+  shared_preferences: ^2.3.2
+
+  # ── Iconos ───────────────────────────────────────────────────────────
+  cupertino_icons: ^1.0.8
+
+  # ── QR code (lobby) ──────────────────────────────────────────────────
+  qr_flutter: ^4.1.0
+
+  # ── Internacionalización ──────────────────────────────────────────────
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/skybox/
+    - assets/ibl/
+    - assets/models/ships/
+    - assets/models/planets/
+    - assets/textures/

@@ -1,0 +1,16 @@
+﻿{
+    "name": "Navigator.Network",
+    "rootNamespace": "Navigator.Network",
+    "references": [
+        "GUID:Navigator.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

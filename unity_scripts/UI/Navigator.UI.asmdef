@@ -1,0 +1,19 @@
+﻿{
+    "name": "Navigator.UI",
+    "rootNamespace": "Navigator.UI",
+    "references": [
+        "GUID:Navigator.Core",
+        "GUID:Navigator.Game",
+        "GUID:Navigator.Network",
+        "GUID:Navigator.AR"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

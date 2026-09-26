@@ -1,0 +1,20 @@
+﻿{
+    "name": "Navigator.AR",
+    "rootNamespace": "Navigator.AR",
+    "references": [
+        "GUID:Navigator.Core",
+        "GUID:Navigator.Game",
+        "GUID:Navigator.Network",
+        "com.unity.xr.arfoundation",
+        "com.unity.xr.arsubsystems"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
