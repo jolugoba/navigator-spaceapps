@@ -53,7 +53,10 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 |---|---|
 | Clic izquierdo o **W** | Acelerar |
 | **Espacio** | Boost |
-| Clic derecho + arrastrar, flechas | Mirar / girar la nave |
+| **A / D** o ← / → | Girar izquierda / derecha |
+| **↑ / ↓** o **R / F** | Apuntar arriba / abajo |
+| **S** | Frenar |
+| Clic derecho + arrastrar | Apuntar con el mouse |
 
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
 En macOS no hay librería nativa para el Editor: se juega en modo solo.
