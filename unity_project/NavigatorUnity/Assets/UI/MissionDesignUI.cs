@@ -93,6 +93,7 @@ namespace Navigator.UI
         public Button BtnFlyby;
         public Button BtnOrbit;
         public Button BtnLanding;
+        public TMP_Text ObjectiveInfoLabel;  // costo en ΔV y multiplicador de ciencia
 
         // ── Datos ─────────────────────────────────────────────────────────────
         private MissionDesign _design;
@@ -216,11 +217,30 @@ namespace Navigator.UI
 
             // Delta-V
             float dv      = _design.DeltaVms;
-            float dvReq   = MissionDesign.MinDeltaV.TryGetValue(_design.TargetPlanetId, out var r) ? r : 5600f;
+            float dvReq   = _design.RequiredDeltaV;
             float dvRatio = Mathf.Clamp01(dv / (dvReq * 1.5f));
             if (DeltaVBar    != null) DeltaVBar.fillAmount = dvRatio;
             if (DeltaVLabel  != null) DeltaVLabel.text = $"{dv:N0} m/s";
-            if (DeltaVRequiredLabel != null) DeltaVRequiredLabel.text = $"Requerido: {dvReq:N0} m/s";
+            if (DeltaVRequiredLabel != null)
+            {
+                string parts = $"{_design.CruiseDeltaV:N0} viaje";
+                if (_design.InsertionDeltaV > 0f) parts += $" + {_design.InsertionDeltaV:N0} inserción";
+                if (_design.LandingDeltaV   > 0f) parts += $" + {_design.LandingDeltaV:N0} descenso";
+                DeltaVRequiredLabel.text = $"Requerido: {dvReq:N0} m/s ({parts})";
+            }
+            if (ObjectiveInfoLabel != null)
+            {
+                string pid = _design.TargetPlanetId;
+                ObjectiveInfoLabel.text = _design.Objective switch
+                {
+                    "orbit"   => $"+{_design.InsertionDeltaV:N0} m/s para frenar en órbita · ciencia ×1.5",
+                    "landing" => _design.CanLandOnTarget
+                        ? $"+{_design.InsertionDeltaV + _design.LandingDeltaV:N0} m/s, +{MissionDesign.LanderMassKg:F0} kg y +${MissionDesign.LanderCostM:F0}M de módulo · ciencia ×2"
+                        : $"{PlanetDisplayName(pid)} no tiene superficie sólida",
+                    _         => "Pasas de largo: sin costo extra · ciencia ×1",
+                };
+                ObjectiveInfoLabel.color = _design.IsObjectiveOk ? UIStyle.Muted : UIStyle.Bad;
+            }
             if (DeltaVStatusLabel   != null)
             {
                 DeltaVStatusLabel.text  = _design.HasDeltaV ? "OK" : "INSUFICIENTE";
@@ -243,7 +263,10 @@ namespace Navigator.UI
             if (AntennaDataRateLabel != null)
             {
                 float kbps = MissionDesign.AntennaDataRateKbps[_design.Antenna];
-                AntennaDataRateLabel.text = kbps >= 1000f ? $"{kbps / 1000f:F0} Mbps" : $"{kbps} kbps";
+                string real = kbps >= 1000f ? $"{kbps / 1000f:F0} Mbps" : $"{kbps} kbps";
+                float  mbps = MissionDesign.GameDownlinkMbps[_design.Antenna];
+                float  secs = _design.TotalDataMb / mbps;
+                AntennaDataRateLabel.text = $"{real} reales · tus {_design.TotalDataMb:F0} Mb tardan {secs:F0} s en llegar";
             }
 
             // Lanzador
@@ -280,6 +303,7 @@ namespace Navigator.UI
                 if (!_design.IsBudgetOk)     ErrorLabel.text = "Presupuesto excedido";
                 else if (!_design.IsMassOk)  ErrorLabel.text = "Nave demasiado pesada para el lanzador";
                 else if (!_design.IsPowerOk) ErrorLabel.text = "Consumo eléctrico supera la generación";
+                else if (!_design.IsObjectiveOk) ErrorLabel.text = "No se puede aterrizar en un gigante gaseoso";
                 else if (!_design.HasDeltaV) ErrorLabel.text = "ΔV insuficiente: más combustible o mejor motor";
                 else                         ErrorLabel.text = "";
                 ErrorLabel.gameObject.SetActive(!valid);
@@ -323,9 +347,9 @@ namespace Navigator.UI
 
         public MissionDesign GetDesign() => _design;
 
-        public void Show(string planetId = "mars")
+        public void Show(string planetId = "mars", bool keepDesign = false)
         {
-            _design = MissionDesign.DefaultFor(planetId);
+            if (!keepDesign || _design == null) _design = MissionDesign.DefaultFor(planetId);
             SyncControls();
             Refresh();
             if (Panel != null) Panel.SetActive(true);

@@ -85,6 +85,9 @@ namespace Navigator.UI
 
         public UnityEvent<GameState> OnStateChanged = new();
 
+        // Everything the debrief needs to explain how the design shaped the result
+        public MissionOutcome Outcome { get; } = new();
+
         private float  _flightTimer;
         private bool   _rivalArrived;
         private int    _remoteScore = Navigator.UI.ScoreboardUI.RemotePending;
@@ -143,8 +146,10 @@ namespace Navigator.UI
             if (SpaceManager != null) SpaceManager.Locked = false;
             Powerups?.ClearAll();
             Asteroids?.Clear();
+            SetShipFrozen(false);
             ResetShip(Vector3.forward);
             if (Score != null) Score.Clear();
+            Outcome.Clear();
 
             SetState(GameState.MissionDesign);
             SetPanels(missionDesign: true);
@@ -152,7 +157,8 @@ namespace Navigator.UI
             // The lobby QR scanner has released the camera by now
             if (CameraFeed != null) CameraFeed.Play();
 
-            MissionDesignUI?.Show(_lastPlanet);
+            // "Play again" keeps the previous design so the player can iterate on it
+            MissionDesignUI?.Show(_lastPlanet, keepDesign: true);
         }
 
         // MissionDesignUI → botón LANZAR
@@ -196,8 +202,10 @@ namespace Navigator.UI
             Vector3 launch = SpaceManager != null ? SpaceManager.LaunchPoint    : Vector3.zero;
             if (SpaceManager != null) SpaceManager.Locked = true;
 
+            SetShipFrozen(false);
             ResetShip((target - launch).normalized);
             ConfigureShipFromDesign();
+            Outcome.Clear();
 
             // North-align the view only when the planet came from real sky data
             Rig?.Calibrate(Compass != null && Compass.GpsReady);
@@ -293,13 +301,47 @@ namespace Navigator.UI
 
             var col = Ship.GetComponent<CollisionSystem>();
             if (col != null && col.Lives <= 0) { FailMission("Nave destruida"); return; }
+
+            // Out of fuel and coasted to a stop: no point waiting for the clock
+            var fuel = Ship.GetComponent<FuelSystem>();
+            var rb   = Ship.GetComponent<Rigidbody>();
+            if (fuel != null && fuel.IsEmpty && rb != null && rb.linearVelocity.magnitude < 2f)
+            {
+                Outcome.RanOutOfFuel = true;
+                FailMission("Sin combustible");
+                return;
+            }
             if (_flightTimer >= MaxFlightTimeS) { FailMission("Tiempo agotado");  return; }
+        }
+
+        void RecordFlight(bool arrived)
+        {
+            var fuel = Ship != null ? Ship.GetComponent<FuelSystem>()      : null;
+            var col  = Ship != null ? Ship.GetComponent<CollisionSystem>() : null;
+            var burn = Ship != null ? Ship.GetComponent<BurnoutSystem>()   : null;
+            Outcome.Arrived       = arrived;
+            Outcome.FlightTimeS   = _flightTimer;
+            Outcome.FuelAtArrival = fuel != null ? fuel.FuelFraction : 0f;
+            Outcome.HullLeft      = col  != null ? col.Lives : 3;
+            Outcome.Takedowns     = burn != null ? burn.TakedownCount : 0;
+            if (fuel != null && fuel.IsEmpty) Outcome.RanOutOfFuel = true;
+        }
+
+        // Parked at the planet: stop gravity from pulling the ship into it
+        void SetShipFrozen(bool frozen)
+        {
+            var rb = Ship != null ? Ship.GetComponent<Rigidbody>() : null;
+            if (rb == null) return;
+            if (frozen) rb.linearVelocity = Vector3.zero;
+            rb.isKinematic = frozen;
         }
 
         void Arrive()
         {
             SetControls(false);
             StopShip();
+            RecordFlight(true);
+            SetShipFrozen(true);
             Powerups?.ClearAll();
             Asteroids?.Clear();
 
@@ -309,7 +351,7 @@ namespace Navigator.UI
 
             SetState(GameState.ScienceOps);
             SetPanels(scienceOps: true);
-            ScienceOpsUI?.ShowOnArrival(Mission, ArrivalPos);
+            ScienceOpsUI?.ShowOnArrival(Mission, ArrivalPos, Outcome);
 
             Debug.Log($"[GM] Llegamos a {Mission?.TargetPlanetId} — posición #{ArrivalPos}");
         }
@@ -318,6 +360,9 @@ namespace Navigator.UI
         {
             SetControls(false);
             StopShip();
+            RecordFlight(false);
+            SetShipFrozen(true);
+            Outcome.FailReason = reason;
             Powerups?.ClearAll();
             Asteroids?.Clear();
 
@@ -360,7 +405,8 @@ namespace Navigator.UI
             SetState(GameState.Scoreboard);
             SetPanels(scoreboard: true);
             ScoreboardUI?.SetLocalPlayerName(PlayerName);
-            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason);
+            ScoreboardUI?.Show(total, solo ? Navigator.UI.ScoreboardUI.RemoteSolo : _remoteScore, Score, FailReason,
+                               MissionReport.Build(Mission, Outcome));
         }
 
         void StopShip()

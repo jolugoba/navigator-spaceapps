@@ -41,6 +41,9 @@ namespace Navigator.UI
         public TMP_Text WinnerSubLabel;
         public GameObject VictoryFX;          // partículas celebración (opcional)
 
+        [Header("Informe de misión")]
+        public TMP_Text DebriefLabel;         // cómo cada decisión afectó el resultado
+
         [Header("Botones")]
         public Button PlayAgainButton;
         public Button MainMenuButton;
@@ -58,9 +61,11 @@ namespace Navigator.UI
 
         // ── Mostrar scores ─────────────────────────────────────────────────────
 
-        public void Show(int localScore, int remoteScore, MissionScore scoreData, string failReason = null)
+        public void Show(int localScore, int remoteScore, MissionScore scoreData, string failReason = null,
+                         string report = null)
         {
             _remoteScore = remoteScore;
+            if (DebriefLabel != null) DebriefLabel.text = report ?? "";
             if (Panel != null) Panel.SetActive(true);
             StopAllCoroutines();
             StartCoroutine(RevealAnimation(localScore, scoreData, failReason));

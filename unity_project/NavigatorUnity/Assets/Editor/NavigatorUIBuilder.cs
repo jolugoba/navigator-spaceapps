@@ -185,10 +185,11 @@ namespace Navigator.Editor
             ui.CommDelayLabel = UIKit.TextTop(s, "CommDelay", "", 30, 0.5f, 1f, 292, 44, TextAlignmentOptions.Right, UIStyle.Muted);
 
             // Objetivo
-            s = UIKit.Section(content, "OBJETIVO", 190);
+            s = UIKit.Section(content, "OBJETIVO", 250);
             ui.BtnFlyby   = UIKit.ButtonTop(s, "Flyby",   "Sobrevuelo", 0f,     1f / 3, 78, 90, 32);
             ui.BtnOrbit   = UIKit.ButtonTop(s, "Orbit",   "Órbita",     1f / 3, 2f / 3, 78, 90, 32);
             ui.BtnLanding = UIKit.ButtonTop(s, "Landing", "Aterrizaje", 2f / 3, 1f,     78, 90, 32);
+            ui.ObjectiveInfoLabel = UIKit.TextTop(s, "ObjectiveInfo", "", 28, 0f, 1f, 180, 44, TextAlignmentOptions.Left, UIStyle.Muted);
 
             // Motor
             s = UIKit.Section(content, "MOTOR", 330);
@@ -224,7 +225,7 @@ namespace Navigator.Editor
             ui.SolarWarning = warn.gameObject;
 
             // Antena
-            s = UIKit.Section(content, "ANTENA", 240);
+            s = UIKit.Section(content, "ANTENA · COMUNICACIONES", 240);
             ui.BtnLowGain    = UIKit.ButtonTop(s, "Low",    "Baja",  0f,     1f / 3, 78, 90, 32);
             ui.BtnMediumGain = UIKit.ButtonTop(s, "Medium", "Media", 1f / 3, 2f / 3, 78, 90, 32);
             ui.BtnHighGain   = UIKit.ButtonTop(s, "High",   "Alta",  2f / 3, 1f,     78, 90, 32);
@@ -372,19 +373,22 @@ namespace Navigator.Editor
             ui.MissionObjectiveLabel = UIKit.Text(p, "Objective", "", 30, new Vector4(0.6f, 0.865f, 0.95f, 0.9f), TextAlignmentOptions.Right, UIStyle.Text);
             ui.CommDelayLabel        = UIKit.Text(p, "CommDelay", "", 28, new Vector4(0.05f, 0.835f, 0.95f, 0.865f), TextAlignmentOptions.Left, UIStyle.Muted);
 
-            var info = UIKit.Card(p, "PlanetInfo", new Vector4(0.05f, 0.74f, 0.95f, 0.825f), UIStyle.Card);
+            var info = UIKit.Card(p, "PlanetInfo", new Vector4(0.05f, 0.755f, 0.95f, 0.83f), UIStyle.Card);
             ui.GravityLabel    = UIKit.Text(info, "Gravity",    "", 32, new Vector4(0.04f, 0.52f, 0.96f, 0.92f), TextAlignmentOptions.Left, UIStyle.Text);
             ui.AtmosphereLabel = UIKit.Text(info, "Atmosphere", "", 28, new Vector4(0.04f, 0.08f, 0.96f, 0.5f),  TextAlignmentOptions.Left, UIStyle.Muted);
 
-            var power = UIKit.Card(p, "Power", new Vector4(0.05f, 0.645f, 0.95f, 0.73f), UIStyle.Card);
+            ui.DownlinkLabel = UIKit.Text(p, "Downlink", "", 28, new Vector4(0.05f, 0.72f, 0.95f, 0.75f), TextAlignmentOptions.Left, UIStyle.Muted);
+            ui.WindowLabel   = UIKit.Text(p, "Window",   "", 36, new Vector4(0.05f, 0.685f, 0.95f, 0.72f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+
+            var power = UIKit.Card(p, "Power", new Vector4(0.05f, 0.605f, 0.95f, 0.68f), UIStyle.Card);
             UIKit.Text(power, "Title", "ENERGÍA", 28, new Vector4(0.04f, 0.55f, 0.4f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
             ui.PowerLabel       = UIKit.Text(power, "Value",  "", 32, new Vector4(0.4f, 0.55f, 0.75f, 0.92f), TextAlignmentOptions.Center, UIStyle.Text);
             ui.PowerStatusLabel = UIKit.Text(power, "Status", "", 32, new Vector4(0.75f, 0.55f, 0.96f, 0.92f), TextAlignmentOptions.Right, UIStyle.Good, FontStyles.Bold);
             ui.PowerBar         = UIKit.Bar(power, "Bar", new Vector4(0.04f, 0.18f, 0.96f, 0.36f), UIStyle.Accent);
 
-            UIKit.Text(p, "InstTitle", "INSTRUMENTOS EN OPERACIÓN", 28, new Vector4(0.05f, 0.61f, 0.95f, 0.64f),
+            UIKit.Text(p, "InstTitle", "INSTRUMENTOS: ESCANEO → ENVÍO → TIERRA", 28, new Vector4(0.05f, 0.575f, 0.95f, 0.6f),
                        TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
-            var list = UIKit.Rect(p, "Instruments", new Vector4(0.05f, 0.3f, 0.95f, 0.605f));
+            var list = UIKit.Rect(p, "Instruments", new Vector4(0.05f, 0.3f, 0.95f, 0.57f));
             var vlg = list.gameObject.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 12;
             vlg.childControlHeight = true; vlg.childForceExpandHeight = false;
@@ -439,10 +443,10 @@ namespace Navigator.Editor
             var p = panel.content;
             ui.Panel = panel.go;
 
-            ui.WinnerLabel    = UIKit.Text(p, "Winner", "", 110, new Vector4(0.03f, 0.845f, 0.97f, 0.95f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
-            ui.WinnerSubLabel = UIKit.Text(p, "WinnerSub", "", 34, new Vector4(0.05f, 0.795f, 0.95f, 0.845f), TextAlignmentOptions.Center, UIStyle.Text);
+            ui.WinnerLabel    = UIKit.Text(p, "Winner", "", 100, new Vector4(0.03f, 0.9f, 0.97f, 0.975f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
+            ui.WinnerSubLabel = UIKit.Text(p, "WinnerSub", "", 32, new Vector4(0.05f, 0.86f, 0.95f, 0.9f), TextAlignmentOptions.Center, UIStyle.Text);
 
-            var local = UIKit.Card(p, "Local", new Vector4(0.05f, 0.48f, 0.95f, 0.77f), UIStyle.Card);
+            var local = UIKit.Card(p, "Local", new Vector4(0.05f, 0.645f, 0.95f, 0.855f), UIStyle.Card);
             ui.LocalPlayerName   = UIKit.Text(local, "Name",  "Tú", 40, new Vector4(0.05f, 0.8f, 0.55f, 0.95f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.LocalScoreLabel   = UIKit.Text(local, "Score", "0", 96, new Vector4(0.45f, 0.62f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Accent, FontStyles.Bold);
             ui.LocalArrivalLabel = UIKit.Text(local, "Arrival", "", 34, new Vector4(0.05f, 0.64f, 0.55f, 0.8f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
@@ -451,14 +455,19 @@ namespace Navigator.Editor
             ui.LocalFuelLabel     = UIKit.Text(local, "Fuel",      "", 32, new Vector4(0.05f, 0.18f, 0.95f, 0.32f), TextAlignmentOptions.Left, UIStyle.Text);
             ui.LocalTakedownLabel = UIKit.Text(local, "Takedowns", "", 32, new Vector4(0.05f, 0.03f, 0.95f, 0.17f), TextAlignmentOptions.Left, UIStyle.Text);
 
-            var remote = UIKit.Card(p, "Remote", new Vector4(0.05f, 0.27f, 0.95f, 0.46f), UIStyle.Card);
+            var remote = UIKit.Card(p, "Remote", new Vector4(0.05f, 0.535f, 0.95f, 0.635f), UIStyle.Card);
             ui.RemoteBlock        = remote.gameObject;
             ui.RemotePlayerName   = UIKit.Text(remote, "Name", "Rival", 40, new Vector4(0.05f, 0.62f, 0.55f, 0.92f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.RemoteScoreLabel   = UIKit.Text(remote, "Score", "—", 80, new Vector4(0.45f, 0.45f, 0.95f, 0.95f), TextAlignmentOptions.Right, UIStyle.Bad, FontStyles.Bold);
             ui.RemoteArrivalLabel = UIKit.Text(remote, "Status", "", 30, new Vector4(0.05f, 0.35f, 0.55f, 0.6f), TextAlignmentOptions.Left, UIStyle.Muted);
             ui.RemoteScoreBar     = UIKit.Bar(remote, "Bar", new Vector4(0.05f, 0.15f, 0.95f, 0.25f), UIStyle.Bad);
 
-            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "JUGAR OTRA VEZ", new Vector4(0.05f, 0.13f, 0.95f, 0.23f),
+            var debrief = UIKit.Card(p, "Debrief", new Vector4(0.05f, 0.245f, 0.95f, 0.525f), UIStyle.Card);
+            ui.DebriefLabel = UIKit.Text(debrief, "Text", "", 27, new Vector4(0.04f, 0.03f, 0.96f, 0.97f),
+                                         TextAlignmentOptions.TopLeft, UIStyle.Text);
+            ui.DebriefLabel.fontSizeMin = 16f;
+
+            ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "MEJORAR DISEÑO Y REPETIR", new Vector4(0.05f, 0.13f, 0.95f, 0.23f),
                                               UIStyle.Accent, UIStyle.Ink, 48, FontStyles.Bold);
             ui.MainMenuButton  = UIKit.Button(p, "MainMenu", "Menú principal", new Vector4(0.05f, 0.03f, 0.95f, 0.11f),
                                               UIStyle.ButtonIdle, UIStyle.Text, 38);

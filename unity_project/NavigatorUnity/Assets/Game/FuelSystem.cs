@@ -52,8 +52,8 @@ namespace Navigator.Game
         {
             MaxFuelKg    = design.FuelMassKg;
             Engine       = design.Engine;
-            float minDv  = MissionDesign.MinDeltaV.TryGetValue(design.TargetPlanetId, out var d) ? d : 5600f;
-            BurnTimeS    = BaseBurnTimeS * Mathf.Clamp(design.DeltaVms / minDv, 0.25f, 4f);
+            // Margin over the whole mission profile (cruise + insertion + descent)
+            BurnTimeS    = BaseBurnTimeS * Mathf.Clamp(design.DeltaVms / design.RequiredDeltaV, 0.25f, 4f);
             FuelFraction = 1f;
             _empty       = false;
             _lowFuelWarned = false;

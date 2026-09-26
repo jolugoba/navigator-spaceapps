@@ -1,18 +1,15 @@
 // Navigator 2.0 — ScienceOpsUI.cs
-// Pantalla de operaciones científicas al llegar al planeta objetivo
-// Muestra el progreso de cada instrumento, presupuesto de potencia y score final
-// Ported from Dart: navigator/lib/screens/science_ops_screen.dart
+// Operaciones científicas al llegar al planeta. Cada instrumento pasa por:
+//   energía → escaneo → cola de envío → transmisión (antena) → viaje a la luz → recibido en la Tierra
+// Solo los datos que llegan a la Tierra antes de que cierre la ventana de comunicación suman puntos.
 // Guacalita Inc. — SAL / Claude
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Navigator.Core;
 using Navigator.Game;
-using Navigator.Network;
 
 namespace Navigator.UI
 {
@@ -21,56 +18,73 @@ namespace Navigator.UI
         [Header("Panel raíz")]
         public GameObject Panel;
 
-        // ── Cabecera ───────────────────────────────────────────────────────────
         [Header("Cabecera")]
-        public TMP_Text PlanetNameLabel;     // "MARTE"
-        public TMP_Text ArrivalPositionLabel; // "#1 PRIMERO"
-        public TMP_Text MissionObjectiveLabel; // "Objetivo: Órbita"
-        public TMP_Text CommDelayLabel;       // "Señal: 3-22 min ida"
+        public TMP_Text PlanetNameLabel;       // "MARTE"
+        public TMP_Text ArrivalPositionLabel;  // "#1 PRIMERO EN LLEGAR"
+        public TMP_Text MissionObjectiveLabel; // "Órbita · ciencia ×1.5"
+        public TMP_Text CommDelayLabel;        // "Señal: 3-22 min ida"
 
-        // ── Presupuesto de potencia ────────────────────────────────────────────
+        [Header("Comunicaciones")]
+        public TMP_Text WindowLabel;           // "Ventana: 0:52"
+        public TMP_Text DownlinkLabel;         // "Antena media · 6 Mb/s · luz 2.5 s"
+
         [Header("Potencia")]
-        public Image    PowerBar;            // fill: usado / disponible
-        public TMP_Text PowerLabel;          // "148 / 280 W"
-        public TMP_Text PowerStatusLabel;    // "OK" / "SIN POTENCIA"
+        public Image    PowerBar;
+        public TMP_Text PowerLabel;            // "175 / 500 W"
+        public TMP_Text PowerStatusLabel;      // "OK" / "ESPERANDO ENERGÍA"
 
-        // ── Instrumentos ───────────────────────────────────────────────────────
         [Header("Instrumentos")]
-        public Transform InstrumentsContainer; // padre donde se crean los items
-        public GameObject InstrumentItemPrefab; // prefab: label + barra de progreso + pts
+        public Transform  InstrumentsContainer;
+        public GameObject InstrumentItemPrefab; // hijos: "Label" TMP, "Bar" Image, "PtsLabel" TMP
 
-        // ── Score en vivo ──────────────────────────────────────────────────────
         [Header("Score")]
-        public TMP_Text SciencePointsLabel;  // "2,400 pts ciencia"
-        public TMP_Text TotalScoreLabel;     // "TOTAL: 4,650"
-        public Image    ScoreBar;            // llena mientras se acumulan pts
+        public TMP_Text SciencePointsLabel;
+        public TMP_Text TotalScoreLabel;
+        public Image    ScoreBar;
 
-        // ── Combustible restante ───────────────────────────────────────────────
         [Header("Combustible")]
         public Image    FuelBar;
-        public TMP_Text FuelLabel;           // "38%"
+        public TMP_Text FuelLabel;
 
-        // ── Gravedad del planeta ───────────────────────────────────────────────
         [Header("Info planeta")]
-        public TMP_Text GravityLabel;        // "g = 3.72 m/s²"
-        public TMP_Text AtmosphereLabel;     // "Atmósfera: CO₂ delgada"
+        public TMP_Text GravityLabel;
+        public TMP_Text AtmosphereLabel;
 
-        // ── Botón completar ────────────────────────────────────────────────────
         [Header("Completar")]
         public Button   CompleteMissionBtn;
-        public TMP_Text CompleteBtnLabel;    // "COMPLETAR MISIÓN" / "Operaciones en curso…"
+        public TMP_Text CompleteBtnLabel;
 
-        // ── Datos runtime ──────────────────────────────────────────────────────
-        private MissionDesign   _design;
-        private MissionScore    _score;
-        private FuelSystem      _fuel;
+        [Header("Ventana de comunicación")]
+        public float WindowBaseS = 75f;        // + retardo de la luz del planeta
 
-        // Progreso de cada instrumento (0 a 1)
-        private readonly Dictionary<ScienceInstrument, float> _instProgress = new();
-        private readonly Dictionary<ScienceInstrument, int>   _instEarned   = new();
-        private bool _operationsComplete = false;
+        // ── Runtime ────────────────────────────────────────────────────────────
+        enum Stage { WaitingPower, Scanning, Queued, Transmitting, InTransit, Received, Lost }
 
-        // Duración de escaneo por instrumento (segundos de juego)
+        class Op
+        {
+            public ScienceInstrument Inst;
+            public Stage  Stage = Stage.WaitingPower;
+            public float  Scan;        // 0..1
+            public float  SentMb;
+            public float  TransitLeft; // s
+            public Transform Item;
+        }
+
+        private readonly List<Op>  _ops   = new();
+        private readonly Queue<Op> _queue = new();
+        private Op _transmitting;
+
+        private MissionDesign  _design;
+        private MissionOutcome _outcome;
+        private MissionScore   _score;
+        private FuelSystem     _fuel;
+
+        private float _windowLeft;
+        private float _downlinkMbps;
+        private float _delayS;
+        private float _activePowerW;
+        private bool  _done;
+
         private static readonly Dictionary<ScienceInstrument, float> ScanTime = new()
         {
             { ScienceInstrument.WideAngleCamera,   8f  },
@@ -83,242 +97,290 @@ namespace Navigator.UI
             { ScienceInstrument.RadarAltimeter,    30f },
         };
 
-        // Datos estáticos del planeta (gravedad superficial m/s², atmósfera)
         private static readonly Dictionary<string, (float g, string atm)> PlanetData = new()
         {
             { "mercury", (3.70f,  "Sin atmósfera") },
-            { "venus",   (8.87f,  "CO₂ densa — 92 atm") },
-            { "mars",    (3.72f,  "CO₂ delgada — 0.006 atm") },
-            { "jupiter", (24.79f, "H₂ + He — sin superficie sólida") },
-            { "saturn",  (10.44f, "H₂ + He — anillos de hielo") },
-            { "uranus",  (8.87f,  "H₂O + NH₃ + CH₄ — planeta helado") },
-            { "neptune", (11.15f, "H₂ + He + CH₄ — vientos 2,100 km/h") },
+            { "venus",   (8.87f,  "CO2 densa, 92 atm, 465 °C") },
+            { "mars",    (3.72f,  "CO2 delgada, 0.006 atm") },
+            { "jupiter", (24.79f, "H2 + He, sin superficie sólida") },
+            { "saturn",  (10.44f, "H2 + He, anillos de hielo") },
+            { "uranus",  (8.87f,  "H2 + He + CH4, gigante helado") },
+            { "neptune", (11.15f, "H2 + He + CH4, vientos de 2,100 km/h") },
         };
-
-        // ── Ciclo de vida ──────────────────────────────────────────────────────
 
         void Awake()
         {
             _score = FindObjectOfType<MissionScore>();
-
             var ship = GameObject.FindWithTag("LocalShip");
             if (ship != null) _fuel = ship.GetComponent<FuelSystem>();
-
             CompleteMissionBtn?.onClick.AddListener(CompleteMission);
+        }
+
+        // ── Entrada al planeta ─────────────────────────────────────────────────
+
+        public void ShowOnArrival(MissionDesign design, int arrivalPosition, MissionOutcome outcome)
+        {
+            _design  = design;
+            _outcome = outcome;
+            _done    = false;
+
+            _downlinkMbps = MissionDesign.GameDownlinkMbps[design.Antenna];
+            _delayS       = MissionDesign.CommDelayGameS.TryGetValue(design.TargetPlanetId, out var d) ? d : 3f;
+            _windowLeft   = WindowBaseS + _delayS;
+
+            _ops.Clear();
+            _queue.Clear();
+            _transmitting = null;
+            foreach (var inst in design.Instruments) _ops.Add(new Op { Inst = inst });
+
+            if (_outcome != null)
+            {
+                _outcome.InstrumentsPlanned = _ops.Count;
+                _outcome.DataTotalMb        = design.TotalDataMb;
+            }
+            if (_score != null)
+            {
+                _score.ArrivalPosition = arrivalPosition;
+                _score.SciencePoints   = 0;
+            }
+
+            BuildItems();
+            RefreshHeader(arrivalPosition);
+            SetCompleteButton(false, "Operaciones en curso…");
+            if (Panel != null) Panel.SetActive(true);
+
+            // A design with no instruments has nothing to do here
+            if (_ops.Count == 0) Finish();
         }
 
         void Update()
         {
-            if (Panel == null || !Panel.activeSelf || _operationsComplete) return;
+            if (_design == null || _done || Panel == null || !Panel.activeSelf) return;
+            float dt = Time.deltaTime;
 
-            if (_design != null)
-            {
-                UpdateInstrumentProgress();
-                UpdatePowerBudget();
-                UpdateFuel();
-                UpdateScore();
-            }
+            _windowLeft -= dt;
+            RunScans(dt);
+            RunDownlink(dt);
+            RunTransit(dt);
+
+            RefreshItems();
+            RefreshLiveLabels();
+
+            bool allSettled = _ops.TrueForAll(o => o.Stage == Stage.Received || o.Stage == Stage.Lost);
+            if (allSettled || _windowLeft <= 0f) Finish();
         }
 
-        // ── Activar pantalla al llegar al planeta ──────────────────────────────
-
-        public void ShowOnArrival(MissionDesign design, int arrivalPosition)
+        // Instruments scan in parallel as long as bus + active instruments fit the power budget
+        void RunScans(float dt)
         {
-            _design = design;
+            float available = _design.EffectivePowerW;
+            _activePowerW   = MissionDesign.BusPowerW;
+            bool anyWaiting = false;
 
-            if (_score != null)
+            foreach (var op in _ops)
             {
-                _score.ArrivalPosition = arrivalPosition;
-                _score.FuelFraction    = _fuel != null ? _fuel.FuelFraction : 1f;
-            }
-
-            // Inicia el progreso de todos los instrumentos
-            _instProgress.Clear();
-            _instEarned.Clear();
-            foreach (var inst in _design.Instruments)
-            {
-                _instProgress[inst] = 0f;
-                _instEarned[inst]   = 0;
-            }
-            _operationsComplete = false;
-
-            BuildInstrumentItems();
-            RefreshHeader();
-            if (ArrivalPositionLabel != null)
-                ArrivalPositionLabel.text = arrivalPosition == 1 ? "#1 PRIMERO EN LLEGAR" : $"#{arrivalPosition} EN LLEGAR";
-            RefreshPlanetInfo();
-            if (Panel != null) Panel.SetActive(true);
-
-            Debug.Log($"[ScienceOps] Llegamos a {_design.TargetPlanetId} en posición #{arrivalPosition}");
-        }
-
-        // ── Construcción dinámica de items de instrumentos ─────────────────────
-
-        void BuildInstrumentItems()
-        {
-            if (InstrumentsContainer == null || InstrumentItemPrefab == null) return;
-
-            foreach (Transform child in InstrumentsContainer)
-                Destroy(child.gameObject);
-
-            foreach (var inst in _design.Instruments)
-            {
-                var item = Instantiate(InstrumentItemPrefab, InstrumentsContainer);
-                item.name = inst.ToString();
-
-                // El prefab debe tener: "Label" TMP_Text, "Bar" Image, "PtsLabel" TMP_Text
-                var label = item.transform.Find("Label")?.GetComponent<TMP_Text>();
-                if (label != null) label.text = InstrumentDisplayName(inst);
-
-                var pts = item.transform.Find("PtsLabel")?.GetComponent<TMP_Text>();
-                if (pts != null) pts.text = $"0 / {MissionDesign.InstrumentSciencePoints[inst]}";
-
-                var bar = item.transform.Find("Bar")?.GetComponent<Image>();
-                if (bar != null) bar.fillAmount = 0f;
-            }
-        }
-
-        // ── Progreso de escaneo ────────────────────────────────────────────────
-
-        void UpdateInstrumentProgress()
-        {
-            float powerAvail  = _design.EffectivePowerW;
-            float powerActive = 0f;
-
-            bool allDone = true;
-            int  childIdx = 0;
-
-            foreach (var inst in _design.Instruments)
-            {
-                if (_instProgress[inst] >= 1f)
+                if (op.Stage != Stage.WaitingPower && op.Stage != Stage.Scanning) continue;
+                float need = MissionDesign.InstrumentPowerW[op.Inst];
+                if (_activePowerW + need <= available)
                 {
-                    childIdx++;
-                    continue;
+                    _activePowerW += need;
+                    op.Stage = Stage.Scanning;
+                    op.Scan += dt / (ScanTime.TryGetValue(op.Inst, out var t) ? t : 15f);
+                    if (op.Scan >= 1f)
+                    {
+                        op.Scan  = 1f;
+                        op.Stage = Stage.Queued;
+                        _queue.Enqueue(op);
+                        if (_outcome != null) _outcome.InstrumentsScanned++;
+                    }
                 }
-                allDone = false;
-
-                // Progreso solo si hay potencia suficiente
-                float needed = MissionDesign.InstrumentPowerW[inst] + MissionDesign.BusPowerW;
-                if (powerAvail - powerActive >= needed)
+                else
                 {
-                    powerActive += MissionDesign.InstrumentPowerW[inst];
-                    float scanT = ScanTime.TryGetValue(inst, out var t) ? t : 15f;
-                    _instProgress[inst] += Time.deltaTime / scanT;
-                    _instProgress[inst]  = Mathf.Clamp01(_instProgress[inst]);
-
-                    if (_instProgress[inst] >= 1f)
-                        _instEarned[inst] = MissionDesign.InstrumentSciencePoints[inst];
+                    op.Stage   = Stage.WaitingPower;
+                    anyWaiting = true;
                 }
+            }
+            if (anyWaiting && _outcome != null) _outcome.PowerWaitS += dt;
+        }
 
-                // Actualiza el ítem en la lista
-                if (InstrumentsContainer != null && childIdx < InstrumentsContainer.childCount)
+        // One data product at a time through the antenna
+        void RunDownlink(float dt)
+        {
+            if (_transmitting == null && _queue.Count > 0)
+            {
+                _transmitting = _queue.Dequeue();
+                _transmitting.Stage = Stage.Transmitting;
+            }
+            if (_transmitting == null) return;
+
+            float size = MissionDesign.InstrumentDataMb[_transmitting.Inst];
+            float sent = Mathf.Min(_downlinkMbps * dt, size - _transmitting.SentMb);
+            _transmitting.SentMb += sent;
+            if (_outcome != null) _outcome.DataSentMb += sent;
+
+            if (_transmitting.SentMb >= size - 1e-4f)
+            {
+                _transmitting.Stage       = Stage.InTransit;
+                _transmitting.TransitLeft = _delayS;
+                _transmitting = null;
+            }
+        }
+
+        // The last bit still has to cross the solar system at the speed of light
+        void RunTransit(float dt)
+        {
+            foreach (var op in _ops)
+            {
+                if (op.Stage != Stage.InTransit) continue;
+                op.TransitLeft -= dt;
+                if (op.TransitLeft > 0f) continue;
+
+                op.Stage = Stage.Received;
+                int pts = Points(op.Inst);
+                if (_score != null) _score.SciencePoints += pts;
+                if (_outcome != null)
                 {
-                    var item = InstrumentsContainer.GetChild(childIdx);
-                    var bar  = item.Find("Bar")?.GetComponent<Image>();
-                    var pts  = item.Find("PtsLabel")?.GetComponent<TMP_Text>();
-                    if (bar != null) bar.fillAmount = _instProgress[inst];
-                    if (pts != null) pts.text = $"{_instEarned[inst]} / {MissionDesign.InstrumentSciencePoints[inst]}";
+                    _outcome.InstrumentsReceived++;
+                    _outcome.PointsReceived += pts;
                 }
-                childIdx++;
             }
+        }
 
-            // Todos los instrumentos completados
-            if (allDone && !_operationsComplete)
+        int Points(ScienceInstrument inst) =>
+            Mathf.RoundToInt(MissionDesign.InstrumentSciencePoints[inst] * _design.ScienceMultiplier);
+
+        void Finish()
+        {
+            if (_done) return;
+            _done = true;
+
+            foreach (var op in _ops)
             {
-                _operationsComplete = true;
-                int total = 0;
-                foreach (var pts in _instEarned.Values) total += pts;
-                if (_score != null) _score.SciencePoints = total;
-
-                if (CompleteBtnLabel != null) CompleteBtnLabel.text = "COMPLETAR MISIÓN";
-                if (CompleteMissionBtn != null) CompleteMissionBtn.interactable = true;
-                Debug.Log($"[ScienceOps] Operaciones completas — {total} pts ciencia");
+                if (op.Stage == Stage.Received) continue;
+                op.Stage = Stage.Lost;
+                if (_outcome != null) _outcome.PointsLost += Points(op.Inst);
             }
+            _transmitting = null;
+            _queue.Clear();
+
+            RefreshItems();
+            RefreshLiveLabels();
+            if (WindowLabel != null) WindowLabel.text = "Ventana cerrada";
+            SetCompleteButton(true, "COMPLETAR MISIÓN");
         }
-
-        // ── Actualizar potencia ────────────────────────────────────────────────
-
-        void UpdatePowerBudget()
-        {
-            if (_design == null) return;
-            float avail = _design.EffectivePowerW;
-            float used  = _design.PowerUsedW;
-            if (PowerBar    != null) PowerBar.fillAmount = Mathf.Clamp01(used / avail);
-            if (PowerLabel  != null) PowerLabel.text = $"{used:F0} / {avail:F0} W";
-            if (PowerStatusLabel != null)
-            {
-                PowerStatusLabel.text  = used <= avail ? "OK" : "SIN POTENCIA";
-                PowerStatusLabel.color = used <= avail ? UIStyle.Good : UIStyle.Bad;
-            }
-        }
-
-        // ── Actualizar combustible ─────────────────────────────────────────────
-
-        void UpdateFuel()
-        {
-            if (_fuel == null) return;
-            if (FuelBar   != null) FuelBar.fillAmount = _fuel.FuelFraction;
-            if (FuelLabel != null) FuelLabel.text = $"{_fuel.FuelFraction:P0}";
-        }
-
-        // ── Actualizar score ───────────────────────────────────────────────────
-
-        void UpdateScore()
-        {
-            if (_score == null) return;
-
-            int sciTotal = 0;
-            foreach (var v in _instEarned.Values) sciTotal += v;
-            _score.SciencePoints = sciTotal;
-            _score.FuelFraction  = _fuel != null ? _fuel.FuelFraction : 1f;
-
-            int total = _score.TotalScore();
-            if (SciencePointsLabel != null) SciencePointsLabel.text = $"{sciTotal} pts ciencia";
-            if (TotalScoreLabel    != null) TotalScoreLabel.text    = $"TOTAL: {total}";
-            if (ScoreBar           != null) ScoreBar.fillAmount     = Mathf.Clamp01(total / (float)ScoreboardUI.ScoreBarMax);
-        }
-
-        // ── Completar misión ───────────────────────────────────────────────────
 
         void CompleteMission()
         {
-            if (_score == null) return;
-
-            _score.FuelFraction = _fuel != null ? _fuel.FuelFraction : 1f;
-            Debug.Log($"[ScienceOps] Misión completada — {_score.Summary()}");
-
-            // GameManager broadcasts the final score and opens the scoreboard
+            if (!_done) return;
+            if (_score != null) _score.FuelFraction = _fuel != null ? _fuel.FuelFraction : 1f;
             if (Panel != null) Panel.SetActive(false);
             GameManager.Instance?.OnMissionComplete();
         }
 
-        // ── Cabecera ───────────────────────────────────────────────────────────
+        // ── UI ─────────────────────────────────────────────────────────────────
 
-        void RefreshHeader()
+        void BuildItems()
         {
-            if (PlanetNameLabel != null)
-                PlanetNameLabel.text = MissionDesignUI.PlanetDisplayName(_design.TargetPlanetId).ToUpper();
+            if (InstrumentsContainer == null) return;
+            foreach (Transform child in InstrumentsContainer) Destroy(child.gameObject);
+            if (InstrumentItemPrefab == null) return;
 
+            foreach (var op in _ops)
+            {
+                var item = Instantiate(InstrumentItemPrefab, InstrumentsContainer);
+                item.name = op.Inst.ToString();
+                op.Item = item.transform;
+                var label = op.Item.Find("Label")?.GetComponent<TMP_Text>();
+                if (label != null) label.text = InstrumentDisplayName(op.Inst);
+            }
+        }
+
+        void RefreshItems()
+        {
+            foreach (var op in _ops)
+            {
+                if (op.Item == null) continue;
+                var bar = op.Item.Find("Bar")?.GetComponent<Image>();
+                var pts = op.Item.Find("PtsLabel")?.GetComponent<TMP_Text>();
+                float size = MissionDesign.InstrumentDataMb[op.Inst];
+
+                (float fill, Color color, string text) = op.Stage switch
+                {
+                    Stage.WaitingPower => (op.Scan, UIStyle.Warn,   "Esperando energía"),
+                    Stage.Scanning     => (op.Scan, UIStyle.Accent, $"Escaneando {op.Scan:P0}"),
+                    Stage.Queued       => (0f,      UIStyle.Muted,  "En cola de envío"),
+                    Stage.Transmitting => (op.SentMb / size, UIStyle.Gold, $"Enviando {op.SentMb:F0}/{size:F0} Mb"),
+                    Stage.InTransit    => (1f,      UIStyle.Gold,   $"Viajando a la Tierra {op.TransitLeft:F0} s"),
+                    Stage.Received     => (1f,      UIStyle.Good,   $"+{Points(op.Inst):N0} pts"),
+                    _                  => (1f,      UIStyle.Bad,    "Perdido: sin ventana"),
+                };
+                if (bar != null) { bar.fillAmount = fill; bar.color = color; }
+                if (pts != null) { pts.text = text; pts.color = color; }
+            }
+        }
+
+        void RefreshLiveLabels()
+        {
+            float avail = _design.EffectivePowerW;
+            if (PowerBar   != null) PowerBar.fillAmount = Mathf.Clamp01(_activePowerW / Mathf.Max(1f, avail));
+            if (PowerLabel != null) PowerLabel.text     = $"{_activePowerW:F0} / {avail:F0} W";
+            if (PowerStatusLabel != null)
+            {
+                bool waiting = _ops.Exists(o => o.Stage == Stage.WaitingPower);
+                PowerStatusLabel.text  = waiting ? "ESPERANDO ENERGÍA" : "OK";
+                PowerStatusLabel.color = waiting ? UIStyle.Warn : UIStyle.Good;
+            }
+
+            if (WindowLabel != null && !_done)
+            {
+                float t = Mathf.Max(0f, _windowLeft);
+                WindowLabel.text  = $"Ventana de comunicación {(int)t / 60}:{(int)t % 60:00}";
+                WindowLabel.color = t < 15f ? UIStyle.Bad : UIStyle.Text;
+            }
+
+            if (_fuel != null)
+            {
+                if (FuelBar   != null) FuelBar.fillAmount = _fuel.FuelFraction;
+                if (FuelLabel != null) FuelLabel.text     = $"Combustible {_fuel.FuelFraction:P0}";
+            }
+
+            if (_score != null)
+            {
+                _score.FuelFraction = _fuel != null ? _fuel.FuelFraction : 1f;
+                int total = _score.TotalScore();
+                if (SciencePointsLabel != null) SciencePointsLabel.text = $"{_score.SciencePoints:N0} pts recibidos";
+                if (TotalScoreLabel    != null) TotalScoreLabel.text    = $"TOTAL {total:N0}";
+                if (ScoreBar           != null) ScoreBar.fillAmount     = Mathf.Clamp01(total / (float)ScoreboardUI.ScoreBarMax);
+            }
+        }
+
+        void RefreshHeader(int arrivalPosition)
+        {
+            string planet = MissionDesignUI.PlanetDisplayName(_design.TargetPlanetId);
+            if (PlanetNameLabel != null) PlanetNameLabel.text = planet.ToUpper();
+            if (ArrivalPositionLabel != null)
+                ArrivalPositionLabel.text = arrivalPosition == 1 ? "#1 PRIMERO EN LLEGAR" : $"#{arrivalPosition} EN LLEGAR";
             if (MissionObjectiveLabel != null)
-                MissionObjectiveLabel.text = $"Objetivo: {ObjectiveLabel(_design.Objective)}";
-
+                MissionObjectiveLabel.text = $"{ObjectiveLabel(_design.Objective)} · ciencia ×{_design.ScienceMultiplier:0.#}";
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var d))
-                CommDelayLabel.text = $"Señal: {d} ida";
+                CommDelayLabel.text = $"Señal real: {d} de ida · {_design.TotalDataMb:F0} Mb por enviar";
+            if (DownlinkLabel != null)
+                DownlinkLabel.text = $"{AntennaLabel(_design.Antenna)} · {_downlinkMbps:0.#} Mb/s · luz {_delayS:0.#} s";
 
-            if (CompleteBtnLabel != null)
-                CompleteBtnLabel.text = "Operaciones en curso…";
-            if (CompleteMissionBtn != null)
-                CompleteMissionBtn.interactable = false;
+            if (PlanetData.TryGetValue(_design.TargetPlanetId, out var data))
+            {
+                if (GravityLabel    != null) GravityLabel.text    = $"Gravedad superficial {data.g:F2} m/s²";
+                if (AtmosphereLabel != null) AtmosphereLabel.text = $"Atmósfera: {data.atm}";
+            }
         }
 
-        void RefreshPlanetInfo()
+        void SetCompleteButton(bool on, string label)
         {
-            if (!PlanetData.TryGetValue(_design.TargetPlanetId, out var data)) return;
-            if (GravityLabel    != null) GravityLabel.text    = $"g = {data.g:F2} m/s²";
-            if (AtmosphereLabel != null) AtmosphereLabel.text = $"Atmósfera: {data.atm}";
+            if (CompleteMissionBtn != null) CompleteMissionBtn.interactable = on;
+            if (CompleteBtnLabel   != null) CompleteBtnLabel.text = label;
         }
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+        // ── Nombres ────────────────────────────────────────────────────────────
 
         public static string InstrumentDisplayName(ScienceInstrument inst) => inst switch
         {
@@ -327,18 +389,25 @@ namespace Navigator.UI
             ScienceInstrument.UVSpectrometer    => "Espectrómetro UV",
             ScienceInstrument.InfraredMapper    => "Mapeador infrarrojo",
             ScienceInstrument.Magnetometer      => "Magnetómetro",
-            ScienceInstrument.ParticleDetector  => "Detector partículas",
+            ScienceInstrument.ParticleDetector  => "Detector de partículas",
             ScienceInstrument.RadioScience      => "Radio ciencia",
             ScienceInstrument.RadarAltimeter    => "Radar altímetro",
             _ => inst.ToString(),
         };
 
-        string ObjectiveLabel(string obj) => obj switch
+        public static string ObjectiveLabel(string obj) => obj switch
         {
             "flyby"   => "Sobrevuelo",
             "orbit"   => "Órbita",
             "landing" => "Aterrizaje",
             _ => obj,
+        };
+
+        public static string AntennaLabel(AntennaType a) => a switch
+        {
+            AntennaType.LowGain    => "Antena baja ganancia",
+            AntennaType.MediumGain => "Antena media ganancia",
+            _                      => "Antena alta ganancia",
         };
     }
 }

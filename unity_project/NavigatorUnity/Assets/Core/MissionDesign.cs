@@ -202,6 +202,97 @@ namespace Navigator.Core
             { "neptune", 16000f },
         };
 
+        // ── Objetivo de misión ────────────────────────────────────────────────
+        // Orbit insertion burn at arrival (real values: Juno JOI 542 m/s, Cassini SOI 626 m/s,
+        // MRO MOI ~1,000 m/s, MESSENGER MOI ~860 m/s; Uranus/Neptune from NASA mission studies)
+        public static readonly Dictionary<string, float> OrbitInsertionDV = new()
+        {
+            { "mercury", 900f  },
+            { "venus",   1000f },
+            { "mars",    1000f },
+            { "jupiter", 600f  },
+            { "saturn",  650f  },
+            { "uranus",  1500f },
+            { "neptune", 1800f },
+        };
+
+        // Descent from orbit to the surface; gas giants have no surface to land on.
+        // Mars/Venus are cheap thanks to aerobraking and parachutes; Mercury is all rocket.
+        public static readonly Dictionary<string, float> LandingDV = new()
+        {
+            { "mercury", 3000f },
+            { "venus",   600f  },
+            { "mars",    900f  },
+        };
+
+        public const float LanderMassKg = 250f;
+        public const float LanderCostM  = 150f;
+
+        // Longer observation = more science: an orbiter maps for years, a lander touches the ground
+        public static float ObjectiveScienceMult(string objective) => objective switch
+        {
+            "orbit"   => 1.5f,
+            "landing" => 2.0f,
+            _         => 1.0f,
+        };
+
+        // Real missions that flew each profile — shown in the debrief
+        public static string RealMission(string planet, string objective) => (planet, objective) switch
+        {
+            ("mercury", "flyby")   => "Mariner 10 (1974)",
+            ("mercury", "orbit")   => "MESSENGER (2011)",
+            ("mercury", "landing") => "ninguna todavía: serías la primera",
+            ("venus",   "flyby")   => "Mariner 2 (1962)",
+            ("venus",   "orbit")   => "Magellan (1990)",
+            ("venus",   "landing") => "Venera 13 (1982)",
+            ("mars",    "flyby")   => "Mariner 4 (1965)",
+            ("mars",    "orbit")   => "Mars Reconnaissance Orbiter (2006)",
+            ("mars",    "landing") => "Perseverance (2021)",
+            ("jupiter", "flyby")   => "Pioneer 10 (1973)",
+            ("jupiter", "orbit")   => "Juno (2016)",
+            ("saturn",  "flyby")   => "Voyager 1 (1980)",
+            ("saturn",  "orbit")   => "Cassini (2004)",
+            ("uranus",  "flyby")   => "Voyager 2 (1986)",
+            ("uranus",  "orbit")   => "Uranus Orbiter and Probe (propuesta NASA)",
+            ("neptune", "flyby")   => "Voyager 2 (1989)",
+            ("neptune", "orbit")   => "Neptune Odyssey (propuesta NASA)",
+            _                      => "ninguna",
+        };
+
+        // ── Comunicaciones (datos que cada instrumento debe enviar a la Tierra) ─
+        public static readonly Dictionary<ScienceInstrument, float> InstrumentDataMb = new()
+        {
+            { ScienceInstrument.WideAngleCamera,   40f },
+            { ScienceInstrument.NarrowAngleCamera, 60f },
+            { ScienceInstrument.UVSpectrometer,    30f },
+            { ScienceInstrument.InfraredMapper,    80f },
+            { ScienceInstrument.Magnetometer,      5f  },
+            { ScienceInstrument.ParticleDetector,  10f },
+            { ScienceInstrument.RadioScience,      2f  },
+            { ScienceInstrument.RadarAltimeter,    50f },
+        };
+
+        // Game-time downlink. Real rates span 12,000× (0.5 kbps → 6 Mbps), which would make
+        // low gain unplayable; the order and the pain are kept, the ratio is compressed.
+        public static readonly Dictionary<AntennaType, float> GameDownlinkMbps = new()
+        {
+            { AntennaType.LowGain,    1.5f },
+            { AntennaType.MediumGain, 6f   },
+            { AntennaType.HighGain,   30f  },
+        };
+
+        // Light-time in game seconds: 1 real minute of mean one-way delay = 0.2 s
+        public static readonly Dictionary<string, float> CommDelayGameS = new()
+        {
+            { "mercury", 1.6f  },
+            { "venus",   1.6f  },
+            { "mars",    2.5f  },
+            { "jupiter", 8.7f  },
+            { "saturn",  15.2f },
+            { "uranus",  32.8f },
+            { "neptune", 50.5f },
+        };
+
         // One-way comm delay string per planet
         public static readonly Dictionary<string, string> CommDelayLabel = new()
         {
@@ -216,8 +307,12 @@ namespace Navigator.Core
 
         // ── Computed properties ────────────────────────────────────────────────
 
+        public bool IsLanding => Objective == "landing";
+        public bool IsOrbit   => Objective == "orbit";
+
         public float DryMassKg =>
             SpacecraftBusKg
+            + (IsLanding ? LanderMassKg : 0f)
             + EngineMassKg[Engine]
             + PowerMassKg[Power]
             + AntennaMassKg[Antenna]
@@ -254,7 +349,21 @@ namespace Navigator.Core
             + AntennaCostM[Antenna]
             + LaunchCostM[LaunchVeh]
             + Instruments.Sum(i => InstrumentCostM[i])
+            + (IsLanding ? LanderCostM : 0f)
             + FuelMassKg * 0.001f;
+
+        // ΔV breakdown: cruise to the planet + orbit insertion + descent
+        public float CruiseDeltaV    => MinDeltaV.TryGetValue(TargetPlanetId, out var d) ? d : 5600f;
+        public float InsertionDeltaV => IsOrbit || IsLanding
+            ? (OrbitInsertionDV.TryGetValue(TargetPlanetId, out var o) ? o : 1000f) : 0f;
+        public float LandingDeltaV   => IsLanding
+            ? (LandingDV.TryGetValue(TargetPlanetId, out var l) ? l : 0f) : 0f;
+        public float RequiredDeltaV  => CruiseDeltaV + InsertionDeltaV + LandingDeltaV;
+
+        public bool  CanLandOnTarget   => LandingDV.ContainsKey(TargetPlanetId ?? "");
+        public bool  IsObjectiveOk     => !IsLanding || CanLandOnTarget;
+        public float ScienceMultiplier => ObjectiveScienceMult(Objective);
+        public float TotalDataMb       => Instruments.Sum(i => InstrumentDataMb[i]);
 
         public int MaxSciencePoints =>
             Instruments.Sum(i => InstrumentSciencePoints[i]);
@@ -262,9 +371,9 @@ namespace Navigator.Core
         public bool IsBudgetOk  => TotalCostM  <= BudgetLimitM;
         public bool IsMassOk    => WetMassKg   <= LaunchCapacityKg[LaunchVeh];
         public bool IsPowerOk   => PowerUsedW  <= EffectivePowerW;
-        public bool HasDeltaV   => DeltaVms    >= (MinDeltaV.TryGetValue(TargetPlanetId, out var d) ? d : 5600f);
+        public bool HasDeltaV   => DeltaVms    >= RequiredDeltaV;
         public bool IsSolarViable => Power != PowerSystem.Solar || SolarEfficiency() >= 0.05f;
-        public bool IsValid     => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV;
+        public bool IsValid     => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV && IsObjectiveOk;
 
         // Maps real fuelMassKg to game fuel units
         public float GameFuelMax => Mathf.Clamp(FuelMassKg / 1200f * 500f, 100f, 2000f);

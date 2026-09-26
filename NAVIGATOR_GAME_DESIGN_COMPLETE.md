@@ -22,17 +22,17 @@ al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científi
 
 | Requisito del reto | Cómo lo resuelve Navigator | Código |
 |---|---|---|
-| Objetivos de misión | Destino (7 planetas) + objetivo (sobrevuelo / órbita / aterrizaje) | `MissionDesignUI` |
+| Objetivos de misión | Destino (7 planetas) + sobrevuelo / órbita / aterrizaje: cada uno cuesta ΔV y multiplica la ciencia | `RequiredDeltaV`, `ScienceMultiplier` |
 | Diseño de nave | Motor, combustible, energía, antena, lanzador, instrumentos | `MissionDesign` |
 | Instrumentos científicos | 8 instrumentos con masa, potencia, costo y puntos | `MissionDesign`, `ScienceOpsUI` |
 | Vehículos de lanzamiento | Falcon 9 / Falcon Heavy / SLS / Starship limitan la masa | `LaunchCapacityKg` |
 | Presupuesto | Límite de $1,000M | `IsBudgetOk` |
 | Energía | Solar (ley del cuadrado inverso) / RTG / reactor | `EffectivePowerW` |
 | Masa | Masa húmeda ≤ capacidad del lanzador | `IsMassOk` |
-| Comunicaciones | Tasa de datos por antena + retardo de señal por planeta | `AntennaDataRateKbps`, `CommDelayLabel` |
+| Comunicaciones | Los datos solo puntúan si la antena los envía a la Tierra antes de que cierre la ventana; la luz tarda según la distancia | `ScienceOpsUI` |
 | Restricciones orbitales | ΔV de Tsiolkovsky ≥ ΔV mínimo del planeta, o no despega | `HasDeltaV` |
 | Trade-offs de ingeniería | Más combustible = más masa = lanzador más caro = menos instrumentos | todo el diseño |
-| Evaluar el éxito | Puntaje = llegada + ciencia + combustible + takedowns + gravity assist | `MissionScore` |
+| Evaluar el éxito | Puntaje + **informe de misión** que explica cómo cada decisión (ΔV, energía, antena, objetivo, presupuesto) afectó el resultado, y qué misión real de la NASA se parece a la tuya | `MissionReport` |
 | Del concepto a la operación | Diseño → lanzamiento → vuelo AR → llegada → ciencia → resultado | `GameManager` |
 
 ### Diferenciador
@@ -65,7 +65,7 @@ QR P2P o          MissionDesignUI   3·2·1·¡DESPEGUE!  HUD + AR          Scie
 | `ScienceOps` | llegada | Distancia al planeta < radio (60) + 40 unidades. Se anuncia la llegada al rival. |
 | `Scoreboard` | `OnMissionComplete()` o misión fallida | Se envía tu puntaje. Si el rival sigue jugando, muestra "Esperando al rival…". |
 
-**Misión fallida:** 0 vidas de casco o 240 s sin llegar (`MaxFlightTimeS`). Solo cuentan los takedowns.
+**Misión fallida:** 0 vidas de casco, varado sin combustible, o 240 s sin llegar (`MaxFlightTimeS`). Solo cuentan los takedowns.
 
 ---
 
@@ -155,9 +155,30 @@ public float EffectivePowerW => Power == PowerSystem.Solar
 public bool IsBudgetOk => TotalCostM <= 1000f;
 public bool IsMassOk   => WetMassKg  <= LaunchCapacityKg[LaunchVeh];
 public bool IsPowerOk  => BusPowerW + Σ InstrumentPowerW <= EffectivePowerW;
-public bool HasDeltaV  => DeltaVms >= MinDeltaV[TargetPlanetId];
-public bool IsValid    => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV;   // LANZAR
+public float RequiredDeltaV => CruiseDeltaV + InsertionDeltaV + LandingDeltaV;
+public bool  HasDeltaV      => DeltaVms >= RequiredDeltaV;
+public bool  IsObjectiveOk  => !IsLanding || CanLandOnTarget;       // sin aterrizar en gigantes gaseosos
+public bool  IsValid        => IsBudgetOk && IsMassOk && IsPowerOk && HasDeltaV && IsObjectiveOk;   // LANZAR
 ```
+
+### Objetivos de misión
+| Objetivo | ΔV extra | Masa / costo extra | Ciencia |
+|---|---|---|---|
+| Sobrevuelo | — | — | ×1.0 |
+| Órbita | inserción orbital | — | ×1.5 |
+| Aterrizaje | inserción + descenso | módulo de 250 kg y $150M | ×2.0 |
+
+| Planeta | Inserción orbital | Descenso | Misiones reales (sobrevuelo / órbita / aterrizaje) |
+|---|---|---|---|
+| Mercurio | 900 m/s | 3,000 m/s (sin atmósfera: todo con cohete) | Mariner 10 / MESSENGER / ninguna |
+| Venus | 1,000 m/s | 600 m/s (atmósfera densa frena) | Mariner 2 / Magellan / Venera 13 |
+| Marte | 1,000 m/s | 900 m/s (escudo + paracaídas) | Mariner 4 / MRO / Perseverance |
+| Júpiter | 600 m/s | sin superficie | Pioneer 10 / Juno / — |
+| Saturno | 650 m/s | sin superficie | Voyager 1 / Cassini / — |
+| Urano | 1,500 m/s | sin superficie | Voyager 2 / propuesta NASA / — |
+| Neptuno | 1,800 m/s | sin superficie | Voyager 2 / propuesta NASA / — |
+
+Inserciones reales de referencia: Juno 542 m/s, Cassini 626 m/s, MRO ~1,000 m/s, MESSENGER ~860 m/s.
 
 ### Diseño por defecto (Marte, válido desde el inicio)
 Químico · 4,500 kg de combustible · Solar · antena media · Falcon Heavy · cámara gran angular · sobrevuelo
@@ -170,7 +191,10 @@ Químico · 4,500 kg de combustible · Solar · antena media · Falcon Heavy · 
 - **Solar en Júpiter o más lejos** entrega 10 W o menos: no alcanza ni para el bus. RTG o reactor.
 - **SLS** cuesta $2,000M: nunca cabe en el presupuesto. Starship es la opción para naves pesadas.
 - **Iónico** tiene muchísimo ΔV pero empuje ×0.55: la nave es más lenta y el rival te puede ganar.
-- El objetivo (sobrevuelo / órbita / aterrizaje) hoy es informativo: se muestra en la pantalla de ciencia.
+- **Aterrizar en Marte** exige 7,500 m/s y 250 kg más: con motor químico no alcanza; el nuclear sí, pero
+  se come el presupuesto. El iónico + Starship es la jugada fina.
+- **Antena de baja ganancia** ahorra $40M y 27 kg, pero envía 4× más lento: con muchos instrumentos,
+  los datos no llegan antes de que cierre la ventana y esos puntos se pierden.
 
 ---
 
@@ -286,13 +310,30 @@ Pasar cerca = near-miss. Tocar uno = daño medio y explosión.
 
 ---
 
-## 8. Ciencia en el planeta — `UI/ScienceOpsUI.cs`
+## 8. Ciencia y comunicaciones en el planeta — `UI/ScienceOpsUI.cs`
 
-- Cada instrumento escanea durante su tiempo (tabla de la sección 3) y al terminar suma sus puntos.
-- **Restricción de energía en vivo:** un instrumento solo avanza si queda energía para él + el bus (80 W).
-  Con poca energía los instrumentos esperan su turno → el diseño de energía se nota aquí.
-- La pantalla muestra planeta, posición de llegada, objetivo, retardo de señal, gravedad superficial y atmósfera.
-- **COMPLETAR MISIÓN** se habilita cuando todos los instrumentos terminan.
+Cada instrumento recorre una cadena; **solo suma puntos cuando sus datos llegan a la Tierra**:
+
+```
+ENERGÍA ──► ESCANEO ──► COLA ──► TRANSMISIÓN ──► VIAJE A LA LUZ ──► RECIBIDO (+pts × objetivo)
+(bus 80 W   (tiempo de   (uno a     (Mb ÷ velocidad   (retardo del
+ + instr.)   escaneo)     la vez)    de la antena)     planeta)
+```
+
+| Etapa | Regla | Decisión de diseño que la controla |
+|---|---|---|
+| Energía | Escanean en paralelo mientras bus + instrumentos activos ≤ potencia disponible; el resto espera | Sistema de energía, distancia al Sol |
+| Escaneo | 5–30 s según el instrumento | Instrumentos elegidos |
+| Transmisión | Un producto a la vez: baja 1.5 · media 6 · alta 30 Mb/s | Antena |
+| Viaje a la luz | Marte 2.5 s · Júpiter 8.7 s · Neptuno 50.5 s (1 min real = 0.2 s) | Destino |
+| Ventana | 75 s + retardo del planeta; lo que no llegó se **pierde** | Todo lo anterior |
+
+Datos por instrumento: cámara gran angular 40 Mb, teleobjetivo 60, UV 30, infrarrojo 80, magnetómetro 5,
+partículas 10, radio ciencia 2, radar 50. Las velocidades reales van de 0.5 kbps a 6 Mbps (12,000×);
+en el juego se comprime la proporción para que la antena baja siga siendo jugable, pero conserva el orden.
+
+La pantalla muestra en vivo el estado de cada instrumento (esperando energía, escaneando, enviando,
+viajando, recibido, perdido), la potencia usada, la cuenta regresiva de la ventana y el puntaje.
 
 ---
 
@@ -310,20 +351,32 @@ public int TotalScore()
     return baseScore + scienceBonus + fuelBonus + takedownBonus + gravAssist;
 }
 ```
-Misión fallida: solo `TakedownCount × 150` (`GameManager.FinishMission`).
+`SciencePoints` ya incluye el multiplicador del objetivo y solo cuenta datos recibidos.
+Misión fallida (casco destruido, sin combustible o tiempo agotado): solo `TakedownCount × 150`.
 
 ### Máximo teórico
 | Componente | Máximo |
 |---|---|
 | Llegar primero | 1,500 |
-| Ciencia (los 8 instrumentos) | 10,600 |
+| Ciencia (los 8 instrumentos, sobrevuelo) | 10,600 (×1.5 en órbita, ×2 aterrizando) |
 | Combustible al 100 % | 500 |
 | 3 takedowns | 450 |
 | Gravity assist | 200 |
-| **Total** | **~13,250** |
+| **Total (sobrevuelo)** | **~13,250** |
 
 Los 8 instrumentos caben en un diseño real: químico + RTG + antena media + Falcon Heavy = $795M,
 6,110 kg, 345 W de 500 W, ΔV 5,886 m/s (alcanza Marte).
+
+### Informe de misión — `UI/MissionReport.cs`
+Al final, el scoreboard explica **por qué** salió así, línea por línea y con color (bien / mejorable / mal):
+- **Propulsión:** ΔV diseñado vs requerido, margen, combustible al llegar o si te quedaste sin él.
+- **Objetivo:** cuánto ΔV y masa costó, cuánto multiplicó la ciencia (o qué habría dado una órbita).
+- **Energía:** si los instrumentos tuvieron que esperar y cuánto (y si un RTG habría ayudado).
+- **Comunicaciones:** cuántos instrumentos llegaron a la Tierra y cuántos puntos se perdieron por la antena.
+- **Recursos:** presupuesto y masa usados; si sobró presupuesto para más instrumentos.
+- **Misión real parecida:** Mariner 4, MRO, Perseverance, Juno, Cassini, Voyager…
+
+El botón **MEJORAR DISEÑO Y REPETIR** vuelve al diseño con tu nave anterior para iterar.
 
 ### Scoreboard — `UI/ScoreboardUI.cs`
 Animación de conteo con ease-out cúbico. **Nunca declara ganador antes de tiempo:** si el rival sigue
@@ -412,7 +465,7 @@ Se importan con **glTFast** (`com.unity.cloud.gltfast` en el manifest). Sin él,
 ### Limitaciones conocidas
 - **iOS:** falta `libsenda_core.a` (estática, `__Internal`); sin ella el build de iOS no enlaza.
 - **Editor en macOS:** solo hay `senda_core.dll` (Windows); en Mac el juego funciona en modo solo.
-- Aún sin detector: near-miss con la nave rival. Sin efecto en el juego: el objetivo de misión y el retardo de señal (solo informativos).
+- Aún sin detector: near-miss con la nave rival.
 
 ---
 

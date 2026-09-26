@@ -6,7 +6,7 @@ Cómo correrlo: [`NAVIGATOR_UNITY_QUICKSTART.md`](../../../NAVIGATOR_UNITY_QUICK
 
 ---
 
-## Scripts (35)
+## Scripts (37)
 
 ### Core/
 | Script | Qué hace |
@@ -15,6 +15,7 @@ Cómo correrlo: [`NAVIGATOR_UNITY_QUICKSTART.md`](../../../NAVIGATOR_UNITY_QUICK
 | `MissionScore.cs` | Puntaje = llegada + ciencia + combustible + takedowns + gravity assist |
 | `PhysicsEngine.cs` | Empuje por motor, gravedad μ/r² hacia el planeta |
 | `ModelFit.cs` | Ajusta los GLB de Meshy a un tamaño conocido |
+| `MissionOutcome.cs` | Lo que pasó en la misión (vuelo, energía, datos enviados/perdidos) |
 
 ### Network/
 | Script | Qué hace |
@@ -53,7 +54,8 @@ Cómo correrlo: [`NAVIGATOR_UNITY_QUICKSTART.md`](../../../NAVIGATOR_UNITY_QUICK
 | `LobbyManager.cs` | QR propio, escáner con vista previa, "Jugar solo" / "¡Despegar!" |
 | `MissionDesignUI.cs` | Pantalla de diseño; LANZAR solo con diseño válido |
 | `CockpitHUD.cs` | Velocidad, combustible, progreso, tiempo, flecha al planeta, Burnout, casco |
-| `ScienceOpsUI.cs` | Instrumentos limitados por energía, puntos en vivo |
+| `ScienceOpsUI.cs` | Energía → escaneo → envío por antena → viaje a la luz; ventana de comunicación |
+| `MissionReport.cs` | Informe final: cómo cada decisión afectó el resultado + misión real parecida |
 | `ScoreboardUI.cs` | Revelado animado; espera al rival antes de declarar ganador |
 | `UIStyle.cs`, `SafeAreaFitter.cs` | Paleta del juego, respeto al notch |
 
@@ -69,5 +71,4 @@ Cómo correrlo: [`NAVIGATOR_UNITY_QUICKSTART.md`](../../../NAVIGATOR_UNITY_QUICK
 ## Pendiente
 - iOS: compilar `libsenda_core.a` (estática) para `__Internal`
 - Detector de near-miss con la nave rival (el método de Burnout ya existe)
-- Dar efecto de juego al objetivo de misión (sobrevuelo / órbita / aterrizaje)
 - Sonido (los campos de audio de `ExplosionVFX` están listos)
