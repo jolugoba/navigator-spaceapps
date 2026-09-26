@@ -17,6 +17,7 @@ namespace Navigator.Network
         public UnityEvent<string>                           OnRemoteArrived = new();  // nodeId
         public UnityEvent<string, string>                   OnRemoteName    = new();  // nodeId, name
         public UnityEvent<string[]>                         OnPeerList      = new();  // peers a rival knows
+        public UnityEvent<string, int>                      OnRemoteShip    = new();  // nodeId, hangar index
 
         public float SendHz = 20f;
 
@@ -114,6 +115,7 @@ namespace Navigator.Network
                 case NavMsgType.lobbyInfo:
                     string name = ExtractValue(msg.pl_json, "name");
                     if (!string.IsNullOrEmpty(name)) OnRemoteName.Invoke(msg.from, name);
+                    if (int.TryParse(ExtractValue(msg.pl_json, "ship"), out int ship)) OnRemoteShip.Invoke(msg.from, ship);
                     // ';'-separated so the simple parser (which stops at ',') keeps it whole
                     string peers = ExtractValue(msg.pl_json, "peers");
                     if (!string.IsNullOrEmpty(peers))

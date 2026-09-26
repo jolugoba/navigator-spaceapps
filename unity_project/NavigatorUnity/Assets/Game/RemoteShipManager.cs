@@ -46,10 +46,21 @@ namespace Navigator.Game
             {
                 _sync.OnRemoteUpdate.AddListener(OnRemoteUpdate);
                 _sync.OnRemoteName.AddListener(OnRemoteName);
+                _sync.OnRemoteShip.AddListener(OnRemoteShip);
             }
         }
 
         private readonly Dictionary<string, string> _names = new();
+        private readonly Dictionary<string, int>    _hulls = new();   // hangar index each rival picked
+
+        // A rival chose (or changed) their ship in the hangar
+        void OnRemoteShip(string nodeId, int index)
+        {
+            if (_hulls.TryGetValue(nodeId, out var current) && current == index) return;
+            _hulls[nodeId] = index;
+            if (_ships.TryGetValue(nodeId, out var inst) && inst.Root != null && ShipCatalog.Instance != null)
+                ShipCatalog.Instance.ApplyTo(inst.Root, index);
+        }
 
         void OnRemoteName(string nodeId, string name)
         {
@@ -145,10 +156,17 @@ namespace Navigator.Game
         RemoteShipInstance SpawnRemoteShip(string nodeId, string displayName)
         {
             GameObject root;
-            if (RemoteShipPrefab != null)
+            var catalog = ShipCatalog.Instance;
+            if (catalog != null && _hulls.TryGetValue(nodeId, out int hull) && catalog.Has(hull))
+            {
+                root = new GameObject();
+                catalog.Build(hull, root.transform);   // the ship they picked in the hangar
+            }
+            else if (RemoteShipPrefab != null)
             {
                 root = new GameObject();
                 var model = Instantiate(RemoteShipPrefab, root.transform);
+                model.name = "Model";
                 model.transform.localRotation = Quaternion.Euler(0f, ModelYaw, 0f);
                 Navigator.Core.ModelFit.FitToSize(model, ShipSize);
             }

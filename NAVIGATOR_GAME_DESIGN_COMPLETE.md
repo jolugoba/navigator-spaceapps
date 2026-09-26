@@ -563,6 +563,13 @@ galaxias y el agujero negro del cielo.
 
 Los modelos se piden en [`NAVIGATOR_MESHY_ASSETS_V3.md`](NAVIGATOR_MESHY_ASSETS_V3.md).
 
+## 10h. Hangar — `Game/ShipCatalog.cs`, `UI/HangarUI.cs`
+El botón **NAVE** del lobby abre el hangar.
+- Hay 10 cascos (Meshy NV-01 … NV-10) que giran en una vista 3D.
+- **Es solo estética:** la velocidad, el combustible y el ΔV salen del diseño de misión, así que ninguna nave es "mejor".
+- La elección se guarda y viaja en `lobbyInfo` (`"ship":N`), así que los rivales ven tu nave.
+- Si una nave vuela de reversa: elígela en el hangar y usa **Navigator → Flip Nose of Ship Selected in Hangar**.
+
 ## 10g. Modo profesor — `UI/ClassroomSession.cs`, `UI/ClassroomUI.cs`, `Core/Quiz.cs`
 El profesor toca **PROFESOR** en el lobby y muestra su QR. Los alumnos lo escanean con *Escanear QR* y quedan en su clase.
 

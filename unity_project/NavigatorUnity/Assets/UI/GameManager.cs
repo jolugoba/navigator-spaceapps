@@ -373,6 +373,7 @@ namespace Navigator.UI
             if (SpaceManager != null) SpaceManager.Locked = true;
 
             SetShipFrozen(false);
+            ApplySelectedShip();
             ResetShip((target - launch).normalized);
             ConfigureShipFromDesign();
             Outcome.Clear();
@@ -412,6 +413,18 @@ namespace Navigator.UI
             SetControls(true);
 
             Debug.Log($"[GM] Vuelo iniciado → {Mission.TargetPlanetId}");
+        }
+
+        // Fly the hull picked in the hangar (only rebuilt when the choice changed)
+        int _appliedShip = -1;
+        void ApplySelectedShip()
+        {
+            var catalog = ShipCatalog.Instance;
+            if (catalog == null || Ship == null || catalog.Count == 0) return;
+            int pick = ShipCatalog.Selected;
+            if (pick == _appliedShip || (_appliedShip < 0 && pick == 0)) { _appliedShip = pick; return; }   // NV-01 is already in the scene
+            catalog.ApplyTo(Ship.transform, pick);
+            _appliedShip = pick;
         }
 
         void ResetShip(Vector3 facing)
