@@ -36,6 +36,40 @@ namespace Navigator.Core
         public LaunchVehicle             LaunchVeh;
         public float                     BudgetM = BudgetLimitM;   // campaign missions set their own
 
+        // ── Launch window (real orbits, see Orbits.cs) ────────────────────────
+        // The planets move: launch on the wrong day and the transfer costs far more ΔV.
+        // Waiting for the window costs money instead (the team, the pad, the spacecraft in storage).
+        public const float WaitCostMPerDay = 0.05f;   // ≈ $18M per year of delay
+        public int      LaunchDelayDays;             // days from today to launch
+        public float    WindowPenaltyDV;             // extra m/s over the best date of the cycle
+        public float    TransferDays;                // real Earth → planet flight time (Lambert)
+        public string   LaunchDateIso = "";          // yyyy-MM-dd, for the debrief
+        public string   RecommendedDateIso = "";     // the window the game recommends
+        public float    RecommendedPenaltyDV;        // its extra m/s (≈ 0)
+        public float    TodayPenaltyDV;              // extra m/s of launching today
+
+        public float WaitCostM => LaunchDelayDays * WaitCostMPerDay;
+
+        // Copies the chosen date out of a porkchop scan
+        public void ApplyWindow(Orbits.WindowScan scan, int delayDays)
+        {
+            if (scan == null)
+            {
+                LaunchDelayDays = 0; WindowPenaltyDV = RecommendedPenaltyDV = TodayPenaltyDV = 0f; TransferDays = 0f;
+                LaunchDateIso = RecommendedDateIso = "";
+                return;
+            }
+            LaunchDelayDays = Mathf.Clamp(delayDays, 0, scan.HorizonDays);
+            var t = scan.At(LaunchDelayDays);
+            WindowPenaltyDV = scan.PenaltyMs(LaunchDelayDays);
+            TransferDays    = t.Ok ? (float)t.TofDays : 0f;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            LaunchDateIso        = scan.LaunchDate(LaunchDelayDays).ToString("yyyy-MM-dd", ci);
+            RecommendedDateIso   = scan.LaunchDate(scan.RecommendedDelayDays).ToString("yyyy-MM-dd", ci);
+            RecommendedPenaltyDV = scan.PenaltyMs(scan.RecommendedDelayDays);
+            TodayPenaltyDV       = scan.PenaltyMs(0);
+        }
+
         // ── Static lookup tables ───────────────────────────────────────────────
 
         public static readonly Dictionary<EngineType, float> EngineIspS = new()
@@ -260,6 +294,26 @@ namespace Navigator.Core
             _                      => Loc.T("mission.none"),
         };
 
+        // Real missions in numbers (approximate public figures: launch mass, cost in then-year
+        // dollars — 0 when no reliable figure —, days from launch to arrival)
+        public static readonly Dictionary<string, (string name, float massKg, float costM, float days, string route)> RealMissionFacts = new()
+        {
+            { "mercury:flyby",   ("Mariner 10",   503f,  98f,   146f,  "venus") },
+            { "mercury:orbit",   ("MESSENGER",    1107f, 446f,  2418f, "venus,earth,mercury") },
+            { "venus:flyby",     ("Mariner 2",    203f,  0f,    109f,  "") },
+            { "venus:orbit",     ("Magellan",     3449f, 680f,  463f,  "") },
+            { "venus:landing",   ("Venera 13",    4363f, 0f,    122f,  "") },
+            { "mars:flyby",      ("Mariner 4",    261f,  83f,   229f,  "") },
+            { "mars:orbit",      ("MRO",          2180f, 720f,  210f,  "") },
+            { "mars:landing",    ("Perseverance", 4010f, 2700f, 203f,  "") },
+            { "jupiter:flyby",   ("Pioneer 10",   258f,  0f,    641f,  "") },
+            { "jupiter:orbit",   ("Juno",         3625f, 1100f, 1796f, "earth") },
+            { "saturn:flyby",    ("Voyager 1",    825f,  0f,    1164f, "jupiter") },
+            { "saturn:orbit",    ("Cassini",      5712f, 3260f, 2451f, "venus,earth,jupiter") },
+            { "uranus:flyby",    ("Voyager 2",    825f,  0f,    3079f, "jupiter,saturn") },
+            { "neptune:flyby",   ("Voyager 2",    825f,  0f,    4388f, "jupiter,saturn,uranus") },
+        };
+
         // ── Science value per planet ──────────────────────────────────────────
         // Order: WideCam, NarrowCam, UV, IR, Magnetometer, Particles, RadioScience, Radar.
         // Grounded in what real missions found valuable: Magellan's radar under Venus' clouds,
@@ -374,7 +428,8 @@ namespace Navigator.Core
             + LaunchCostM[LaunchVeh]
             + Instruments.Sum(i => InstrumentCostM[i])
             + (IsLanding ? LanderCostM : 0f)
-            + FuelMassKg * 0.001f;
+            + FuelMassKg * 0.001f
+            + WaitCostM;
 
         // ΔV breakdown: cruise to the planet + orbit insertion + descent
         public float CruiseDeltaV    => MinDeltaV.TryGetValue(TargetPlanetId, out var d) ? d : 5600f;
@@ -382,7 +437,11 @@ namespace Navigator.Core
             ? (OrbitInsertionDV.TryGetValue(TargetPlanetId, out var o) ? o : 1000f) : 0f;
         public float LandingDeltaV   => IsLanding
             ? (LandingDV.TryGetValue(TargetPlanetId, out var l) ? l : 0f) : 0f;
-        public float RequiredDeltaV  => CruiseDeltaV + InsertionDeltaV + LandingDeltaV;
+        public float RequiredDeltaV  => CruiseDeltaV + InsertionDeltaV + LandingDeltaV + WindowPenaltyDV;
+
+        // Tsiolkovsky inverted: propellant this dry mass needs for a ΔV with a given engine
+        public static float FuelFor(float dryKg, float dv, EngineType engine) =>
+            dryKg * (Mathf.Exp(dv / (EngineIspS[engine] * 9.80665f)) - 1f);
 
         public bool  CanLandOnTarget   => LandingDV.ContainsKey(TargetPlanetId ?? "");
         public bool  IsObjectiveOk     => !IsLanding || CanLandOnTarget;

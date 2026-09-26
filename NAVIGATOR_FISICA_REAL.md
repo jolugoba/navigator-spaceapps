@@ -98,27 +98,36 @@ Si jugador elige RTG + cualquier planeta:
 
 ---
 
-## 3. VENTANAS DE LANZAMIENTO — TIMING REAL
+## 3. VENTANAS DE LANZAMIENTO — TIMING REAL ✅ IMPLEMENTADO (`Core/Orbits.cs`)
 
-```
-No puedes lanzar cuando quieras. Los planetas se mueven.
-La ventana de lanzamiento óptima ocurre cada N años:
+No puedes lanzar cuando quieras: los planetas se mueven. El juego calcula las ventanas con física
+real, el mismo método que usa NASA para sus "porkchop plots":
 
-  Marte:    cada 26 meses (ciclo sinódico)
-  Júpiter:  cada 13 meses
-  Saturno:  cada 12.4 meses
-  Neptuno:  casi anual pero ángulo varía mucho
+1. **Posiciones reales:** elementos keplerianos aproximados de NASA/JPL (Standish, válidos 1800–2050),
+   ecuación de Kepler resuelta con Newton → elipses reales (plano de la eclíptica, sin inclinaciones).
+2. **Problema de Lambert** (variables universales, Curtis alg. 5.2): para cada día de lanzamiento
+   se buscan 40 tiempos de vuelo (0.5× a 1.67× Hohmann) y se queda el más barato.
+3. **Cónicas empalmadas:** salida desde órbita baja terrestre de 300 km;
+   captura en órbita elíptica (periapsis 1.1 radios, e = 0.8, como Juno/Cassini/MRO al llegar).
+4. **Barrido de un ciclo sinódico completo** desde hoy (paso de 4 días) → ventana recomendada = la
+   primera que está a menos de 150 m/s (o 3 %) de la mejor del ciclo.
 
-Si lanzas fuera de ventana:
-  ΔV requerido se duplica o triplica
-  Viaje puede durar 2x más tiempo
-  Algunas misiones se vuelven imposibles con combustible disponible
+**Validado en Python contra ventanas reales** (antes de portar a C#):
 
-Cómo mostrarlo en el juego:
-  Calendario de ventanas visibles en Mission Design
-  Contador: "Próxima ventana a Marte: 14 días"
-  Penalización: lanzar fuera de ventana = +30% de combustible requerido
-```
+| Planeta | Ventanas encontradas | Referencia real |
+|---|---|---|
+| Marte | 2026-11-01 · 2028-12-04 | ventanas de Marte nov-2026 y dic-2028 |
+| Venus | 2026-07-28 · 2028-03-03 | ciclo de 19 meses |
+| Júpiter | oct-2026 · nov-2027 · dic-2028 | cada ~13 meses |
+| Mercurio | cada ~116 días | período sinódico 116 d |
+| Hohmann Tierra–Marte | 259 días | 259 d (valor de libro) |
+
+**En el juego (Diseño de misión → VENTANA DE LANZAMIENTO):**
+- Tira de barras = ΔV extra de salir cada día del ciclo (valles verdes = ventanas).
+- Deslizador de fecha + botón **MEJOR FECHA**; muestra fecha de lanzamiento, duración real del viaje,
+  fecha de llegada, **+m/s** de penalización y **costo de esperar** (≈ $0.05M/día = $18M/año).
+- La penalización se suma al ΔV requerido y la espera al costo: **el trade-off es real** — esperar
+  2 años por la ventana de Venus cuesta ~$26M; salir hoy cuesta +1,800 m/s.
 
 ---
 

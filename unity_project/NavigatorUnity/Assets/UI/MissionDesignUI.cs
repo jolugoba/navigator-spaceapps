@@ -99,9 +99,22 @@ namespace Navigator.UI
         public Button BtnLanding;
         public TMP_Text ObjectiveInfoLabel;  // costo en ΔV y multiplicador de ciencia
 
+        // ── Ventana de lanzamiento (órbitas reales, Orbits.cs) ────────────────
+        [Header("Ventana de lanzamiento")]
+        public Slider        WindowSlider;      // días desde hoy hasta el lanzamiento
+        public Button        BestWindowButton;
+        public TMP_Text      WindowLabel;
+        public RectTransform WindowChart;       // tira "porkchop": costo de salir cada día
+
         // ── Datos ─────────────────────────────────────────────────────────────
         private MissionDesign   _design;
         private CampaignMission _campaign;
+        private Orbits.WindowScan _scan;
+        private string            _scanKey;
+        private MissionDesign     _scanDesign;
+        private readonly List<Image> _bars = new();
+        private RectTransform     _marker;
+        private static readonly Dictionary<string, Orbits.WindowScan> _scanCache = new();
         private static readonly string[] _planetIds =
             { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
 
@@ -190,6 +203,20 @@ namespace Navigator.UI
             BtnOrbit  ?.onClick.AddListener(() => { _design.Objective = "orbit";   Refresh(); });
             BtnLanding?.onClick.AddListener(() => { _design.Objective = "landing"; Refresh(); });
 
+            // Ventana de lanzamiento
+            if (WindowSlider != null)
+            {
+                WindowSlider.wholeNumbers = true;
+                WindowSlider.onValueChanged.AddListener(v => { _design.ApplyWindow(_scan, Mathf.RoundToInt(v)); Refresh(); });
+            }
+            BestWindowButton?.onClick.AddListener(() =>
+            {
+                if (_scan == null) return;
+                _design.ApplyWindow(_scan, _scan.RecommendedDelayDays);
+                WindowSlider?.SetValueWithoutNotify(_design.LaunchDelayDays);
+                Refresh();
+            });
+
             // Lanzar
             LaunchButton?.onClick.AddListener(OnLaunch);
         }
@@ -212,8 +239,105 @@ namespace Navigator.UI
             }
         }
 
+        // ── Launch window: real planet positions + Lambert, recomputed when target or objective changes
+        void EnsureWindow()
+        {
+            string pid = _design.TargetPlanetId;
+            if (!Orbits.Knows(pid)) { _scan = null; _scanKey = null; _design.ApplyWindow(null, 0); return; }
+            bool capture = _design.Objective != "flyby";
+            string key = pid + (capture ? ":c" : ":f") + ":" + System.DateTime.UtcNow.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+            // Same design, same target: keep the date the player picked
+            if (key == _scanKey && _scan != null && _design == _scanDesign) return;
+
+            if (!_scanCache.TryGetValue(key, out _scan))
+            {
+                _scan = Orbits.Scan(pid, capture, System.DateTime.UtcNow);
+                _scanCache[key] = _scan;
+            }
+            _scanKey    = key;
+            _scanDesign = _design;
+            // A new target (or a new design) starts at its recommended window
+            _design.ApplyWindow(_scan, _scan.RecommendedDelayDays);
+            if (WindowSlider != null)
+            {
+                WindowSlider.minValue = 0;
+                WindowSlider.maxValue = _scan.HorizonDays;
+                WindowSlider.SetValueWithoutNotify(_design.LaunchDelayDays);
+            }
+            BuildChart();
+        }
+
+        // One bar per launch date: the height is the extra ΔV, the valleys are the windows
+        void BuildChart()
+        {
+            if (WindowChart == null || _scan == null) return;
+            const int N = 60;
+            while (_bars.Count < N)
+            {
+                var go = new GameObject("Bar", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(WindowChart, false);
+                var img = go.GetComponent<Image>();
+                img.raycastTarget = false;
+                _bars.Add(img);
+            }
+            int horizon = Mathf.Max(1, _scan.HorizonDays);
+            for (int i = 0; i < N; i++)
+            {
+                int day = Mathf.RoundToInt(horizon * (i + 0.5f) / N);
+                float pen = _scan.PenaltyMs(day);
+                float h = 0.06f + 0.94f * Mathf.Clamp01(pen / 6000f);
+                var rt = _bars[i].rectTransform;
+                rt.anchorMin = new Vector2(i / (float)N + 0.002f, 0f);
+                rt.anchorMax = new Vector2((i + 1) / (float)N - 0.002f, h);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                _bars[i].color = pen < 300f ? UIStyle.Good : pen < 1500f ? UIStyle.Warn : UIStyle.Bad;
+            }
+            if (_marker == null)
+            {
+                var go = new GameObject("Marker", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(WindowChart, false);
+                go.GetComponent<Image>().color = UIStyle.Text;
+                go.GetComponent<Image>().raycastTarget = false;
+                _marker = go.GetComponent<RectTransform>();
+            }
+            _marker.SetAsLastSibling();
+        }
+
+        void RefreshWindow()
+        {
+            bool has = _scan != null;
+            if (WindowSlider != null)     WindowSlider.interactable     = has;
+            if (BestWindowButton != null) BestWindowButton.interactable = has;
+            if (!has) { if (WindowLabel != null) WindowLabel.text = ""; return; }
+
+            if (_marker != null)
+            {
+                float x = _design.LaunchDelayDays / (float)Mathf.Max(1, _scan.HorizonDays);
+                _marker.anchorMin = new Vector2(Mathf.Clamp01(x - 0.004f), 0f);
+                _marker.anchorMax = new Vector2(Mathf.Clamp01(x + 0.004f), 1f);
+                _marker.offsetMin = _marker.offsetMax = Vector2.zero;
+            }
+            if (WindowLabel == null) return;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            var launch  = _scan.LaunchDate(_design.LaunchDelayDays);
+            var arrival = launch.AddDays(_design.TransferDays);
+            var best    = _scan.LaunchDate(_scan.RecommendedDelayDays);
+            string when = _design.LaunchDelayDays == 0 ? Loc.T("design.window.today") : Loc.F("design.window.in", _design.LaunchDelayDays);
+            float pen = _design.WindowPenaltyDV;
+            string penHex = pen < 300f ? "#52EB8C" : pen < 1500f ? "#FFC44D" : "#FF5C5C";
+            WindowLabel.text =
+                Loc.F("design.window.info", launch.ToString("yyyy-MM-dd", ci), when, TripText(_design.TransferDays), arrival.ToString("yyyy-MM-dd", ci)) + "\n" +
+                $"<color={penHex}>" + Loc.F("design.window.cost", pen, _design.WaitCostM) + "</color>\n" +
+                "<size=85%><color=#8FA3C7>" + Loc.F("design.window.hint", best.ToString("yyyy-MM-dd", ci)) + "</color></size>";
+        }
+
+        public static string TripText(float days) =>
+            days >= 730f ? Loc.F("trip.years", days / 365.25f) : Loc.F("trip.months", days / 30.44f);
+
         void Refresh()
         {
+            EnsureWindow();
+            RefreshWindow();
             RefreshInstrumentLabels();
             if (BriefLabel != null)
                 BriefLabel.text = _campaign == null ? Loc.T("design.subtitle")
@@ -256,6 +380,7 @@ namespace Navigator.UI
                 string parts = Loc.F("design.dv.cruise", _design.CruiseDeltaV);
                 if (_design.InsertionDeltaV > 0f) parts += Loc.F("design.dv.insert", _design.InsertionDeltaV);
                 if (_design.LandingDeltaV   > 0f) parts += Loc.F("design.dv.descent", _design.LandingDeltaV);
+                if (_design.WindowPenaltyDV >= 1f) parts += Loc.F("design.dv.window", _design.WindowPenaltyDV);
                 DeltaVRequiredLabel.text = Loc.F("design.required", dvReq, parts);
             }
             if (ObjectiveInfoLabel != null)

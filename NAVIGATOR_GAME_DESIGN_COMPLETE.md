@@ -31,8 +31,9 @@ al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científi
 | Masa | Masa húmeda ≤ capacidad del lanzador | `IsMassOk` |
 | Comunicaciones | Los datos solo puntúan si la antena los envía a la Tierra antes de que cierre la ventana; la luz tarda según la distancia | `ScienceOpsUI` |
 | Restricciones orbitales | ΔV de Tsiolkovsky ≥ ΔV mínimo del planeta, o no despega | `HasDeltaV` |
+| Restricciones orbitales (ventanas) | **Órbitas reales NASA/JPL + problema de Lambert**: elegir la fecha de lanzamiento; fuera de ventana cuesta miles de m/s, esperar cuesta dinero | `Orbits.Scan`, `ApplyWindow` |
 | Trade-offs de ingeniería | Más combustible = más masa = lanzador más caro = menos instrumentos | todo el diseño |
-| Evaluar el éxito | Puntaje + **informe de misión** que explica cómo cada decisión (ΔV, energía, antena, objetivo, presupuesto) afectó el resultado, y qué misión real de la NASA se parece a la tuya | `MissionReport` |
+| Evaluar el éxito | Puntaje + **informe de misión** que explica cómo cada decisión (ΔV, energía, antena, objetivo, presupuesto) afectó el resultado, qué habría pasado con otra decisión (**¿y si hubieras…?**) y cómo te comparas con la misión real de la NASA | `MissionReport` |
 | Del concepto a la operación | Briefing → diseño → lanzamiento → **operación en crucero con anomalías reales** → llegada → ciencia → informe | `TutorialUI`, `MissionEventsUI` |
 | Gestionar recursos limitados | En crucero decides con combustible, energía, tiempo e instrumentos: tormenta solar, falla, apagón, error de navegación | `MissionEventsUI` |
 
@@ -472,7 +473,14 @@ Al final, el scoreboard explica **por qué** salió así, línea por línea y co
 - **Energía:** si los instrumentos tuvieron que esperar y cuánto (y si un RTG habría ayudado).
 - **Comunicaciones:** cuántos instrumentos llegaron a la Tierra y cuántos puntos se perdieron por la antena.
 - **Recursos:** presupuesto y masa usados; si sobró presupuesto para más instrumentos.
-- **Misión real parecida:** Mariner 4, MRO, Perseverance, Juno, Cassini, Voyager…
+- **Trayectoria:** fecha real de lanzamiento, duración de la transferencia (Lambert) y penalización.
+- **¿Y si hubieras…?** la misma misión con UNA decisión cambiada, recalculada con ecuaciones reales:
+  lanzar en la ventana (m/s y kg ahorrados), el propelente exacto que faltó o sobró (Tsiolkovsky;
+  y si con menos masa cabía en un lanzador más barato), el motor iónico con el mismo propelente,
+  RTG vs paneles solares (1/r²) y la antena de alta ganancia (tiempo de descarga y puntos salvados).
+- **Tú vs la misión real:** masa, costo y tiempo de viaje de Mariner 10, MESSENGER, Mariner 2,
+  Magellan, Venera 13, Mariner 4, MRO, Perseverance, Pioneer 10, Juno, Voyager 1/2 y Cassini
+  (cifras públicas aproximadas) junto a tu nave, incluidas las asistencias gravitatorias que usaron.
 
 El botón **MEJORAR DISEÑO Y REPETIR** vuelve al diseño con tu nave anterior para iterar.
 

@@ -24,6 +24,10 @@ namespace Navigator.UI
             sb.AppendLine($"<color={Accent}><b>{Loc.T("rep.title")}</b></color>");
             sb.AppendLine($"<color={Muted}>{Loc.F("rep.header", Loc.Objective(d.Objective), Loc.Planet(d.TargetPlanetId), MissionDesign.RealMission(d.TargetPlanetId, d.Objective))}</color>");
 
+            // Trajectory: the real launch date and flight time from the Lambert solution
+            if (!string.IsNullOrEmpty(d.LaunchDateIso) && d.TransferDays > 0f)
+                Line(sb, Muted, Loc.F("rep.traj", d.LaunchDateIso, MissionDesignUI.TripText(d.TransferDays), d.WindowPenaltyDV));
+
             // Propulsion
             float margin = d.DeltaVms / d.RequiredDeltaV - 1f;
             if (o.RanOutOfFuel)
@@ -50,6 +54,8 @@ namespace Navigator.UI
                 Line(sb, Bad, Loc.F("rep.fail", reason, o.FlightTimeS));
                 foreach (var e in o.EventLog) Line(sb, Accent, Loc.F("rep.ops", e));
                 Budget(sb, d);
+                WhatIf(sb, d, o);
+                RealComparison(sb, d);
                 return sb.ToString().TrimEnd();
             }
 
@@ -89,8 +95,121 @@ namespace Navigator.UI
             if (o.Takedowns > 0 || o.HullLeft < 3)
                 Line(sb, Muted, Loc.F("rep.race", o.Takedowns, o.HullLeft, o.FlightTimeS));
 
+            WhatIf(sb, d, o);
+            RealComparison(sb, d);
             return sb.ToString().TrimEnd();
         }
+
+        const float G0 = 9.80665f;
+
+        // "What if…?": the same mission with one decision changed, recomputed with the real equations
+        // (Tsiolkovsky, inverse-square sunlight, the downlink rates and the porkchop scan)
+        static void WhatIf(StringBuilder sb, MissionDesign d, MissionOutcome o)
+        {
+            var lines = new List<string>();
+            float dry = d.DryMassKg, req = d.RequiredDeltaV;
+
+            // Launch date
+            float saved = d.WindowPenaltyDV - d.RecommendedPenaltyDV;
+            if (saved >= 100f && !string.IsNullOrEmpty(d.RecommendedDateIso))
+            {
+                float kg = MissionDesign.FuelFor(dry, req, d.Engine) - MissionDesign.FuelFor(dry, req - saved, d.Engine);
+                lines.Add(Loc.F("rep.if.window", d.RecommendedDateIso, saved, kg));
+            }
+            else if (d.LaunchDelayDays > 0 && d.TodayPenaltyDV - d.WindowPenaltyDV >= 100f)
+            {
+                float extra = d.TodayPenaltyDV - d.WindowPenaltyDV;
+                float kg = MissionDesign.FuelFor(dry, req + extra, d.Engine) - MissionDesign.FuelFor(dry, req, d.Engine);
+                lines.Add(Loc.F("rep.if.waited", d.LaunchDelayDays, d.WaitCostM, extra, kg));
+            }
+
+            // Propellant: too little or too much
+            float needed = MissionDesign.FuelFor(dry, req, d.Engine);
+            if (o.RanOutOfFuel || d.DeltaVms < req)
+            {
+                float more = Mathf.Max(0f, needed - d.FuelMassKg);
+                lines.Add(Loc.F("rep.if.fuel", more, req, MissionDesign.EngineIspS[d.Engine]));
+            }
+            else
+            {
+                float withMargin = MissionDesign.FuelFor(dry, req * 1.1f, d.Engine);
+                float excess = d.FuelMassKg - withMargin;
+                if (excess > 300f)
+                {
+                    float lighter = d.WetMassKg - excess;
+                    LaunchVehicle? cheaper = null;
+                    foreach (LaunchVehicle lv in System.Enum.GetValues(typeof(LaunchVehicle)))
+                        if (lv != d.LaunchVeh && lighter <= MissionDesign.LaunchCapacityKg[lv] &&
+                            MissionDesign.LaunchCostM[lv] < MissionDesign.LaunchCostM[d.LaunchVeh] &&
+                            (cheaper == null || MissionDesign.LaunchCostM[lv] < MissionDesign.LaunchCostM[cheaper.Value]))
+                            cheaper = lv;
+                    lines.Add(cheaper.HasValue
+                        ? Loc.F("rep.if.excess.launcher", excess, lighter, LauncherName(cheaper.Value),
+                                MissionDesign.LaunchCostM[d.LaunchVeh] - MissionDesign.LaunchCostM[cheaper.Value])
+                        : Loc.F("rep.if.excess", excess, lighter));
+                }
+            }
+
+            // Engine: the same propellant with the ion engine
+            if (d.Engine != EngineType.Ion && d.FuelMassKg > 0f)
+            {
+                float dryIon = dry - MissionDesign.EngineMassKg[d.Engine] + MissionDesign.EngineMassKg[EngineType.Ion];
+                float dvIon  = MissionDesign.EngineIspS[EngineType.Ion] * G0 * Mathf.Log((dryIon + d.FuelMassKg) / dryIon);
+                if (dvIon > d.DeltaVms * 1.3f)
+                    lines.Add(Loc.F("rep.if.ion", d.FuelMassKg, dvIon, d.DeltaVms,
+                                    MissionDesign.EngineCostM[EngineType.Ion] - MissionDesign.EngineCostM[d.Engine]));
+            }
+
+            // Power: sunlight falls with 1/r²
+            float au = MissionDesign.PlanetAU.TryGetValue(d.TargetPlanetId ?? "", out var a) ? a : 1f;
+            if (d.Power == PowerSystem.Solar && d.SolarEfficiency() < 0.5f)
+                lines.Add(Loc.F("rep.if.rtg", au, d.SolarEfficiency(), d.EffectivePowerW,
+                                MissionDesign.PowerOutputW[PowerSystem.RTG],
+                                MissionDesign.PowerCostM[PowerSystem.RTG] - MissionDesign.PowerCostM[PowerSystem.Solar]));
+            else if (d.Power != PowerSystem.Solar &&
+                     MissionDesign.PowerOutputW[PowerSystem.Solar] / (au * au) >= d.PowerUsedW)
+                lines.Add(Loc.F("rep.if.solar", au, MissionDesign.PowerOutputW[PowerSystem.Solar] / (au * au), d.PowerUsedW,
+                                MissionDesign.PowerCostM[d.Power] - MissionDesign.PowerCostM[PowerSystem.Solar]));
+
+            // Antenna: time to send everything home
+            if (o.PointsLost > 0 && d.Antenna != AntennaType.HighGain && d.TotalDataMb > 0f)
+                lines.Add(Loc.F("rep.if.antenna", d.TotalDataMb,
+                                d.TotalDataMb / MissionDesign.GameDownlinkMbps[d.Antenna],
+                                d.TotalDataMb / MissionDesign.GameDownlinkMbps[AntennaType.HighGain],
+                                o.PointsLost,
+                                MissionDesign.AntennaCostM[AntennaType.HighGain] - MissionDesign.AntennaCostM[d.Antenna]));
+
+            if (lines.Count == 0) return;
+            sb.AppendLine($"\n<color={Accent}><b>{Loc.T("rep.if.title")}</b></color>");
+            foreach (var l in lines) Line(sb, Warn, l);
+        }
+
+        // Your mission next to the real one that flew the same profile
+        static void RealComparison(StringBuilder sb, MissionDesign d)
+        {
+            if (!MissionDesign.RealMissionFacts.TryGetValue(d.TargetPlanetId + ":" + d.Objective, out var r)) return;
+            string cost = r.costM > 0f ? Loc.F("rep.real.cost", r.costM) : Loc.T("rep.real.nocost");
+            string route = "";
+            if (!string.IsNullOrEmpty(r.route))
+            {
+                var names = new List<string>();
+                foreach (var id in r.route.Split(',')) names.Add(Loc.Planet(id));
+                route = Loc.F("rep.real.route", string.Join(", ", names));
+            }
+            sb.AppendLine($"\n<color={Accent}><b>{Loc.T("rep.real.title")}</b></color>");
+            Line(sb, Muted, Loc.F("rep.real.them", r.name, r.massKg, cost, MissionDesignUI.TripText(r.days), route));
+            string trip = d.TransferDays > 0f ? MissionDesignUI.TripText(d.TransferDays) : "—";
+            Line(sb, Accent, Loc.F("rep.real.you", d.WetMassKg, d.TotalCostM, trip));
+            sb.AppendLine($"<size=80%><color={Muted}>{Loc.T("rep.real.note")}</color></size>");
+        }
+
+        static string LauncherName(LaunchVehicle lv) => lv switch
+        {
+            LaunchVehicle.Falcon9     => "Falcon 9",
+            LaunchVehicle.FalconHeavy => "Falcon Heavy",
+            LaunchVehicle.SLS         => "SLS",
+            _                         => "Starship",
+        };
 
         static void Budget(StringBuilder sb, MissionDesign d)
         {

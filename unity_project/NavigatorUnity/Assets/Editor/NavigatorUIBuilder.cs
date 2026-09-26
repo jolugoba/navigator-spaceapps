@@ -225,6 +225,14 @@ namespace Navigator.Editor
             ui.BtnLanding = UIKit.ButtonTop(s, "Landing", "@objective.landing", 2f / 3, 1f,     78, 90, 32);
             ui.ObjectiveInfoLabel = UIKit.TextTop(s, "ObjectiveInfo", "", 28, 0f, 1f, 180, 44, TextAlignmentOptions.Left, UIStyle.Muted);
 
+            // Ventana de lanzamiento: la tira muestra el ΔV extra de salir cada día (valles = ventanas)
+            s = UIKit.Section(content, "@design.window", 470);
+            var chart = UIKit.ImageTop(s, "WindowChart", 0f, 1f, 74, 120, new Color(1f, 1f, 1f, 0.04f));
+            ui.WindowChart      = chart.rectTransform;
+            ui.WindowSlider     = UIKit.SliderTop(s, "WindowSlider", 0f, 0.62f, 214, 56);
+            ui.BestWindowButton = UIKit.ButtonTop(s, "BestWindow", "@design.window.best", 0.65f, 1f, 206, 72, 26);
+            ui.WindowLabel      = UIKit.TextTop(s, "WindowInfo", "", 26, 0f, 1f, 292, 170, TextAlignmentOptions.TopLeft, UIStyle.Text);
+
             // Motor
             s = UIKit.Section(content, "@design.engine", 330);
             ui.BtnChemical = UIKit.ButtonTop(s, "Chemical", "@engine.Chemical", 0f,     1f / 3, 78, 90, 32);
@@ -1061,9 +1069,12 @@ namespace Navigator.Editor
             ui.RemoteScoreBar     = UIKit.Bar(remote, "Bar", new Vector4(0.04f, 0.04f, 0.96f, 0.1f), UIStyle.Gold);
 
             var debrief = UIKit.Card(p, "Debrief", new Vector4(0.05f, 0.245f, 0.95f, 0.525f), UIStyle.Card);
-            ui.DebriefLabel = UIKit.Text(debrief, "Text", "", 27, new Vector4(0.04f, 0.03f, 0.96f, 0.97f),
+            // The debrief (design effects, what-ifs, real mission) is long: it scrolls
+            var debriefScroll = UIKit.Scroll(debrief, "Scroll", new Vector4(0f, 0.02f, 1f, 0.98f));
+            ui.DebriefLabel = UIKit.Text(debriefScroll, "Text", "", 25, new Vector4(0f, 0f, 1f, 1f),
                                          TextAlignmentOptions.TopLeft, UIStyle.Text);
-            ui.DebriefLabel.fontSizeMin = 16f;
+            ui.DebriefLabel.enableAutoSizing = false;
+            ui.DebriefLabel.textWrappingMode = TextWrappingModes.Normal;
 
             ui.PlayAgainButton = UIKit.Button(p, "PlayAgain", "@sb.again", new Vector4(0.05f, 0.135f, 0.49f, 0.225f),
                                               UIStyle.ButtonIdle, UIStyle.Text, 32, FontStyles.Bold);
