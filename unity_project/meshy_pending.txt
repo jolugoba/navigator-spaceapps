@@ -1,3 +1,0 @@
-﻿IC-01=Scientific telescope camera on foldable extensible tripod stand, deployable space science instrument.
-IC-02=Parabolic dish antenna on support pole, classic satellite dish with cables, deployable space antenna.
-IC-03=Space magnetometer on extendable robotic arm, articulated arm with cylindrical rotating sensor at tip.
