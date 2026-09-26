@@ -1,6 +1,11 @@
-# NAVIGATOR 2.0 — Plan Completo Unity + AR + Senda Post-Cuántico
-**Guacalita Inc. — NASA Space Apps Challenge / Producto comercial**
-**Fecha definición: 2026-09-22**
+# NAVIGATOR 2.0 — Plan Unity (producto único)
+**Guacalita Inc. — NASA Space Apps Challenge 2026 / Producto comercial**
+**Definido: 2026-09-22 · Revisado: 2026-09-26 — Unity pasa a ser la ÚNICA plataforma**
+
+> **Cambio de rumbo (2026-09-26):** todo NAVIGATOR se construye en Unity, incluida
+> la entrega para NASA Space Apps. La app Flutter (`lib/`, `android/`, `ios/`,
+> `pubspec.yaml`) queda como **referencia de lógica ya portada** y deja de
+> desarrollarse. No hay "Fase 0 Flutter".
 
 ---
 
@@ -18,497 +23,261 @@
 
 **Nivel:** Intermediate / Beginner-Youth | **Tema:** Games
 
-### Cobertura completa del reto
+### Cobertura del reto — estado REAL en los scripts Unity
 
-| Requisito del reto | Cómo Navigator lo resuelve |
-|---|---|
-| Mission objectives | flyby / orbit / landing — cada uno cambia delta-V mínimo requerido |
-| Spacecraft design | selección de motor + potencia + antena + combustible con consecuencias reales |
-| Scientific instruments | 8 instrumentos NASA reales con masa/potencia/puntos de ciencia propios |
-| Launch vehicles | Falcon 9 / Heavy / SLS / Starship — cada uno limita la masa total |
-| Budgets | límite real $1,000M — si te pasas no puedes lanzar |
-| Power | solar/RTG/reactor generan W — instrumentos consumen W — balance visible |
-| Mass | masa seca + combustible debe caber en el lanzador elegido |
-| Communications | antena define kbps reales + retardo de luz (AU × 8.317 min) |
-| Orbital constraints | delta-V Tsiolkovsky — si no alcanza, la misión falla antes de despegar |
-| Engineering decisions | gauges en tiempo real muestran impacto de cada decisión |
-| Managing limited resources | trade-off real: más motor = menos instrumentos = menos ciencia |
-| Evaluate how choices shape success | score final = velocidad llegada + ciencia + combustible restante |
-| Concept to operation | diseño → lanzamiento AR → vuelo → llegada → ciencia ops → resultado |
+| Requisito del reto | Cómo lo resuelve Navigator | Estado |
+|---|---|---|
+| Mission objectives | flyby / orbit / landing | ⚠️ Se elige en `MissionDesignUI`, pero **no cambia el ΔV requerido** — falta en `MissionDesign.cs` |
+| Spacecraft design | motor + potencia + antena + combustible | ✅ `MissionDesign.cs` |
+| Scientific instruments | 8 instrumentos con masa/potencia/puntos | ✅ `MissionDesign.cs` + `ScienceOpsUI.cs` |
+| Launch vehicles | Falcon 9 / Heavy / SLS / Starship limitan masa | ✅ `MissionDesign.cs` |
+| Budgets | límite $1,000M | ✅ `IsBudgetOk` |
+| Power | solar (cuadrado inverso) / RTG / reactor | ✅ `IsPowerOk` + degradación solar |
+| Mass | masa total ≤ capacidad del lanzador | ✅ `IsMassOk` |
+| Communications | kbps por antena + retardo de luz (AU × 8.317 min) | ✅ `ScienceOpsUI.cs` |
+| Orbital constraints | ΔV Tsiolkovsky vs ΔV mínimo por planeta | ✅ `MissionDesign.cs` |
+| Engineering decisions | gauges en tiempo real | ✅ `MissionDesignUI.cs` (requiere montar el Canvas) |
+| Managing limited resources | más motor/fuel = menos instrumentos | ✅ |
+| Evaluate how choices shape success | score = llegada + ciencia + fuel + takedowns + GA | ✅ `MissionScore.cs` + `ScoreboardUI.cs` |
+| Concept to operation | diseño → despegue AR → vuelo → llegada → ciencia → resultado | ✅ `GameManager.cs` (máquina de estados) |
 
-### Diferenciador sobre otros participantes
+### Diferenciador
 ```
-Otros equipos harán:   juego de escritorio / web con menús y sliders
-Navigator hace:        misión en AR sobre tu celular — la ves ocurrir
-                       en tu espacio real + multijugador cifrado
-                       + física real Tsiolkovsky + posiciones NASA reales
+Otros equipos:   juego de escritorio / web con menús y sliders
+Navigator:       misión en AR en tu celular — la ves ocurrir en tu espacio real
+                 + multijugador P2P cifrado sin servidor
+                 + física Tsiolkovsky + posiciones planetarias NASA reales
 ```
 
 ---
 
 ## 1. QUÉ ES NAVIGATOR
 
-Juego AR multijugador espacial donde la misión espacial ocurre en tiempo real
-a través de la cámara del celular — sin gafas, sin headset, solo el teléfono.
-Toda comunicación entre jugadores cifrada con criptografía post-cuántica
-(Kyber-1024 + Dilithium-5). Sin servidor central — P2P puro.
-
-**Diferenciador único en el mundo:**
-> AR en celular (sin gafas) + multiplayer P2P post-cuántico + física NASA real + misión científica completa concept-to-operation
+Juego AR multijugador espacial para celular — **sin gafas, sin headset, solo el teléfono**.
+El jugador diseña una misión con restricciones reales de ingeniería, despega en AR
+en su propio espacio (cuarto, aula, auditorio) y compite/coopera con otros jugadores
+conectados P2P, sin servidor central.
 
 ---
 
-## 2. LO QUE CONSTRUIMOS EN FLUTTER (Navigator 1.0)
+## 2. DECISIONES DE STACK (cerradas)
 
-### 2.1 Stack Flutter actual
-- **Motor 3D:** filament_scene (PBR Filament) + CustomPainter 2D proyectado
-- **Red P2P:** senda_p2p_chat (Kyber-1024 + Dilithium-5, sin servidor)
-- **Física:** ECS propio (SpaceWorld, EntityId, Systems)
-- **AR:** cámara básica con CameraPreview de fondo
-- **GPS + NASA:** Horizons API → posición real de planetas
-- **Lenguaje:** Dart / Flutter
+| Área | Decisión | Descartado |
+|---|---|---|
+| Motor | **Unity 6 LTS** | Flutter + filament_scene |
+| Render | **URP** 17 | Built-in |
+| AR | **AR Foundation 6** + ARCore (Android) + ARKit (iOS) | CameraPreview de Flutter |
+| Red P2P | **Senda nativo** (`senda_core`, Rust) vía **P/Invoke** en `SendaBridge.cs` | Mirror, Photon (requieren servidor/relay), companion app por WebSocket |
+| Cripto | Túnel **Iroh** (QUIC + TLS 1.3) + firmas **Dilithium-5** | — |
+| QR | ZXing.Net (Asset Store) | Unity Relay/Lobby |
+| Datos NASA | JPL Horizons API vía `UnityWebRequest` | — |
+| Assets 3D | Meshy AI → GLB/FBX; personajes con Mixamo | — |
+| Input | Input System 1.9 **+ legacy** (ver §4) | — |
+| Plataformas | Android (ARM64, API 26+) + iOS | Desktop |
 
-### 2.2 Sistemas implementados (funcionando)
+> **Sobre "post-cuántico":** hoy el código usa **Dilithium-5** (firma post-cuántica)
+> sobre el túnel Iroh. El intercambio de claves de Iroh (TLS 1.3) es clásico (X25519), salvo que `senda_core` añada otra capa.
+> **Kyber-1024 no está implementado.** Hasta que `senda_core` exponga un handshake
+> Kyber, el pitch debe decir *"identidad firmada con Dilithium-5 (post-cuántico)"*,
+> no *"cifrado Kyber-1024"*. Añadir Kyber está en la Fase 6.
 
-#### ECS (Entity Component System)
+> **IA a bordo (NORA):** fuera de alcance para la entrega NASA. Se evalúa después del lanzamiento.
+
+---
+
+## 3. ARQUITECTURA — LO QUE YA EXISTE (27 scripts en `unity_scripts/`)
+
+Una sola escena de juego (`SpaceFlight.unity`) controlada por **`GameManager`**
+(máquina de estados: `Lobby → MissionDesign → Countdown → InFlight → ScienceOps → Scoreboard`).
+Los paneles de UI se activan/desactivan por estado; no hay `SceneManager.LoadScene`.
+
 ```
-SpaceWorld          — registro de entidades y componentes
-EntityId            — identificador único por entidad
-Components:
-  ShipTransform     — posición, yaw, pitch, roll
-  ShipVelocity      — velocidad lineal + angular
-  ShipThrust        — thrust main/lateral/boost
-  ShipFuel          — current/max, fraction, isEmpty
-  ShipHealth        — puntos de vida
-  ShipOwner         — nodeId, displayName, isLocal
-  ShipFuel          — combustible real mapeado de misión
-  MissionTarget     — planetId, distanceUnits, arrivedAt
-  MissionScore      — tiempo, boost usado, delta-V total
-Systems:
-  FuelSystem        — drain por thrust + boost
-  FlightPhysicsSystem — thrust → vel → pos + gravedad planetaria
-  SteeringSystem    — yaw/pitch angular
-  MissionTrackingSystem — distancia al planeta objetivo
-  ShipCollisionSystem — detección colisiones ECS
-```
-
-#### Motor de física real
-```dart
-// Ecuación de Tsiolkovsky (delta-V real)
-deltaV = Isp × g₀ × ln(masa_húmeda / masa_seca)
-
-// Gravedad planetaria F = μ/r²
-forceMag = planetGravityMu[planetId] / r²
-vel += direction.normalized × forceMag × dt
-
-// Valores μ por planeta (unidades de juego, escala 1:1000u)
-mercury: 190_000   venus:   455_000   mars:   190_000
-jupiter: 1_265_000 saturn:  535_000   uranus: 445_000
-neptune: 570_000
-
-// Multiplicador de empuje por motor
-chemical: 1.0x    ion: 0.55x    nuclear: 1.4x
-```
-
-#### Mission Design System (diseño de misión científica)
-```
-Componentes seleccionables por el jugador:
-  Motor:        químico / iónico / nuclear
-  Combustible:  200–8000 kg (slider)
-  Potencia:     paneles solares / RTG / reactor nuclear
-  Antena:       omnidireccional (0.5kbps) / mediana (100kbps) / HGA (6Mbps)
-  Lanzador:     Falcon 9 / Falcon Heavy / SLS / Starship
-  Instrumentos: 8 tipos (cámara, espectrómetro, magnetómetro, radar, etc.)
-
-Cálculos en tiempo real:
-  Presupuesto total ($M)     — límite $1,000M
-  Masa total (kg)            — límite según lanzador
-  Delta-V disponible (m/s)   — mínimo por planeta
-  Potencia disponible (W)    — no sobrepasar con instrumentos
-
-Planetas objetivo con delta-V mínimo real:
-  mercury: 10,900 m/s   venus:   6,500 m/s   mars:    5,600 m/s
-  jupiter:  9,100 m/s   saturn: 10,400 m/s   uranus: 15,900 m/s
-  neptune: 16,000 m/s
-```
-
-#### Operaciones Científicas (ScienceOpsScreen)
-```
-Al llegar al planeta:
-  - Activar/desactivar instrumentos según potencia disponible
-  - Cada instrumento llena barra de progreso en ~25s
-  - Retraso de comunicación real (AU × 8.317 min/AU)
-    mercury: 5.1 min   jupiter: 43.2 min   neptune: 250 min
-  - Transmisión a la Tierra a velocidad real de antena
-  - Puntos de ciencia acumulados → score final
-```
-
-#### Efectos visuales implementados en Flutter
-```
-_UniversePainter (CustomPainter):
-  - 300 estrellas con proyección perspectiva 3D manual
-  - 5 nebulosas con blur radial
-  - Sol con corona 4 capas + 5 lens flares
-  - Planetas con texturas JPG descargadas + procedural fallback
-  - Anillos Saturn/Uranus (back half + front half)
-  - Hiperespace: estrellas se elongan en boost
-  - Shooting stars cada 5s
-  - Space dust parallax (profundidad)
-  - Explosiones con shockwave + partículas
-  - Silhouette cabina + nariz nave + alas
-  - Gauges: velocidad, combustible, G-force
-  - Indicador de vidas (3 corazones)
-  - Alerta proximidad + colisión
-  - Warning combustible crítico (parpadeo)
-```
-
-#### Red P2P post-cuántica
-```
-senda_p2p_chat:
-  - Kyber-1024: encapsulación de clave
-  - Dilithium-5: firma digital identidad
-  - Iroh P2P: descubrimiento de peers sin servidor
-  - Sin internet requerido (LAN/WiFi directo)
-  - WebRTC para streaming de estado de naves
-
-ShipSyncService:
-  - broadcast(ShipState) — posición/vel/yaw/pitch cada frame
-  - onRemoteUpdate stream — recibe estados de otras naves
-  - broadcastMissionEnd(score) — finaliza misión
-  - onRemoteScore stream — leaderboard en tiempo real
-
-ShipState sincronizado entre jugadores:
-  position, velocity, yaw, pitch, roll,
-  throttle, boosting, missionTarget, distanceToTarget,
-  score, timestamp
-```
-
-#### NASA Horizons API
-```
-HorizonsService.getPlanetPosition(nasaBodyId, lat, lon):
-  - Consulta posición real del planeta desde ubicación GPS del jugador
-  - Retorna azimuth + altitud en grados
-  - Convierte a Vec3 direccional para mostrar en pantalla correcta
-  - Fallback a posición fija si no hay internet
-```
-
-#### Colisiones y vida
-```
-- 3 vidas por jugador
-- Colisión = -1 vida + explosión + screen shake + 3s invencibilidad
-- 0 vidas = nave destruida + fin de misión
-- Transferencia de combustible entre naves cercanas (<30u)
-- Combustible vacío = fin de misión (fallo)
-```
-
-### 2.3 Pantallas implementadas
-```
-MainMenuScreen      — menú principal animado
-LobbyScreen         — sala P2P, QR code de conexión, lista de jugadores
-MissionSelectScreen — selección de planeta objetivo
-MissionDesignScreen — diseño de nave con presupuesto/masa/potencia en tiempo real
-CockpitView         — vuelo principal con AR + HUD + controles
-ScienceOpsScreen    — operaciones científicas al llegar al planeta
-MissionResultScreen — tabla de puntuaciones multijugador
-ChatOverlay         — chat P2P durante el vuelo
-HudOverlay          — HUD de distancia, dirección planeta, estado naves remotas
+Assets/Scripts/
+├── Core/        Navigator.Core.asmdef
+│   ├── MissionDesign.cs      enums, Isp, ΔV Tsiolkovsky, costos, masas, degradación solar
+│   ├── PhysicsEngine.cs      empuje por motor + gravedad F=μ/r² (μ en unidades de juego)
+│   └── MissionScore.cs       score final
+├── Network/     Navigator.Network.asmdef
+│   ├── SendaBridge.cs        P/Invoke a senda_core (Win .dll / Android .so / iOS __Internal)
+│   ├── ShipSyncService.cs    broadcast ShipState JSON cada 50 ms (contiene ShipStateNet)
+│   ├── P2PChatSystem.cs      texto + reacciones + mensajes de sistema (sin UI propia)
+│   └── NasaHorizons.cs       Horizons API → azimut/altitud/distancia
+├── AR/          Navigator.AR.asmdef
+│   ├── ARSessionManager.cs   inicio AR + fallback si el equipo no soporta AR
+│   ├── ARShipController.cs   giroscopio → pitch/yaw, toque → empuje, doble toque → boost
+│   ├── ARCompassTracker.cs   GPS + brújula + Horizons → dirección al planeta
+│   └── ARSpaceManager.cs     coloca planetas; modos Immersive / Portal / Table
+├── Game/        Navigator.Game.asmdef
+│   ├── ShipController.cs     movimiento, límite de velocidad, multiplicador Burnout
+│   ├── CollisionSystem.cs    conservación de momento, daño, invencibilidad, escudo
+│   ├── BurnoutSystem.cs      near-miss, takedowns, BURNOUT MODE
+│   ├── FuelSystem.cs         consumo por motor, pods, fugas
+│   ├── PowerupSystem.cs      5 pods + spawner
+│   ├── ShipCustomizer.cs     4 zonas de color + sync P2P
+│   ├── ShipAnimator.cs       toberas, alas, exhaust por código
+│   ├── RemoteShipManager.cs  instancia e interpola naves remotas + nametag
+│   └── ExplosionVFX.cs       partículas + flash en colisión fuerte
+├── UI/          Navigator.UI.asmdef
+│   ├── GameManager.cs        director / máquina de estados
+│   ├── LobbyManager.cs       QR propio + escáner (ZXing)
+│   ├── MissionDesignUI.cs    diseño de misión con gauges
+│   ├── CockpitHUD.cs         velocidad, fuel, distancia, burnout, daño
+│   ├── ScienceOpsUI.cs       instrumentos, potencia, retardo de señal
+│   └── ScoreboardUI.cs       resultados finales
+└── Editor/      Navigator.Editor.asmdef
+    └── NavigatorSceneSetup.cs   menú Navigator → Setup Scene
 ```
 
 ---
 
-## 3. NAVIGATOR 2.0 — VISIÓN EN UNITY
+## 4. BLOQUEANTES DE COMPILACIÓN (resolver antes de nada)
 
-### 3.1 Stack nuevo
-```
-Motor:        Unity 6 (LTS)
-Render:       URP (Universal Render Pipeline)
-3D Assets:    Meshy AI → GLB/FBX → Unity
-AR:           Unity AR Foundation (ARCore + ARKit)
-Multiplayer:  Mirror Networking o Photon Fusion
-Cripto P2P:   Senda (companion app) ← WebSocket → Unity
-              ó liboqs C# (Kyber + Dilithium nativos en C#)
-GPS/Astro:    NASA Horizons API (misma, reescrita en C#)
-IA bordo:     NORA v8 (HTTP local desde Unity → NORA server)
-Lenguaje:     C#
-Plataformas:  Android + iOS (mismo build)
-```
+Los scripts **no compilan tal cual** en un proyecto Unity 6 nuevo:
 
-### 3.2 Lo que Meshy genera (tú lo creas, yo lo monto)
-
-```
-Activos 3D a crear en Meshy:
-  nave_jugador.glb        — nave principal vista en tercera persona
-  nave_remota.glb         — nave de otros jugadores
-  cabina_interior.glb     — cockpit 3D real con instrumentos
-  planeta_rocoso.glb      — template para Mercurio/Marte
-  planeta_gaseoso.glb     — template para Júpiter/Saturno
-  planeta_hielo.glb       — template para Urano/Neptuno
-  estacion_espacial.glb   — objetivo de misión alternativo
-  satelite.glb            — objeto flotante en órbita
-  asteroide.glb           — obstáculo dinámico
-  explosion_debris.glb    — fragmentos post-colisión
-```
-
-### 3.3 Arquitectura Unity
-
-```
-Assets/
-├── Scripts/
-│   ├── Core/
-│   │   ├── MissionDesign.cs       ← portado de Dart
-│   │   ├── PhysicsEngine.cs       ← portado de Dart (Tsiolkovsky)
-│   │   ├── PlanetGravity.cs       ← portado de Dart (F=μ/r²)
-│   │   └── MissionScore.cs        ← portado de Dart
-│   ├── Network/
-│   │   ├── SendaBridge.cs         ← WebSocket → Senda companion app
-│   │   ├── ShipSyncService.cs     ← portado de Dart
-│   │   └── NasaHorizons.cs        ← portado de Dart (C# HttpClient)
-│   ├── AR/
-│   │   ├── ARSpaceManager.cs      ← coloca planetas en dirección GPS real
-│   │   ├── ARShipController.cs    ← controla nave en espacio AR
-│   │   └── ARCompassTracker.cs    ← sincroniza AR con brújula + GPS
-│   ├── UI/
-│   │   ├── MissionDesignUI.cs     ← portado de Dart
-│   │   ├── ScienceOpsUI.cs        ← portado de Dart
-│   │   ├── CockpitHUD.cs          ← portado de Dart
-│   │   └── LobbyUI.cs             ← portado de Dart
-│   └── Game/
-│       ├── ShipController.cs      ← movimiento nave
-│       ├── CollisionSystem.cs     ← colisiones + vidas
-│       ├── FuelSystem.cs          ← portado de Dart
-│       └── ExplosionVFX.cs        ← partículas Unity VFX Graph
-├── Prefabs/
-│   ├── Ships/                     ← modelos Meshy montados
-│   ├── Planets/                   ← modelos Meshy montados
-│   └── Effects/                   ← explosiones, exhaust, etc.
-├── Materials/
-│   ├── SpaceSkybox/               ← HDRI del espacio real
-│   └── PlanetShaders/             ← shaders PBR para planetas
-└── Scenes/
-    ├── MainMenu.unity
-    ├── Lobby.unity
-    ├── MissionDesign.unity
-    ├── SpaceFlight.unity          ← modo normal (sin AR)
-    └── ARFlight.unity             ← modo AR con cámara real
-```
-
-### 3.4 Modo AR — Visión correcta (funciona en CUALQUIER lugar)
-
-**REGLA DE ORO: SIN GAFAS. SIN CASCO. SOLO EL CELULAR.**
-```
-El jugador sostiene su celular normal
-La pantalla muestra la cámara (su cuarto, sala, calle, lo que sea)
-Unity dibuja la misión espacial ENCIMA de esa imagen en tiempo real
-El jugador ve planetas + cohete + naves en su pantalla
-Exactamente como Pokémon GO pero con una misión espacial completa
-Cualquier persona con Android o iPhone puede jugarlo — sin comprar nada
-```
-**Principio fundamental:** el AR no depende de apuntar al cielo.
-Funciona en sala cerrada, aula, evento, demo en interiores — siempre impacta.
-La cámara muestra el mundo real y la misión espacial ocurre EN ESE ESPACIO.
-
-#### Modo A — ESPACIO INMERSIVO (principal)
-```
-El jugador abre la app → activa cámara
-El fondo real desaparece → reemplazado por espacio profundo
-Los objetos físicos reales quedan como siluetas/sombras
-La misión ocurre a su alrededor en 360°:
-  🚀 El cohete despegando frente a él
-  🪐 Planetas flotando en el espacio que lo rodea
-  🛸 Naves de otros jugadores moviéndose en tiempo real
-  💥 Explosiones, exhaust, efectos de partículas
-  📡 HUD con datos de la misión superpuesto
-
-Funciona en: cuarto, sala, patio, auditorio, cualquier lugar
-```
-
-#### Modo B — VENTANA AL ESPACIO (más accesible)
-```
-La cámara sigue mostrando el mundo real (cuarto, pared, mesa)
-Un portal/ventana circular aparece flotando en el espacio
-Adentro del portal: la misión espacial ocurriendo en vivo
-El jugador camina alrededor → ve distintos ángulos
-Otro jugador ve exactamente el mismo portal en su espacio
-
-Tecnología: AR Foundation plane detection → ancla portal
-en superficie detectada (piso, pared, mesa)
-```
-
-#### Modo C — SISTEMA SOLAR EN TU MESA
-```
-AR Foundation detecta superficie plana (mesa, piso)
-El sistema solar aparece miniaturizado sobre esa superficie
-El jugador controla su nave que vuela entre los planetas
-Los planetas tienen escala relativa real
-Otro jugador conectado por Senda ve el mismo sistema solar
-Pueden verse las naves de ambos moviendose en tiempo real
-
-Escala: Marte a 30cm de la Tierra en la mesa
-        Júpiter flotando a 1m de distancia
-```
-
-#### Flujo técnico Unity AR Foundation
-```
-1. ARSession inicia → ARCameraManager activa cámara
-2. ARPlaneManager detecta superficies (modo mesa/portal)
-   ó XRCameraBackground reemplaza fondo (modo inmersivo)
-3. PhysicsEngine.cs corre en espacio AR (misma lógica Flutter)
-4. Planetas Meshy 3D se instancian como Prefabs AR
-5. ShipController.cs mueve nave con giroscopio + joystick
-6. SendaBridge.cs sincroniza estado de naves entre jugadores
-7. Ambos jugadores ven la misma escena en sus espacios físicos
-
-Scripts AR necesarios:
-  ARSpaceManager.cs    ← gestiona la escena espacial en AR
-  ARPortalSpawner.cs   ← coloca portal en superficie detectada
-  ARShipController.cs  ← controla nave en coordenadas AR
-  ARSessionManager.cs  ← inicia/detiene sesión AR
-```
-
-### 3.5 Integración Senda Post-Cuántico en Unity
-
-```
-Arquitectura:
-
-Opción A — Companion App (más rápida de implementar):
-  ┌──────────────────────────────────────────┐
-  │  Unity Game (C#)                         │
-  │    ↕ WebSocket localhost:8765            │
-  │  Senda Bridge Service (Flutter/Dart)     │
-  │    ↕ P2P Kyber-1024 + Dilithium-5        │
-  │  Otro dispositivo                        │
-  └──────────────────────────────────────────┘
-
-Opción B — liboqs nativo en Unity (más limpio):
-  liboqs (C library) → Unity Native Plugin (C++) → C# P/Invoke
-  Kyber1024.Encapsulate() directo en C#
-  Dilithium5.Sign() directo en C#
-  Mirror Networking como transporte, cripto por encima
-
-Mensajes sincronizados (mismo protocolo que Flutter):
-  ShipState: position, velocity, yaw, pitch, throttle, boosting
-  MissionEnd: finalScore, planetId
-  ChatMessage: encrypted text, sender, timestamp
-  FuelTransfer: amount, fromNode, toNode
-```
-
-### 3.6 Física real portada
-
-```csharp
-// PhysicsEngine.cs — portado de Dart
-public class PhysicsEngine : MonoBehaviour
-{
-    // Tsiolkovsky
-    public float DeltaV(float ispS, float wetMass, float dryMass)
-        => ispS * 9.80665f * Mathf.Log(wetMass / dryMass);
-
-    // Gravedad planetaria F = μ/r²
-    void ApplyPlanetGravity(Rigidbody ship, Vector3 planetPos, float mu)
-    {
-        Vector3 delta = planetPos - ship.position;
-        float r2 = delta.sqrMagnitude;
-        if (r2 < 100f) return;
-        float force = mu / r2;
-        ship.AddForce(delta.normalized * force);
-    }
-
-    // Multiplicador motor
-    const float thrustChemical = 1.0f;
-    const float thrustIon      = 0.55f;
-    const float thrustNuclear  = 1.4f;
-}
-```
+| # | Problema | Arreglo |
+|---|---|---|
+| B-1 | Todos los `.asmdef` referencian `"GUID:Navigator.Core"` etc. — el prefijo `GUID:` exige un GUID real | Usar el nombre a secas: `"Navigator.Core"` |
+| B-2 | `Game` y `UI` usan `TMPro` / `UnityEngine.UI` sin referenciarlos en su asmdef | Añadir `"Unity.TextMeshPro"` y `"UnityEngine.UI"` a `Navigator.Game` y `Navigator.UI` |
+| B-3 | `manifest.json` no incluye `com.unity.ugui`; en Unity 6 TextMeshPro vive dentro de uGUI 2.0 y `com.unity.textmeshpro 3.2.0-pre.10` sobra | Añadir `"com.unity.ugui": "2.0.0"`, quitar `com.unity.textmeshpro` |
+| B-4 | Hay **dos** manifests distintos (`Packages/manifest.json` y `unity_project/Packages/manifest.json`) | Dejar uno solo, el del proyecto Unity real |
+| B-5 | Los scripts usan `Input.gyro` / `Input.GetTouch` (legacy) y el manifest trae Input System | Player Settings → *Active Input Handling* = **Both** (o migrar a Input System) |
+| B-6 | `ShipController.cs:105` tiene el planeta objetivo fijo en `"mars"` | Leerlo de `MissionDesign.TargetPlanetId` vía `GameManager` |
+| B-7 | `assets/Plugins/Android/AndroidManifest.xml` está en la carpeta de assets de **Flutter** | Moverlo a `Assets/Plugins/Android/` del proyecto Unity |
 
 ---
 
-## 4. QUÉ SE PORTA vs QUÉ SE RECONSTRUYE
+## 5. LO QUE FALTA (brechas reales)
 
-```
-PORTA DIRECTO A C#                  RECONSTRUYE EN UNITY NATIVO
-──────────────────────────────────  ─────────────────────────────────
-MissionDesign (toda la lógica)      Estrellitas → Skybox HDRI real
-PhysicsEngine (Tsiolkovsky + μ/r²)  Planetas procedurales → Meshy 3D
-MissionScore (cálculos)             CustomPainter → Shader Graph URP
-NasaHorizons (API calls)            Partículas Flutter → VFX Graph
-ShipSyncService (protocolo)         CameraPreview → AR Foundation
-FuelSystem (drain rates)            Explosiones → Particle System
-ScienceOps (instrumentos/puntos)    Cabina 2D → Modelo 3D Meshy
-MissionDesignScreen (UI lógica)     Joystick → Input System Unity
-ChatOverlay (mensajes)              QR Lobby → Unity Relay/Lobby
-```
+### 5.1 Funcionalidad que existía en Flutter y no está en Unity
+| Falta | Flutter de referencia | Nota |
+|---|---|---|
+| Menú principal | `lib/ui/main_menu.dart` | Nuevo estado `MainMenu` en `GameManager` |
+| UI de chat (panel + burbujas AR) | `lib/ui/chat_overlay.dart` | `P2PChatSystem` solo tiene lógica |
+| Idiomas es/en | `lib/l10n/app_localizations.dart` | Unity Localization o tabla simple |
+| Modo sin AR (cockpit + giroscopio) | `lib/flight/cockpit_view.dart` | Fallback de `ARSessionManager` cuando el equipo no soporta AR |
+
+### 5.2 Diseño documentado y aún no implementado
+| Mecánica | Documento | Prioridad NASA |
+|---|---|---|
+| Objetivo flyby/orbit/landing suma ΔV | este plan §0 | **Alta** — el reto lo pide |
+| ΔV por fases (TMI / correcciones / MOI / aterrizaje) | `NAVIGATOR_FISICA_REAL.md` §4 | Alta |
+| Tooltips con misión NASA de referencia | `NAVIGATOR_FISICA_REAL.md` §9 | Alta (educativo) |
+| Ventanas de lanzamiento | `NAVIGATOR_FISICA_REAL.md` §3 | Media |
+| Más motores (LOX/RP-1, LOX/CH4, Kriptón, vela solar) | `NAVIGATOR_FISICA_REAL.md` §1 | Media |
+| Gravity assist como elección de ruta | `NAVIGATOR_FISICA_REAL.md` §7 | Media |
+| Blackouts de comunicación, radiación que daña instrumentos | `NAVIGATOR_FISICA_REAL.md` §5-6 | Baja |
+| Anclaje a superficie en modos Portal/Table (`ARPlaneManager` + raycast) | §7 de este plan | Media |
+| Countdown sincronizado entre jugadores | `NAVIGATOR_RACING_MECHANICS.md` | Media |
+| Asteroides, estados de daño, reparación | `NAVIGATOR_RACING_MECHANICS.md` | Baja |
+| Aftertouch, chain takedown, voz PTT | `NAVIGATOR_BURNOUT_P2P.md` | Post-NASA |
+| Descubrimiento mDNS / Bluetooth | `NAVIGATOR_BURNOUT_P2P.md` | Post-NASA |
+
+### 5.3 Dependencias externas
+- **`senda_core` compilado** para Android arm64 (`libsenda_core.so`), iOS (`.a` estático, se enlaza como `__Internal`) y Windows (`senda_core.dll` para el Editor).
+- **Modelos Meshy** de prioridad 1 — ver `NAVIGATOR_MESHY_CHECKLIST.md`.
 
 ---
 
-## 5. FASES DE DESARROLLO
+## 6. FASES DE DESARROLLO
 
-### FASE 0 — Terminar Navigator 1.0 Flutter (NASA Space Apps)
-- [ ] Probar en dispositivo físico Android
-- [ ] Verificar AR cámara + posiciones NASA reales
-- [ ] Entregar NASA Space Apps Challenge 2026
+### FASE 1 — Proyecto Unity que compila
+- [ ] Crear proyecto Unity 6 LTS (plantilla Universal 3D) — ver `NAVIGATOR_UNITY_QUICKSTART.md`
+- [ ] Resolver B-1 … B-7 (§4)
+- [ ] Importar `unity_scripts/` → `Assets/Scripts/` y ZXing.Net
+- [ ] Compilar sin errores; *Navigator → Setup Scene* funciona
+- [ ] Versionar el proyecto Unity en este repo (`Assets/`, `Packages/`, `ProjectSettings/`) con `.gitignore` de Unity
 
-### FASE 1 — Setup Unity + primeros assets Meshy
-- [ ] Instalar Unity 6 LTS + URP
-- [ ] Crear proyecto navigator2
-- [ ] Diseñar nave en papel → generar con Meshy → importar GLB
-- [ ] Probar movimiento básico nave en Unity
+### FASE 2 — Demo jugable un jugador (placeholders)
+- [ ] Cubos/esferas como placeholder de nave y Marte
+- [ ] Flujo completo: MainMenu → MissionDesign → Countdown → InFlight → ScienceOps → Scoreboard
+- [ ] Objetivo flyby/orbit/landing afecta el ΔV requerido
+- [ ] Horizons + GPS en dispositivo; fallback sin red
+- [ ] Probado en un Android físico
 
-### FASE 2 — Portar lógica core a C#
-- [ ] MissionDesign.cs (copiar lógica de Dart)
-- [ ] PhysicsEngine.cs (Tsiolkovsky + gravedad)
-- [ ] NasaHorizons.cs (API en C# HttpClient)
-- [ ] MissionScore.cs
+### FASE 3 — Multijugador P2P
+- [ ] `senda_core` para Android arm64 en `Assets/Plugins/Android/`
+- [ ] QR lobby → conexión → ambos ven la nave del otro (`RemoteShipManager`)
+- [ ] Panel de chat + reacciones
+- [ ] Countdown sincronizado
+- [ ] Probado en dos teléfonos físicos
 
-### FASE 3 — AR Foundation
-- [ ] Instalar AR Foundation + ARCore/ARKit
-- [ ] ARSpaceManager: anclar planetas en dirección GPS real
-- [ ] Probar: apuntar al cielo → ver Marte donde está
+### FASE 4 — Assets Meshy + AR
+- [ ] Prioridad 1 Meshy: NV-01, EN-01, PL-03, PJ-01, PW-01, OB-01
+- [ ] Asignar prefabs en el Inspector (tabla del Quickstart, paso 9)
+- [ ] Modo Table con `ARPlaneManager`
+- [ ] VFX: exhaust, boost, explosión
 
-### FASE 4 — Multiplayer P2P con Senda
-- [ ] Implementar SendaBridge WebSocket
-- [ ] ShipSyncService.cs (misma lógica que Dart)
-- [ ] Probar: dos celulares ven la misma nave en AR
+### FASE 5 — Entrega NASA Space Apps
+- [ ] Tooltips con misión NASA real por motor/planeta
+- [ ] ΔV por fases visible en MissionDesign
+- [ ] Video demo 2 min + APK
+- [ ] Pitch con afirmaciones que el build cumple (ver §8)
 
-### FASE 5 — UI completa + MissionDesign
-- [ ] Portar MissionDesignUI a Unity UI Toolkit
-- [ ] ScienceOpsUI
-- [ ] LobbyUI con QR
-
-### FASE 6 — Visual polish
-- [ ] Más modelos Meshy (planetas, explosiones, estación)
-- [ ] VFX Graph: exhaust, explosiones, boost
-- [ ] Skybox HDRI espacio real
-- [ ] Efectos AR: shaders PBR en modelos
-
-### FASE 7 — Lanzamiento
-- [ ] Build Android APK
-- [ ] Build iOS IPA
+### FASE 6 — Post-NASA (producto)
+- [ ] Kyber-1024 en el handshake de `senda_core`
+- [ ] Build iOS (ARKit + `senda_core.a`)
+- [ ] Mecánicas Burnout avanzadas, mDNS, voz
 - [ ] Google Play + App Store
 
 ---
 
-## 6. PITCH DEL PRODUCTO
+## 7. MODO AR — visión (funciona en CUALQUIER lugar)
 
-> **NAVIGATOR** es el primer juego AR multijugador del mundo con cifrado post-cuántico.
->
-> Apuntas tu celular al cielo → ves Marte exactamente donde está → tu nave vuela hacia allá en realidad aumentada → un amigo en otra ciudad se conecta sin servidor, cifrado con criptografía que resiste computadoras cuánticas → diseñan juntos la misión científica → recolectan datos reales usando instrumentos de la NASA → compiten por el mayor puntaje de ciencia.
->
-> Sin Unity. Sin servidor central. Sin NSA. Solo física real, posiciones astronómicas reales, y cifrado del futuro.
+**REGLA DE ORO: SIN GAFAS. SIN CASCO. SOLO EL CELULAR.**
+El AR no depende de apuntar al cielo: funciona en sala cerrada, aula o evento.
+
+| Modo | Qué ve el jugador | Estado |
+|---|---|---|
+| **A — Inmersivo** (principal) | La misión ocurre a su alrededor en 360°; planetas en la dirección real (GPS + Horizons) | ✅ `ARSpaceManager` (Immersive) |
+| **B — Portal** | Ventana circular anclada a una pared/piso con la misión dentro | ⚠️ Enum existe; falta anclaje con `ARPlaneManager` |
+| **C — Sistema solar en la mesa** | Sistema solar miniatura sobre una superficie (0.5 m = 1 AU) | ⚠️ Escala existe; falta anclaje con `ARPlaneManager` |
+
+Flujo técnico:
+```
+1. ARSessionManager inicia ARSession; ARCameraBackground pinta la cámara
+2. ARCompassTracker obtiene GPS + brújula → NasaHorizons → dirección del planeta
+3. ARSpaceManager instancia el prefab del planeta en esa dirección
+4. ARShipController: giroscopio + toques mueven la nave
+5. ShipSyncService/RemoteShipManager: las naves de otros jugadores aparecen en tu espacio
+```
 
 ---
 
-## 7. REFERENCIAS TÉCNICAS
+## 8. PITCH (alineado con lo que el build hace)
+
+> **NAVIGATOR** es un juego AR multijugador para celular donde diseñas una misión
+> espacial con restricciones reales de la NASA — presupuesto, masa, potencia,
+> comunicaciones y ΔV de Tsiolkovsky — y luego la vuelas en tu propio espacio a
+> través de la cámara.
+>
+> Tus amigos se conectan escaneando un QR, sin servidor, con identidad firmada por
+> criptografía post-cuántica (Dilithium-5). Compiten por llegar primero y reunir
+> más ciencia: la física real ES la estrategia.
+
+---
+
+## 9. REFERENCIAS TÉCNICAS
 
 ```
 NASA Horizons API:    https://ssd.jpl.nasa.gov/horizons/
 Unity AR Foundation:  com.unity.xr.arfoundation
-liboqs (C#):          https://github.com/open-quantum-safe/liboqs-dotnet
-Mirror Networking:    https://mirror-networking.com
+Iroh (P2P):           https://iroh.computer
+liboqs (Kyber/Dilithium): https://github.com/open-quantum-safe/liboqs
+ZXing.Net:            https://github.com/micjahn/ZXing.Net
 Meshy AI 3D:          https://www.meshy.ai
-VFX Graph Unity:      com.unity.visualeffectgraph
+Mixamo:               https://www.mixamo.com
 ```
+
+Documentos relacionados:
+- `NAVIGATOR_UNITY_QUICKSTART.md` — crear el proyecto paso a paso
+- `unity_scripts/ESTADO_UNITY.md` — estado por script
+- `NAVIGATOR_FISICA_REAL.md` — física y datos NASA
+- `NAVIGATOR_RACING_MECHANICS.md`, `NAVIGATOR_BURNOUT_P2P.md` — diseño de juego
+- `NAVIGATOR_MESHY_CHECKLIST.md` — assets 3D
+- `NAVIGATOR.md` — visión original Flutter (histórico)
 
 ---
 
-*Documento generado por Guacalita Inc. — Todos los derechos reservados.*
+*Documento de Guacalita Inc. — Todos los derechos reservados.*
 *Diseño y concepto: SAL / Guacalita Inc.*
 *Implementación técnica: Claude (asistente)*
