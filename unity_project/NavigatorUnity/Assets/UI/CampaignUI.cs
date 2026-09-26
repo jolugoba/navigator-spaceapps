@@ -69,6 +69,13 @@ namespace Navigator.UI
         void Start()
         {
             if (Campaign.JustCompleted >= 0) Show();
+            // In class, the teacher opening a world refreshes the map live
+            if (ClassroomSession.Instance != null) ClassroomSession.Instance.Changed += Refresh;
+        }
+
+        void OnDestroy()
+        {
+            if (ClassroomSession.Instance != null) ClassroomSession.Instance.Changed -= Refresh;
         }
 
         void OnEnable()  => Loc.Changed += Refresh;

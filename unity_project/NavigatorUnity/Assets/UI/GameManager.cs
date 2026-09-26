@@ -598,6 +598,7 @@ namespace Navigator.UI
             {
                 int stars    = Campaign.StarsFor(ActiveCampaign, total, ArrivalPos > 0);
                 bool improved = Campaign.Record(ActiveCampaign.Index, stars);
+                ClassroomSession.Instance?.ReportResult(ActiveCampaign.Index, total, stars, ArrivalPos > 0);
                 ScoreboardUI?.SetCampaignResult(ActiveCampaign, stars, improved, HasNextCampaignMission);
             }
             else ScoreboardUI?.SetCampaignResult(null, 0, false, false);
@@ -619,6 +620,18 @@ namespace Navigator.UI
         // Scoreboard → "Menú principal": reinicia todo (incluida la conexión)
         public void ExitToLobby()
         {
+            // In a class, reloading would drop the connection to the teacher: go back in place
+            var cls = ClassroomSession.Instance;
+            if (cls != null && cls.Mode != ClassroomSession.Role.None)
+            {
+                Events?.Cancel();
+                SetControls(false);
+                SetShipFrozen(true);
+                ActiveCampaign = null;
+                EnterLobby();
+                if (Campaign.JustCompleted >= 0) FindFirstObjectByType<CampaignUI>()?.Show();
+                return;
+            }
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 

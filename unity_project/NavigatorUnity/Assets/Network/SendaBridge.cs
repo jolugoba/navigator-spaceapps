@@ -252,5 +252,6 @@ namespace Navigator.Network
         missionSync,    // mission state
         ping,
         missionEnd,     // final score
+        classroom,      // teacher mode: hello, join, quiz, answers, who moves on
     }
 }

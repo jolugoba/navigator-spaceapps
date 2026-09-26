@@ -58,6 +58,9 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 | Joystick a los lados (la nave se inclina) | LB / RB | **Q / E** (mantener) | Girar a izquierda / derecha, inclinándose como un avión |
 | — | LB / RB dos veces seguidas | **Q / E** dos veces seguidas | Tonel (barrel roll) para esquivar |
 | Botón **GYRO ON/OFF** | — | — | Jugar sin mover el celular (solo joystick) |
+| Botón **ESCANEAR** | Y | **C** | "¿Qué es eso?": identifica lo que está en la mira |
+| Botón **DISPARAR** | Clic del stick derecho | **X** | Láser: no destruye, quita 1 punto de casco a un rival, gasta 1.5 % de combustible |
+| Botón **PROFESOR** (lobby) | — | — | Modo profesor: QR de la clase, preguntas, quién pasa de mundo |
 
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
 En macOS no hay librería nativa para el Editor: se juega en modo solo.

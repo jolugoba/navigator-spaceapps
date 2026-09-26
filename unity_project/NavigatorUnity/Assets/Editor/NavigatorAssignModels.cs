@@ -82,6 +82,22 @@ namespace Navigator.Editor
                     assigned += Set(ref sm.PlanetPluto, "PL-10");
                 if (AssetDatabase.FindAssets("PL-11", new[] { "Assets/Models" }).Length > 0)
                     assigned += Set(ref sm.PlanetEuropa, "PL-11");
+                // Landmarks to scan: skipped quietly until each model exists
+                assigned += Opt(ref sm.ProbeMessenger, "OB-11");
+                assigned += Opt(ref sm.ProbeMagellan,  "OB-12");
+                assigned += Opt(ref sm.ProbeMRO,       "OB-13");
+                assigned += Opt(ref sm.ProbeJuno,      "OB-08");
+                assigned += Opt(ref sm.ProbeCassini,   "OB-07");
+                assigned += Opt(ref sm.ProbeVoyager,   "OB-06");
+                assigned += Opt(ref sm.Hubble,         "OB-14");
+                assigned += Opt(ref sm.Jwst,           "OB-15");
+                assigned += Opt(ref sm.Iss,            "OB-16");
+                assigned += Opt(ref sm.MoonPhobos,     "MN-01");
+                assigned += Opt(ref sm.MoonIo,         "MN-02");
+                assigned += Opt(ref sm.MoonTitan,      "MN-03");
+                assigned += Opt(ref sm.MoonEnceladus,  "MN-04");
+                assigned += Opt(ref sm.MoonMiranda,    "MN-05");
+                assigned += Opt(ref sm.MoonTriton,     "MN-06");
                 EditorUtility.SetDirty(sm);
             }
 
@@ -107,6 +123,14 @@ namespace Navigator.Editor
                 EditorPrefs.SetBool("Navigator.NoseFlip." + m, !EditorPrefs.GetBool("Navigator.NoseFlip." + m, false));
             int n = Assign();
             Debug.Log($"[Navigator] Nariz de las naves girada 180° ({n} modelos reasignados). Guarda la escena.");
+        }
+
+        static int Opt(ref GameObject slot, string prefix)
+        {
+            var go = LoadOptionalGLB(prefix);
+            if (go == null) return 0;
+            slot = go;
+            return 1;
         }
 
         static int Set(ref GameObject slot, string prefix)

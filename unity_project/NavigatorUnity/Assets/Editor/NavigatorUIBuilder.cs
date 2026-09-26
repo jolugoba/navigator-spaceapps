@@ -90,6 +90,8 @@ namespace Navigator.Editor
             BuildEvents(root.transform, events);
             BuildTutorial(root.transform, tutor, gm.MissionDesignPanel);
             BuildCampaign(root.transform, root.AddComponent<CampaignUI>());
+            root.AddComponent<ClassroomSession>();
+            BuildClassroom(root.transform, root.AddComponent<ClassroomUI>());
             gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
             gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
             gm.Events   = events;
@@ -169,6 +171,8 @@ namespace Navigator.Editor
 
             lobby.LanguageButton = UIKit.Button(p, "LanguageButton", "@lang.button", new Vector4(0.7f, 0.962f, 0.97f, 0.996f),
                                                 UIStyle.ButtonIdle, UIStyle.Accent, 26, FontStyles.Bold);
+            _teacherButton = UIKit.Button(p, "TeacherButton", "@class.button", new Vector4(0.03f, 0.962f, 0.3f, 0.996f),
+                                          UIStyle.ButtonIdle, UIStyle.Gold, 26, FontStyles.Bold);
 
             lobby.Senda = gm.Senda;
             lobby.Sync  = gm.SyncService;
@@ -415,7 +419,8 @@ namespace Navigator.Editor
         // CAMPAÑA · PROGRAMA NASA
         // ══════════════════════════════════════════════════════════════════════
 
-        static Button _campaignButton;   // created with the lobby, wired to the campaign screen
+        static Button _campaignButton;
+        static Button _teacherButton;    // created with the lobby, wired to the class dashboard   // created with the lobby, wired to the campaign screen
 
         // World map: Earth at the bottom, eight worlds zig-zagging up to Neptune
         static void BuildCampaign(Transform root, CampaignUI camp)
@@ -512,6 +517,82 @@ namespace Navigator.Editor
             var rt = UIKit.Rect(parent, name, new Vector4(at.x, at.y, at.x, at.y));
             rt.sizeDelta = new Vector2(size, size);
             return rt;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // MODO PROFESOR: panel de la clase, pregunta del alumno, avisos
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildClassroom(Transform root, ClassroomUI ui)
+        {
+            // ── Teacher dashboard ─────────────────────────────────────────────
+            var go = UIKit.Stretch(root, "ClassroomPanel").gameObject;
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.02f, 0.03f, 0.08f, 0.97f);
+            bg.raycastTarget = true;
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = UIKit.Column(safe);
+
+            ui.ClassTitle = UIKit.Text(p, "Title", "", 46, new Vector4(0.04f, 0.93f, 0.66f, 0.985f), TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
+            ui.CloseTeacherButton = UIKit.Button(p, "Close", "@class.close", new Vector4(0.68f, 0.935f, 0.96f, 0.98f), UIStyle.ButtonIdle, UIStyle.Text, 24, FontStyles.Bold);
+
+            var qrBox = UIKit.Rect(p, "QRBox", new Vector4(0.04f, 0.73f, 0.4f, 0.925f));
+            var qrBg = UIKit.Image(qrBox, "QRBackground", Vector4.zero, Color.white);
+            UIKit.Fill(qrBg.rectTransform);
+            qrBg.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            ui.ClassQR = UIKit.Raw(qrBg.rectTransform, "QR", new Vector4(0.04f, 0.04f, 0.96f, 0.96f));
+            UIKit.Text(p, "QRHint", "@class.qrhint", 24, new Vector4(0.43f, 0.83f, 0.96f, 0.925f), TextAlignmentOptions.TopLeft, UIStyle.Muted);
+            ui.WeaponsButton = UIKit.Button(p, "Weapons", "", new Vector4(0.43f, 0.74f, 0.96f, 0.815f), new Color(0.5f, 0.2f, 0.2f, 1f), UIStyle.Text, 26, FontStyles.Bold);
+            ui.WeaponsLabel = ui.WeaponsButton.GetComponentInChildren<TMP_Text>();
+
+            var qCard = UIKit.Card(p, "Question", new Vector4(0.04f, 0.53f, 0.96f, 0.72f), UIStyle.Card);
+            ui.QuestionLabel = UIKit.Text(qCard, "Text", "", 28, new Vector4(0.04f, 0.25f, 0.96f, 0.95f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            ui.QuestionStats = UIKit.Text(qCard, "Stats", "", 26, new Vector4(0.04f, 0.04f, 0.96f, 0.24f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+
+            ui.AskButton = UIKit.Button(p, "Ask", "", new Vector4(0.04f, 0.455f, 0.96f, 0.52f), UIStyle.Accent, UIStyle.Ink, 32, FontStyles.Bold);
+            ui.AskLabel  = ui.AskButton.GetComponentInChildren<TMP_Text>();
+            ui.PassCorrectButton = UIKit.Button(p, "PassRight", "@class.passright", new Vector4(0.04f, 0.385f, 0.6f, 0.445f), UIStyle.Good, UIStyle.Ink, 24, FontStyles.Bold);
+            ui.PassAllButton     = UIKit.Button(p, "PassAll", "@class.passall", new Vector4(0.62f, 0.385f, 0.96f, 0.445f), UIStyle.ButtonIdle, UIStyle.Text, 24, FontStyles.Bold);
+
+            ui.StudentList = UIKit.Scroll(p, "Students", new Vector4(0f, 0.02f, 1f, 0.375f));
+
+            ui.TeacherPanel = go;
+            ui.OpenTeacherButton = _teacherButton;
+            go.SetActive(false);
+
+            // ── Student quiz ──────────────────────────────────────────────────
+            var quiz = UIKit.Stretch(root, "QuizPanel").gameObject;
+            var dim = quiz.AddComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.75f);
+            dim.raycastTarget = true;
+            var card = UIKit.Card(UIKit.Column(quiz.transform), "Card", new Vector4(0.04f, 0.18f, 0.96f, 0.82f), UIStyle.Card);
+            ui.QuizFeedback = UIKit.Text(card, "From", "", 26, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            ui.QuizQuestion = UIKit.Text(card, "Question", "", 40, new Vector4(0.05f, 0.66f, 0.95f, 0.89f), TextAlignmentOptions.TopLeft, UIStyle.Text, FontStyles.Bold);
+            ui.QuizOptions = new Button[4];
+            for (int i = 0; i < 4; i++)
+            {
+                float y1 = 0.64f - i * 0.12f;
+                var b = UIKit.Button(card, $"Option_{i}", "", new Vector4(0.05f, y1 - 0.105f, 0.95f, y1), UIStyle.ButtonIdle, UIStyle.Text, 28);
+                var label = b.GetComponentInChildren<TMP_Text>();
+                label.textWrappingMode = TextWrappingModes.Normal;
+                ui.QuizOptions[i] = b;
+            }
+            ui.QuizCloseButton = UIKit.Button(card, "OK", "@class.close.quiz", new Vector4(0.3f, 0.03f, 0.7f, 0.12f), UIStyle.Accent, UIStyle.Ink, 30, FontStyles.Bold);
+            ui.QuizPanel = quiz;
+            quiz.SetActive(false);
+
+            // ── Toast (always on top) ─────────────────────────────────────────
+            var box = UIKit.Image(root, "ClassToast", new Vector4(0.05f, 0.86f, 0.95f, 0.93f), new Color(0f, 0f, 0f, 0.75f));
+            box.raycastTarget = false;
+            ui.Toast = UIKit.Text(box.transform, "Text", "", 30, new Vector4(0.03f, 0f, 0.97f, 1f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
+            ui.ToastBox = box.gameObject;
+            var toast = box;
+            box.gameObject.SetActive(false);
+
+            go.transform.SetAsLastSibling();
+            quiz.transform.SetAsLastSibling();
+            toast.transform.SetAsLastSibling();
         }
 
         // ══════════════════════════════════════════════════════════════════════

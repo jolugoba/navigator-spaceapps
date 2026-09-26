@@ -513,21 +513,66 @@ Jugador A  ◄──── QUIC directo (Iroh) ────►  Jugador B
 
 ---
 
-## 10a. Campaña · Programa NASA — `Core/Campaign.cs`, `UI/CampaignUI.cs`
-Seis misiones de dificultad creciente. Cada una fija destino, objetivo y **presupuesto**, y tiene metas
-de puntaje para 1, 2 y 3 estrellas (● ○ ○). Con 1 estrella se desbloquea la siguiente; se guarda el récord.
+## 10a. Mapa de mundos · Programa NASA — `Core/Campaign.cs`, `UI/CampaignUI.cs`
+Un mapa estilo "game home": la **Tierra** (base de lanzamiento) abajo y **ocho mundos** subiendo en zigzag
+hasta Neptuno.
+- Los mundos completados brillan en dorado.
+- El siguiente mundo abierto pulsa en azul.
+- Los bloqueados están oscuros.
+- Al tocar un mundo aparece su briefing con el botón **LANZAR MISIÓN**.
+- La primera vez que completas un mundo (1 estrella), se enciende con un rebote, un destello y una lluvia de estrellas, y abre el siguiente.
+- El progreso se guarda por clave de misión, así que agregar mundos no borra el avance de nadie.
 
-| # | Misión | Destino · objetivo | Presupuesto | Metas ●/●●/●●● |
+| # | Mundo | Destino · objetivo | Presupuesto | Metas ●/●●/●●● |
 |---|---|---|---|---|
 | 1 | First Light / Primera luz | Marte · sobrevuelo | $600M | 2,000 / 3,500 / 5,000 |
 | 2 | Beneath the Clouds / Bajo las nubes | Venus · órbita | $800M | 4,000 / 7,000 / 10,000 |
-| 3 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,000M | 5,000 / 9,000 / 13,000 |
-| 4 | King of Planets / El rey de los planetas | Júpiter · órbita | $1,000M | 4,000 / 8,000 / 12,000 |
-| 5 | Lord of the Rings / El señor de los anillos | Saturno · órbita | $1,100M | 4,000 / 8,000 / 12,000 |
-| 6 | The Last Giant / El último gigante | Neptuno · sobrevuelo | $1,200M | 3,000 / 6,000 / 9,000 |
+| 3 | Closest to the Sun / El más cercano al Sol | Mercurio · órbita (como MESSENGER) | $900M | 3,500 / 6,500 / 9,500 |
+| 4 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,000M | 5,000 / 9,000 / 13,000 |
+| 5 | King of Planets / El rey de los planetas | Júpiter · órbita | $1,000M | 4,000 / 8,000 / 12,000 |
+| 6 | Lord of the Rings / El señor de los anillos | Saturno · órbita | $1,100M | 4,000 / 8,000 / 12,000 |
+| 7 | The Sideways Planet / El planeta acostado | Urano · sobrevuelo (como Voyager 2) | $1,100M | 3,000 / 6,000 / 9,000 |
+| 8 | The Last Giant / El último gigante | Neptuno · sobrevuelo | $1,200M | 3,000 / 6,000 / 9,000 |
 
-Cada meta se verificó con un diseño real posible (por ejemplo, Venus en órbita exige 7,500 m/s: solo con motor iónico).
-Al terminar, el marcador muestra las estrellas y los botones **Reintentar** (con tu diseño) y **Siguiente misión**.
+Cada meta se verificó con un diseño válido posible. Mercurio en órbita (11,800 m/s) y Urano (15,900 m/s) se
+comprobaron buscando entre todas las combinaciones del diseño: el mejor diseño dentro del presupuesto da
+20,610 y 12,940 puntos de ciencia, por encima de la meta de 3 estrellas.
+
+## 10f. Escáner y láser — `Game/ShipTools.cs`, `Game/Scannable.cs`
+Una **mira** sigue lo que la nave apunta: se engancha (dorada, con nombre) a asteroides, pods, planetas,
+mundos de asistencia gravitatoria, lunas, sondas reales, telescopios, naves rivales y las nebulosas,
+galaxias y el agujero negro del cielo.
+
+- **ESCANEAR** (C o Y en el control) responde *"¿qué es eso?"* con datos reales en EN/ES:
+  - Hubble fotografió la Nebulosa de Orión a 1,344 años luz.
+  - Juno tiene paneles de 9 m porque en Júpiter la luz es unas 27 veces más débil.
+  - Tritón orbita a Neptuno al revés.
+  
+  La primera vez que escaneas cada cosa es un **descubrimiento**: +50 puntos, y queda en el informe final.
+  Escanear la nave de un compañero le envía un saludo.
+- **DISPARAR** (X o clic del stick derecho): un rayo láser con un poco de autoapuntado.
+  - **No destruye nada.** A un rival le quita **un punto de casco**, igual que un choque fuerte. Con 3 impactos queda fuera.
+  - El escudo, el Burnout y la invulnerabilidad de 3 s después de un golpe lo bloquean.
+  - Cada disparo gasta **1.5 % del combustible**: disparar tiene un costo, como todo en la misión.
+  - En clase, el profesor puede apagar los láseres.
+
+**Puntos de interés:**
+- La sonda real de cada planeta espera a su lado: MESSENGER, Magellan, MRO, Juno, Cassini y Voyager 2.
+- Cada planeta tiene sus lunas: Fobos, Ío, Europa, Titán, Encélado, Miranda y Tritón.
+- Cerca del despegue están Hubble, el JWST y la ISS.
+
+Los modelos se piden en [`NAVIGATOR_MESHY_ASSETS_V3.md`](NAVIGATOR_MESHY_ASSETS_V3.md).
+
+## 10g. Modo profesor — `UI/ClassroomSession.cs`, `UI/ClassroomUI.cs`, `Core/Quiz.cs`
+El profesor toca **PROFESOR** en el lobby y muestra su QR. Los alumnos lo escanean con *Escanear QR* y quedan en su clase.
+
+- **El profesor ve:** a cada alumno, el mundo en que va, su último resultado y su respuesta a la pregunta actual.
+- **HACER PREGUNTA** lanza a todos una pregunta del mundo en que está la mayoría. Hay 16 preguntas, 2 por mundo, sobre el concepto que ese mundo enseña: ΔV, inserción orbital, asistencias gravitatorias, energía solar lejos del Sol, retardo de la luz y motores eficientes.
+- **El alumno** responde y ve al instante si acertó y cuál era la respuesta.
+- **El profesor decide quién avanza:** **PASAR** por alumno, **PASAR A QUIENES ACERTARON** o **PASAR A TODOS**. En clase, el mapa del alumno solo abre los mundos aprobados, no los que ganó por estrellas.
+- Los resultados de cada misión le llegan al profesor solos.
+- **LÁSERES: SÍ/NO** los apaga para toda la clase.
+- En clase, volver al menú no recarga la escena, para no cortar la conexión con el profesor.
 
 ## 10c. Multijugador sin límite de jugadores
 No hay tope de jugadores (pensado para un aula entera). La frecuencia de sincronización baja sola con el tamaño

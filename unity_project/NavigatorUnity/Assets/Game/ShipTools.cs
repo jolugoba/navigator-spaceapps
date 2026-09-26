@@ -147,6 +147,11 @@ namespace Navigator.Game
                     info.Title = Loc.Planet(s.Id);
                     info.Body  = Loc.T("scan.planet." + s.Id) + (s.Kind == "flyby" ? "\n" + Loc.T("scan.flyby") : "");
                     break;
+                case "probe":
+                case "moon":
+                    info.Title = Loc.T($"scan.{s.Kind}.{s.Id}.t");
+                    info.Body  = Loc.T($"scan.{s.Kind}.{s.Id}");
+                    break;
                 case "ship":
                     _remotes ??= FindFirstObjectByType<RemoteShipManager>();
                     string name = _remotes != null ? _remotes.NameOf(s.Id) : "Rival";
