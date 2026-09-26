@@ -33,7 +33,7 @@ namespace Navigator.AR
         public float StickTurnRate = 90f;   // degrees per second at full deflection
 
         const string GyroPref = "navigator.gyro";
-        public bool GyroAvailable => SystemInfo.supportsGyroscope;
+        public bool GyroAvailable => DeviceGyro.Supported;
         public bool GyroOn => _useGyro;
 
         private Vector2 _steer;
@@ -47,7 +47,7 @@ namespace Navigator.AR
         {
             _useGyro = on && GyroAvailable;
             PlayerPrefs.SetInt(GyroPref, on ? 1 : 0);
-            if (_useGyro) Input.gyro.enabled = true;
+            if (_useGyro) DeviceGyro.Enable();
             Calibrate(false);
         }
 
@@ -64,8 +64,8 @@ namespace Navigator.AR
 
         void Start()
         {
-            _useGyro = SystemInfo.supportsGyroscope && PlayerPrefs.GetInt(GyroPref, 1) == 1;
-            if (_useGyro) Input.gyro.enabled = true;
+            _useGyro = DeviceGyro.Supported && PlayerPrefs.GetInt(GyroPref, 1) == 1;
+            if (_useGyro) DeviceGyro.Enable();
             Calibrate(false);
         }
 
@@ -79,6 +79,8 @@ namespace Navigator.AR
                 _mouseYaw = _mousePitch = 0f;
                 return;
             }
+            // Browser: the first reading may not have arrived yet; calibrate when it does
+            _calibrated = DeviceGyro.HasData;
             float currentYaw = DeviceRotation().eulerAngles.y;
             float targetYaw  = 0f;
             if (alignToNorth && Input.compass.enabled && Input.compass.timestamp > 0)
@@ -86,8 +88,11 @@ namespace Navigator.AR
             _yawOffset = Quaternion.Euler(0f, targetYaw - currentYaw, 0f);
         }
 
+        private bool _calibrated;
+
         void LateUpdate()
         {
+            if (_useGyro && !_calibrated && DeviceGyro.HasData) Calibrate(false);
             float dt = Time.deltaTime;
             _stickYaw  += Mathf.Clamp(_steer.x, -1f, 1f) * StickTurnRate * dt;
             _stickPitch = Mathf.Clamp(_stickPitch - Mathf.Clamp(_steer.y, -1f, 1f) * StickTurnRate * 0.8f * dt, -80f, 80f);
@@ -135,7 +140,7 @@ namespace Navigator.AR
         // Unity-space orientation of a portrait phone from the gyro attitude
         static Quaternion DeviceRotation()
         {
-            Quaternion q = Input.gyro.attitude;
+            Quaternion q = DeviceGyro.Attitude;
             return Quaternion.Euler(90f, 0f, 0f) * new Quaternion(q.x, q.y, -q.z, -q.w);
         }
 

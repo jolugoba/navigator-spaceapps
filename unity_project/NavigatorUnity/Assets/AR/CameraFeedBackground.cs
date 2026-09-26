@@ -83,17 +83,13 @@ namespace Navigator.AR
                     yield break;
                 }
             }
-#elif UNITY_IOS && !UNITY_EDITOR
-            yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
-            if (!Application.HasUserAuthorization(UserAuthorization.WebCam)) yield break;
+#else
+            yield return CameraPicker.RequestPermission();
+            if (!CameraPicker.HasPermission) yield break;
 #endif
             if (_tex == null)
             {
-                string device = null;
-                foreach (var d in WebCamTexture.devices)
-                    if (!d.isFrontFacing) { device = d.name; break; }
-                if (device == null && WebCamTexture.devices.Length > 0)
-                    device = WebCamTexture.devices[0].name;
+                string device = CameraPicker.BackCamera();
                 if (device == null)
                 {
                     Debug.LogWarning("[CameraFeed] No hay cámara disponible.");

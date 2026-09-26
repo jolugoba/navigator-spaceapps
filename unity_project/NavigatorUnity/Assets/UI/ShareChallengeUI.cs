@@ -50,7 +50,7 @@ namespace Navigator.UI
         void Copy()
         {
             // Paste it in any chat; the friend taps "Paste challenge" in the lobby
-            GUIUtility.systemCopyBuffer = Loc.F("share.message", _code);
+            WebPlatform.Copy(Loc.F("share.message", _code));
             if (CopyLabel != null) CopyLabel.text = Loc.T("share.copied");
         }
     }

@@ -1,7 +1,15 @@
 // Navigator 2.0 — SendaBridge.cs
 // P/Invoke to senda_iroh_ffi (copied as senda_core.dll / libsenda_core.so)
 // Matches the actual exported symbols in senda/senda_iroh_ffi/src/lib.rs
+// Web build: native libraries can't run in a browser, so the same API is served by WebRTC
+// (Plugins/WebGL/NavP2P.jspre + .jslib). Joining takes two QR scans there: the guest scans the
+// host's OFFER and shows an ANSWER, the host scans it back. Everything above this class
+// (lobby, ship sync, classroom…) works unchanged.
 // Guacalita Inc. — SAL / Claude
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+#define NAV_WEB
+#endif
 
 using System;
 using System.Collections.Concurrent;
@@ -13,6 +21,17 @@ using UnityEngine.Events;
 
 namespace Navigator.Network
 {
+#if NAV_WEB
+    // ── Browser bindings (NavP2P.jslib) ───────────────────────────────────────
+    internal static class WebP2P
+    {
+        [DllImport("__Internal")] internal static extern IntPtr NavP2P_Init(string gameObjectName);
+        [DllImport("__Internal")] internal static extern void   NavP2P_MakeOffer();
+        [DllImport("__Internal")] internal static extern void   NavP2P_Accept(string code);
+        [DllImport("__Internal")] internal static extern void   NavP2P_Broadcast(string data);
+        [DllImport("__Internal")] internal static extern void   NavP2P_Send(string to, string data);
+    }
+#else
     // ── Native bindings — match lib.rs exports exactly ───────────────────────
     internal static class SendaFFI
     {
@@ -76,6 +95,7 @@ namespace Navigator.Network
             return Encoding.UTF8.GetString(bytes);
         }
     }
+#endif
 
     // ── SendaBridge MonoBehaviour ─────────────────────────────────────────────
 
@@ -87,6 +107,18 @@ namespace Navigator.Network
 
         public  string NodeId      { get; private set; }
         public  bool   Initialized { get; private set; }
+
+        // What the lobby shows as a QR: the NodeId natively; in the browser an OFFER code
+        // (scan to join me) or, after scanning someone's offer, the ANSWER they must scan back
+        public  string ShareCode   { get; private set; }
+        public  bool   ShareIsAnswer { get; private set; }
+        public  event Action ShareCodeChanged;
+        public  event Action<string> ConnectError;
+#if NAV_WEB
+        public  static bool IsWeb => true;
+#else
+        public  static bool IsWeb => false;
+#endif
 
         private readonly List<string>          _connectedPeers = new();
 
@@ -101,6 +133,77 @@ namespace Navigator.Network
         // Static because IL2CPP reverse P/Invoke only accepts static [MonoPInvokeCallback] methods
         private static readonly ConcurrentQueue<(string from, string json)> _inbox = new();
 
+#if NAV_WEB
+        // ── Browser: WebRTC through NavP2P.jslib ──────────────────────────────
+        public bool Init()
+        {
+            try
+            {
+                NodeId = Marshal.PtrToStringUTF8(WebP2P.NavP2P_Init(gameObject.name));
+                Initialized = !string.IsNullOrEmpty(NodeId);
+                if (Initialized) WebP2P.NavP2P_MakeOffer();   // the first code arrives through OnWebP2P
+                Debug.Log($"[Senda] Web P2P ready. NodeId: {NodeId}");
+                return Initialized;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Senda] Web P2P init exception: {e.Message}");
+                return false;
+            }
+        }
+
+        // Called by the browser with "kind\na\nb" (SendMessage from NavP2P.jslib)
+        public void OnWebP2P(string payload)
+        {
+            // Only the first two separators count: the message itself may contain line breaks
+            var parts = (payload ?? "").Split(new[] { '\n' }, 3);
+            string kind = parts[0], a = parts.Length > 1 ? parts[1] : "", b = parts.Length > 2 ? parts[2] : "";
+            switch (kind)
+            {
+                case "code":
+                    ShareCode = a;
+                    ShareIsAnswer = b == "answer";
+                    ShareCodeChanged?.Invoke();
+                    break;
+                case "peer":
+                    _lastSeen[a] = Time.unscaledTime;
+                    if (!_connectedPeers.Contains(a))
+                    {
+                        _connectedPeers.Add(a);
+                        OnPeerConnected.Invoke(a);
+                    }
+                    // A new link is up: have a fresh offer ready for the next player
+                    WebP2P.NavP2P_MakeOffer();
+                    break;
+                case "msg":
+                    if (!string.IsNullOrEmpty(b)) _inbox.Enqueue((a, b));
+                    break;
+                case "gone":
+                    if (_connectedPeers.Remove(a)) { _lastSeen.Remove(a); OnPeerDisconnected.Invoke(a); }
+                    break;
+                case "error":
+                    Debug.LogWarning($"[Senda] Web P2P: {a}");
+                    ConnectError?.Invoke(a);
+                    break;
+            }
+        }
+
+        // A scanned OFFER or ANSWER code; plain NodeIds (peer lists) are reached through the relay
+        public bool ConnectToNode(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return false;
+            if (code.StartsWith("NVO") || code.StartsWith("NVA"))
+            {
+                WebP2P.NavP2P_Accept(code.Trim());
+                return true;
+            }
+            return _connectedPeers.Contains(code);
+        }
+
+        public void Broadcast(NavMsg msg) { if (Initialized) WebP2P.NavP2P_Broadcast(msg.ToJson()); }
+
+        public void Send(string remoteNodeId, NavMsg msg) { if (Initialized) WebP2P.NavP2P_Send(remoteNodeId, msg.ToJson()); }
+#else
         // Keep delegate alive to prevent GC collection
         private static SendaFFI.OnMessageDelegate _msgDelegate;
 
@@ -116,6 +219,7 @@ namespace Navigator.Network
                 NodeId = SendaFFI.PtrToStringUtf8(ptr);
                 SendaFFI.iroh_free_string(ptr);
                 Initialized = !string.IsNullOrEmpty(NodeId);
+                ShareCode = NodeId;
 
                 // Register message callback (called from Rust background thread)
                 _msgDelegate ??= OnNativeMessage;
@@ -169,6 +273,7 @@ namespace Navigator.Network
             byte[] data = Encoding.UTF8.GetBytes(msg.ToJson());
             SendaFFI.iroh_send(remoteNodeId, data, (ulong)data.Length);
         }
+#endif
 
         // ── Update: drain inbox on main thread ────────────────────────────────
         void Update()
@@ -224,9 +329,11 @@ namespace Navigator.Network
 
         void OnDestroy()
         {
+#if !NAV_WEB
             if (!Initialized) return;   // native library may not be loadable (e.g. macOS Editor)
             SendaFFI.iroh_set_message_callback(null);
             SendaFFI.iroh_shutdown();
+#endif
         }
     }
 

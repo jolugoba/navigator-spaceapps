@@ -22,9 +22,7 @@ namespace Navigator.Game
         {
             if (!Enabled || Time.unscaledTime - _last < 0.5f) return;
             _last = Time.unscaledTime;
-#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Handheld.Vibrate();
-#endif
+            Navigator.Core.WebPlatform.Vibrate(120);   // browser vibration API or the phone's own
         }
     }
 }

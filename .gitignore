@@ -74,3 +74,6 @@ senda/native/**/target/
 # Originals kept by tools/optimize_models.mjs (to undo an optimization)
 unity_project/models_original/
 tools/node_modules/
+
+# Web build output (upload it to a host; not versioned)
+unity_project/NavigatorUnity/WebBuild/

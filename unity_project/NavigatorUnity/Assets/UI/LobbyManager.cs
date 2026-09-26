@@ -87,8 +87,30 @@ namespace Navigator.UI
             Senda.OnMessage.AddListener(OnLobbyMessage);
             Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
             if (Sync != null) Sync.OnPeerList.AddListener(OnPeerList);
-            ShowMyQR(Senda.NodeId);
+            Senda.ShareCodeChanged += RefreshMyQR;
+            Senda.ConnectError     += OnConnectError;
+            RefreshMyQR();
         }
+
+        // Web build: the QR is an OFFER (scan me to join) or, after scanning a friend, the ANSWER
+        // they must scan back. Natively it's the NodeId.
+        void RefreshMyQR()
+        {
+            if (Senda == null) return;
+            string code = Senda.ShareCode;
+            if (string.IsNullOrEmpty(code))
+            {
+                if (MyNodeIdLabel != null) MyNodeIdLabel.text = Loc.T("lobby.web.preparing");
+                return;
+            }
+            ShowMyQR(code);
+            if (!Navigator.Network.SendaBridge.IsWeb || MyNodeIdLabel == null) return;
+            MyNodeIdLabel.text  = Loc.T(Senda.ShareIsAnswer ? "lobby.web.answer" : "lobby.web.offer");
+            MyNodeIdLabel.color = Senda.ShareIsAnswer ? UIStyle.Gold : UIStyle.Muted;
+            if (Senda.ShareIsAnswer) SetScanStatus(Loc.T("lobby.web.showanswer"));
+        }
+
+        void OnConnectError(string why) => SetScanStatus(Loc.T("lobby.connecterror"));
 
         void ShowMyQR(string nodeId)
         {
@@ -98,7 +120,8 @@ namespace Navigator.UI
 
             try
             {
-                if (MyQRImage != null) MyQRImage.texture = GenerateQR(nodeId, 256);
+                // Web codes are long (~550 chars): a bigger texture keeps every module crisp
+                if (MyQRImage != null) MyQRImage.texture = GenerateQR(nodeId, nodeId.Length > 100 ? 600 : 256);
             }
             catch (System.Exception e)
             {
@@ -148,13 +171,12 @@ namespace Navigator.UI
                 return;
             }
 #endif
+            if (!Navigator.AR.CameraPicker.HasPermission) { StartCoroutine(AskCameraThenScan()); return; }
             _scanning = true;
             SetScanButtonLabel(Loc.T("lobby.cancel"));
             SetScanStatus(Loc.T("lobby.aim"));
 
-            string device = null;
-            foreach (var d in WebCamTexture.devices)
-                if (!d.isFrontFacing) { device = d.name; break; }
+            string device = Navigator.AR.CameraPicker.BackCamera();
             _cam = device != null ? new WebCamTexture(device, 1280, 720, 30)
                                   : new WebCamTexture { requestedFPS = 30 };
             _cam.Play();
@@ -165,6 +187,14 @@ namespace Navigator.UI
                 ScanPreview.gameObject.SetActive(true);
             }
             StartCoroutine(ScanLoop());
+        }
+
+        // Browser / iOS: ask for the camera first, then scan
+        IEnumerator AskCameraThenScan()
+        {
+            SetScanStatus(Loc.T("lobby.campermission"));
+            yield return Navigator.AR.CameraPicker.RequestPermission();
+            if (Navigator.AR.CameraPicker.HasPermission) StartScan();
         }
 
         void StopScan()
@@ -226,12 +256,15 @@ namespace Navigator.UI
 
         void PasteChallenge()
         {
-            if (Challenge.TryDecode(GUIUtility.systemCopyBuffer, out var mission))
+            WebPlatform.Paste(text =>
             {
-                StopScan();
-                GameManager.Instance?.StartChallenge(mission);
-            }
-            else SetScanStatus(Loc.T("lobby.badcode"));
+                if (Challenge.TryDecode(text, out var mission))
+                {
+                    StopScan();
+                    GameManager.Instance?.StartChallenge(mission);
+                }
+                else SetScanStatus(Loc.T("lobby.badcode"));
+            });
         }
 
         // The same scanner joins a game (a NodeId) or accepts a shared challenge (NAVC1:…)
@@ -243,6 +276,13 @@ namespace Navigator.UI
                 return;
             }
             SetScanStatus(Loc.T("lobby.connecting"));
+            // Web: scanning a friend's OFFER turns my QR into the ANSWER they must scan back
+            if (Navigator.Network.SendaBridge.IsWeb)
+            {
+                if (!Senda.ConnectToNode(remoteNodeId)) SetScanStatus(Loc.T("lobby.connecterror"));
+                else if (remoteNodeId.StartsWith("NVO")) SetScanStatus(Loc.T("lobby.web.preparing"));
+                return;
+            }
             bool ok = Senda.ConnectToNode(remoteNodeId);
             if (ScanStatusText != null) ScanStatusText.text = ok
                 ? Loc.F("lobby.connected", remoteNodeId[..Mathf.Min(12, remoteNodeId.Length)])
@@ -298,6 +338,7 @@ namespace Navigator.UI
 
         void OnPeerConnected(string nodeId)
         {
+            if (Navigator.Network.SendaBridge.IsWeb) SetScanStatus(Loc.F("lobby.connected", nodeId[..Mathf.Min(12, nodeId.Length)]));
             _peersConnected = Senda.ConnectedPeers.Count;
             UpdateConnectedLabel();
             BroadcastLobbyInfo();
@@ -345,12 +386,16 @@ namespace Navigator.UI
             UpdateConnectedLabel();
             if (!_scanning) SetScanButtonLabel(Loc.T("lobby.scan"));
             if (Senda == null || !Senda.Initialized)
+            {
                 if (MyNodeIdLabel != null) MyNodeIdLabel.text = Loc.T("lobby.offline");
+            }
+            else if (Navigator.Network.SendaBridge.IsWeb) RefreshMyQR();
         }
 
         void OnDestroy()
         {
             Loc.Changed -= OnLanguageChanged;
+            if (Senda != null) { Senda.ShareCodeChanged -= RefreshMyQR; Senda.ConnectError -= OnConnectError; }
             GameManager.PlayerNameChanged -= OnNameChanged;
             ShipCatalog.SelectionChanged -= OnShipChanged;
             if (_cam != null) _cam.Stop();
