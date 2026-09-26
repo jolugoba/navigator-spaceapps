@@ -48,6 +48,7 @@ namespace Navigator.UI
             {
                 string reason = o.FailReason != null ? Loc.T(o.FailReason) : Loc.T("fail.notarrived");
                 Line(sb, Bad, Loc.F("rep.fail", reason, o.FlightTimeS));
+                foreach (var e in o.EventLog) Line(sb, Accent, Loc.F("rep.ops", e));
                 Budget(sb, d);
                 return sb.ToString().TrimEnd();
             }
@@ -66,6 +67,22 @@ namespace Navigator.UI
                 Line(sb, Bad, Loc.F("rep.comm.lost", o.InstrumentsReceived, o.InstrumentsPlanned, o.PointsLost, d.TotalDataMb));
             else
                 Line(sb, Good, Loc.F("rep.comm.good", o.InstrumentsReceived, d.TotalDataMb, o.PointsReceived));
+
+            // Science strategy: the most valuable instrument for this planet that wasn't carried
+            ScienceInstrument? best = null;
+            float bestMult = 1.4f;
+            foreach (ScienceInstrument i in System.Enum.GetValues(typeof(ScienceInstrument)))
+            {
+                float m = MissionDesign.PlanetScienceMult(d.TargetPlanetId, i);
+                if (m > bestMult && !d.Instruments.Contains(i)) { best = i; bestMult = m; }
+            }
+            if (best.HasValue)
+                Line(sb, Warn, Loc.F("rep.sci.missed", Loc.Planet(d.TargetPlanetId), Loc.Instrument(best.Value),
+                                     bestMult, d.InstrumentPoints(best.Value)));
+
+            // Operations: every cruise decision and its consequence
+            foreach (var e in o.EventLog) Line(sb, Accent, Loc.F("rep.ops", e));
+            if (o.EventBonusPoints > 0) Line(sb, Good, Loc.F("rep.ops.bonus", o.EventBonusPoints));
 
             Budget(sb, d);
 

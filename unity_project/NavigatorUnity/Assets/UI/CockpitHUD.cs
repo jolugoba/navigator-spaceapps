@@ -64,11 +64,11 @@ namespace Navigator.UI
         private float _impactTimer  = 0f;
         private GyroCameraRig _rig;
 
-        public void Flash(string key, Color color, float shake)
+        public void Flash(string key, Color color, float shake, string literal = null)
         {
             if (ImpactLabel != null)
             {
-                ImpactLabel.text  = Loc.T(key);
+                ImpactLabel.text  = literal ?? Loc.T(key);
                 ImpactLabel.color = color;
                 ImpactLabel.gameObject.SetActive(true);
             }

@@ -24,7 +24,7 @@ al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científi
 |---|---|---|
 | Objetivos de misión | Destino (7 planetas) + sobrevuelo / órbita / aterrizaje: cada uno cuesta ΔV y multiplica la ciencia | `RequiredDeltaV`, `ScienceMultiplier` |
 | Diseño de nave | Motor, combustible, energía, antena, lanzador, instrumentos | `MissionDesign` |
-| Instrumentos científicos | 8 instrumentos con masa, potencia, costo y puntos | `MissionDesign`, `ScienceOpsUI` |
+| Instrumentos científicos | 8 instrumentos; cada uno vale ×0.3 a ×2 según el planeta (radar en Venus, magnetómetro en Júpiter…) | `PlanetScienceMult` |
 | Vehículos de lanzamiento | Falcon 9 / Falcon Heavy / SLS / Starship limitan la masa | `LaunchCapacityKg` |
 | Presupuesto | Límite de $1,000M | `IsBudgetOk` |
 | Energía | Solar (ley del cuadrado inverso) / RTG / reactor | `EffectivePowerW` |
@@ -33,7 +33,8 @@ al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científi
 | Restricciones orbitales | ΔV de Tsiolkovsky ≥ ΔV mínimo del planeta, o no despega | `HasDeltaV` |
 | Trade-offs de ingeniería | Más combustible = más masa = lanzador más caro = menos instrumentos | todo el diseño |
 | Evaluar el éxito | Puntaje + **informe de misión** que explica cómo cada decisión (ΔV, energía, antena, objetivo, presupuesto) afectó el resultado, y qué misión real de la NASA se parece a la tuya | `MissionReport` |
-| Del concepto a la operación | Diseño → lanzamiento → vuelo AR → llegada → ciencia → resultado | `GameManager` |
+| Del concepto a la operación | Briefing → diseño → lanzamiento → **operación en crucero con anomalías reales** → llegada → ciencia → informe | `TutorialUI`, `MissionEventsUI` |
+| Gestionar recursos limitados | En crucero decides con combustible, energía, tiempo e instrumentos: tormenta solar, falla, apagón, error de navegación | `MissionEventsUI` |
 
 ### Diferenciador
 ```
@@ -198,6 +199,28 @@ Químico · 4,500 kg de combustible · Solar · antena media · Falcon Heavy · 
 
 ---
 
+### Valor científico según el planeta
+Cada instrumento se multiplica según lo que realmente vale en ese mundo (×0.3 inútil, ×1 normal, ×2 clave):
+
+| Planeta | Instrumentos clave (×2) | Casi inútiles | Misión real que lo mostró |
+|---|---|---|---|
+| Mercurio | Magnetómetro | — | MESSENGER (campo magnético inesperado) |
+| Venus | Radar, espectrómetro UV | Cámaras ×0.3 | Magellan (radar bajo las nubes) |
+| Marte | Cámara teleobjetivo, radar | — | MRO (HiRISE, SHARAD) |
+| Júpiter | Magnetómetro, detector de partículas | Radar ×0.3 | Juno |
+| Saturno | Radio ciencia | — | Cassini (ocultaciones de anillos) |
+| Urano | Magnetómetro | Radar ×0.3 | Voyager 2 |
+| Neptuno | Magnetómetro | Radar ×0.3 | Voyager 2 (géiseres de Tritón) |
+
+Puntos de un instrumento = base × valor en el planeta × multiplicador del objetivo. La pantalla de diseño
+muestra el ×N de cada instrumento en verde o rojo, y el informe te dice qué instrumento clave te faltó.
+
+### Briefing de la primera misión — `UI/TutorialUI.cs`
+8 tarjetas que explican ΔV y Tsiolkovsky, motores (Isp), energía solar vs RTG, ciencia por planeta,
+comunicaciones, objetivos y operación. Aparece la primera vez; el botón **?** del diseño lo reabre.
+
+---
+
 ## 4. Vuelo
 
 ### Controles — `AR/ARShipController.cs`
@@ -240,6 +263,21 @@ AR de 3 grados de libertad que funciona en **cualquier celular** (no requiere AR
 - El HUD muestra una flecha hacia el planeta cuando no está en pantalla.
 
 ---
+
+### Operación en crucero — `UI/MissionEventsUI.cs`
+Dos anomalías por vuelo (al 30 % y 65 % del camino). El vuelo se congela y tienes 12 s para decidir;
+si no decides, control de misión elige la opción segura. **Tu diseño decide qué tan grave es cada una:**
+
+| Evento | Opción A | Opción B | El diseño que te salva |
+|---|---|---|---|
+| Tormenta solar | Modo seguro: +10 s | Seguir: 50 % de perder un instrumento | Detector de partículas: la mides, +50 % de sus puntos |
+| Campo de escombros | Maniobra: −8 % combustible | Atravesar: 60 % de −1 casco y −25 % | Margen de combustible |
+| Falla de instrumento | Reiniciar (necesita 20 W libres) | Apagarlo: se pierde | Margen de energía (RTG / reactor) |
+| Error de navegación | Corregir ya: −5 % | Corregir tarde: −15 % | Lección real: las TCM tempranas son baratas |
+| Apagón (conjunción solar) | Esperar: +12 s | Piloto automático: 40 % de percance | Antena de alta ganancia: sin demora |
+| Paneles debilitándose (solar lejos del Sol) | Apagar el instrumento que más consume | −30 W para la ciencia | Elegir RTG en vez de solar |
+
+Cada decisión y su consecuencia aparece en el informe final.
 
 ## 5. Burnout — `Game/BurnoutSystem.cs`
 

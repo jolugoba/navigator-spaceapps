@@ -74,6 +74,8 @@ namespace Navigator.Editor
             var hud     = root.AddComponent<CockpitHUD>();
             var science = root.AddComponent<ScienceOpsUI>();
             var board   = root.AddComponent<ScoreboardUI>();
+            var events  = root.AddComponent<MissionEventsUI>();
+            var tutor   = root.AddComponent<TutorialUI>();
 
             // Panels that fill the whole screen (incl. behind the notch) get their own backdrop
             gm.LobbyPanel         = BuildLobby(root.transform, safe, lobby, gm);
@@ -82,6 +84,12 @@ namespace Navigator.Editor
             gm.HUDPanel           = BuildHUD(safe, hud);
             gm.ScienceOpsPanel    = BuildScienceOps(root.transform, safe, science);
             gm.ScoreboardPanel    = BuildScoreboard(root.transform, safe, board);
+
+            // Overlays go last so they draw above every panel
+            BuildEvents(root.transform, events);
+            BuildTutorial(root.transform, tutor, gm.MissionDesignPanel);
+            gm.Events   = events;
+            gm.Tutorial = tutor;
 
             gm.Lobby           = lobby;
             gm.MissionDesignUI = design;
@@ -175,7 +183,7 @@ namespace Navigator.Editor
             var content = UIKit.Scroll(p, "Scroll", new Vector4(0f, 0.25f, 1f, 0.91f));
 
             // Destino
-            var s = UIKit.Section(content, "@design.destination", 350);
+            var s = UIKit.Section(content, "@design.destination", 450);
             string[] planets = { "@planet.mercury", "@planet.venus", "@planet.mars", "@planet.jupiter", "@planet.saturn", "@planet.uranus", "@planet.neptune" };
             ui.PlanetButtons = new Button[planets.Length];
             for (int i = 0; i < planets.Length; i++)
@@ -186,6 +194,7 @@ namespace Navigator.Editor
             }
             ui.PlanetLabel    = UIKit.TextTop(s, "PlanetLabel", "", 32, 0f, 0.5f, 292, 44, TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
             ui.CommDelayLabel = UIKit.TextTop(s, "CommDelay", "", 30, 0.5f, 1f, 292, 44, TextAlignmentOptions.Right, UIStyle.Muted);
+            ui.PlanetScienceLabel = UIKit.TextTop(s, "PlanetScience", "", 26, 0f, 1f, 340, 70, TextAlignmentOptions.TopLeft, UIStyle.Accent);
 
             // Objetivo
             s = UIKit.Section(content, "@design.objective", 250);
@@ -271,6 +280,67 @@ namespace Navigator.Editor
             ui.LaunchButton      = UIKit.ButtonTop(footer, "LaunchButton", "@design.launchbtn", 0.04f, 0.96f, 196, 124, 50,
                                                    UIStyle.Accent, UIStyle.Ink, FontStyles.Bold, inset: 0f);
             return panel.go;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // EVENTOS DE OPERACIÓN (crucero)
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildEvents(Transform root, MissionEventsUI ev)
+        {
+            var go = UIKit.Stretch(root, "EventPanel").gameObject;
+            var dim = go.AddComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.6f);
+            dim.raycastTarget = true;
+            var card = UIKit.Card(go.transform, "Card", new Vector4(0.05f, 0.24f, 0.95f, 0.76f), UIStyle.Card);
+
+            UIKit.Text(card, "Tag", "@ev.header", 26, new Vector4(0.05f, 0.9f, 0.95f, 0.97f), TextAlignmentOptions.Left, UIStyle.Warn, FontStyles.Bold);
+            ev.TitleLabel = UIKit.Text(card, "Title", "", 54, new Vector4(0.05f, 0.78f, 0.95f, 0.9f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            ev.BodyLabel  = UIKit.Text(card, "Body", "", 32, new Vector4(0.05f, 0.44f, 0.95f, 0.78f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            ev.TimerLabel = UIKit.Text(card, "Timer", "", 28, new Vector4(0.05f, 0.37f, 0.95f, 0.44f), TextAlignmentOptions.Left, UIStyle.Muted);
+            ev.OptionA = UIKit.Button(card, "OptionA", "A", new Vector4(0.04f, 0.2f, 0.96f, 0.36f), UIStyle.Accent, UIStyle.Ink, 34, FontStyles.Bold);
+            ev.OptionB = UIKit.Button(card, "OptionB", "B", new Vector4(0.04f, 0.03f, 0.96f, 0.19f), UIStyle.ButtonIdle, UIStyle.Text, 34, FontStyles.Bold);
+            ev.OptionALabel = ev.OptionA.GetComponentInChildren<TMP_Text>();
+            ev.OptionBLabel = ev.OptionB.GetComponentInChildren<TMP_Text>();
+            ev.OptionALabel.textWrappingMode = TextWrappingModes.Normal;
+            ev.OptionBLabel.textWrappingMode = TextWrappingModes.Normal;
+
+            ev.Panel = go;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // TUTORIAL DE LA PRIMERA MISIÓN
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildTutorial(Transform root, TutorialUI tut, GameObject designPanel)
+        {
+            var go = UIKit.Stretch(root, "TutorialPanel").gameObject;
+            var dim = go.AddComponent<Image>();
+            dim.color = new Color(0f, 0f, 0f, 0.7f);
+            dim.raycastTarget = true;
+            var card = UIKit.Card(go.transform, "Card", new Vector4(0.05f, 0.2f, 0.95f, 0.8f), UIStyle.Card);
+
+            UIKit.Text(card, "Tag", "@tut.tag", 26, new Vector4(0.05f, 0.91f, 0.7f, 0.97f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
+            tut.CounterLabel = UIKit.Text(card, "Counter", "1 / 8", 26, new Vector4(0.7f, 0.91f, 0.95f, 0.97f), TextAlignmentOptions.Right, UIStyle.Muted);
+            tut.TitleLabel   = UIKit.Text(card, "Title", "", 50, new Vector4(0.05f, 0.79f, 0.95f, 0.9f), TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
+            tut.BodyLabel    = UIKit.Text(card, "Body", "", 32, new Vector4(0.05f, 0.2f, 0.95f, 0.78f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            tut.BackButton = UIKit.Button(card, "Back", "@tut.back", new Vector4(0.04f, 0.04f, 0.3f, 0.15f), UIStyle.ButtonIdle, UIStyle.Text, 30);
+            tut.SkipButton = UIKit.Button(card, "Skip", "@tut.skip", new Vector4(0.32f, 0.04f, 0.52f, 0.15f), UIStyle.ButtonIdle, UIStyle.Muted, 28);
+            tut.NextButton = UIKit.Button(card, "Next", "@tut.next", new Vector4(0.54f, 0.04f, 0.96f, 0.15f), UIStyle.Accent, UIStyle.Ink, 32, FontStyles.Bold);
+            tut.NextLabel  = tut.NextButton.GetComponentInChildren<TMP_Text>();
+            // NextLabel changes with the step: drop the fixed-key binding
+            Object.DestroyImmediate(tut.NextLabel.GetComponent<LocalizedText>());
+
+            // "?" on the mission design header reopens the briefing
+            var content = designPanel.transform.Find("Content");
+            tut.HelpButton = UIKit.Button(content != null ? content : designPanel.transform, "HelpButton", "?",
+                                          new Vector4(0.86f, 0.935f, 0.96f, 0.99f), UIStyle.ButtonIdle, UIStyle.Accent, 44, FontStyles.Bold);
+
+            tut.Panel = go;
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
         }
 
         // ══════════════════════════════════════════════════════════════════════

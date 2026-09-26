@@ -55,6 +55,9 @@ Cómo correrlo: [`NAVIGATOR_UNITY_QUICKSTART.md`](../../../NAVIGATOR_UNITY_QUICK
 | `MissionDesignUI.cs` | Pantalla de diseño; LANZAR solo con diseño válido |
 | `CockpitHUD.cs` | Velocidad, combustible, progreso, tiempo, flecha al planeta, Burnout, casco |
 | `ScienceOpsUI.cs` | Energía → escaneo → envío por antena → viaje a la luz; ventana de comunicación |
+| `MissionEventsUI.cs` | Anomalías en crucero con decisiones y consecuencias según el diseño |
+| `TutorialUI.cs` | Briefing de 8 pasos de la primera misión |
+| `Loc.cs` / `LocalizedText.cs` | Inglés (por defecto) y español |
 | `MissionReport.cs` | Informe final: cómo cada decisión afectó el resultado + misión real parecida |
 | `ScoreboardUI.cs` | Revelado animado; espera al rival antes de declarar ganador |
 | `UIStyle.cs`, `SafeAreaFitter.cs` | Paleta del juego, respeto al notch |

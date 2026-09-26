@@ -259,6 +259,29 @@ namespace Navigator.Core
             _                      => Loc.T("mission.none"),
         };
 
+        // ── Science value per planet ──────────────────────────────────────────
+        // Order: WideCam, NarrowCam, UV, IR, Magnetometer, Particles, RadioScience, Radar.
+        // Grounded in what real missions found valuable: Magellan's radar under Venus' clouds,
+        // HiRISE/SHARAD at Mars, Juno's magnetometer and particle detectors at Jupiter,
+        // Cassini's ring radio occultations, Voyager 2 finding the tilted fields of the ice giants.
+        static readonly Dictionary<string, float[]> PlanetScience = new()
+        {
+            { "mercury", new[] { 1.0f, 1.2f, 1.0f, 1.5f, 2.0f, 1.0f, 1.0f, 1.5f } },
+            { "venus",   new[] { 0.3f, 0.3f, 2.0f, 1.5f, 0.5f, 0.7f, 1.5f, 2.0f } },
+            { "mars",    new[] { 1.5f, 2.0f, 0.8f, 1.5f, 1.0f, 0.8f, 1.0f, 2.0f } },
+            { "jupiter", new[] { 1.2f, 1.0f, 1.5f, 1.5f, 2.0f, 2.0f, 1.5f, 0.3f } },
+            { "saturn",  new[] { 1.5f, 1.5f, 1.2f, 1.5f, 1.5f, 1.5f, 2.0f, 1.0f } },
+            { "uranus",  new[] { 1.0f, 1.0f, 1.2f, 1.5f, 2.0f, 1.5f, 1.5f, 0.3f } },
+            { "neptune", new[] { 1.5f, 1.2f, 1.0f, 1.5f, 2.0f, 1.2f, 1.5f, 0.3f } },
+        };
+
+        public static float PlanetScienceMult(string planet, ScienceInstrument inst) =>
+            PlanetScience.TryGetValue(planet ?? "", out var row) ? row[(int)inst] : 1f;
+
+        // Final points for one instrument: base × value at this planet × objective
+        public int InstrumentPoints(ScienceInstrument inst) =>
+            Mathf.RoundToInt(InstrumentSciencePoints[inst] * PlanetScienceMult(TargetPlanetId, inst) * ScienceMultiplier);
+
         // ── Comunicaciones (datos que cada instrumento debe enviar a la Tierra) ─
         public static readonly Dictionary<ScienceInstrument, float> InstrumentDataMb = new()
         {
@@ -366,7 +389,7 @@ namespace Navigator.Core
         public float TotalDataMb       => Instruments.Sum(i => InstrumentDataMb[i]);
 
         public int MaxSciencePoints =>
-            Instruments.Sum(i => InstrumentSciencePoints[i]);
+            Instruments.Sum(i => InstrumentPoints(i));
 
         public bool IsBudgetOk  => TotalCostM  <= BudgetLimitM;
         public bool IsMassOk    => WetMassKg   <= LaunchCapacityKg[LaunchVeh];

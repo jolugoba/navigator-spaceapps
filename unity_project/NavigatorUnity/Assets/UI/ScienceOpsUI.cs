@@ -67,6 +67,7 @@ namespace Navigator.UI
             public float  Scan;        // 0..1
             public float  SentMb;
             public float  TransitLeft; // s
+            public bool   FailedInCruise;
             public Transform Item;
         }
 
@@ -126,7 +127,11 @@ namespace Navigator.UI
             _ops.Clear();
             _queue.Clear();
             _transmitting = null;
-            foreach (var inst in design.Instruments) _ops.Add(new Op { Inst = inst });
+            foreach (var inst in design.Instruments)
+            {
+                bool failed = outcome != null && outcome.LostInstruments.Contains(inst);
+                _ops.Add(new Op { Inst = inst, FailedInCruise = failed, Stage = failed ? Stage.Lost : Stage.WaitingPower });
+            }
 
             if (_outcome != null)
             {
@@ -136,7 +141,8 @@ namespace Navigator.UI
             if (_score != null)
             {
                 _score.ArrivalPosition = arrivalPosition;
-                _score.SciencePoints   = 0;
+                // Science earned during cruise decisions (e.g. measuring a solar storm)
+                _score.SciencePoints   = _outcome != null ? _outcome.EventBonusPoints : 0;
             }
 
             BuildItems();
@@ -168,7 +174,7 @@ namespace Navigator.UI
         // Instruments scan in parallel as long as bus + active instruments fit the power budget
         void RunScans(float dt)
         {
-            float available = _design.EffectivePowerW;
+            float available = AvailablePowerW;
             _activePowerW   = MissionDesign.BusPowerW;
             bool anyWaiting = false;
 
@@ -241,8 +247,10 @@ namespace Navigator.UI
             }
         }
 
+        float AvailablePowerW => _design.EffectivePowerW - (_outcome != null ? _outcome.PowerLossW : 0f);
+
         int Points(ScienceInstrument inst) =>
-            Mathf.RoundToInt(MissionDesign.InstrumentSciencePoints[inst] * _design.ScienceMultiplier);
+            _design.InstrumentPoints(inst);
 
         void Finish()
         {
@@ -251,7 +259,7 @@ namespace Navigator.UI
 
             foreach (var op in _ops)
             {
-                if (op.Stage == Stage.Received) continue;
+                if (op.Stage == Stage.Received || op.FailedInCruise) continue;
                 op.Stage = Stage.Lost;
                 if (_outcome != null) _outcome.PointsLost += Points(op.Inst);
             }
@@ -307,7 +315,7 @@ namespace Navigator.UI
                     Stage.Transmitting => (op.SentMb / size, UIStyle.Gold, Loc.F("sci.st.sending", op.SentMb, size)),
                     Stage.InTransit    => (1f,      UIStyle.Gold,   Loc.F("sci.st.transit", op.TransitLeft)),
                     Stage.Received     => (1f,      UIStyle.Good,   Loc.F("sci.st.received", Points(op.Inst))),
-                    _                  => (1f,      UIStyle.Bad,    Loc.T("sci.st.lost")),
+                    _                  => (1f,      UIStyle.Bad,    Loc.T(op.FailedInCruise ? "sci.st.failed" : "sci.st.lost")),
                 };
                 if (bar != null) { bar.fillAmount = fill; bar.color = color; }
                 if (pts != null) { pts.text = text; pts.color = color; }
@@ -316,7 +324,7 @@ namespace Navigator.UI
 
         void RefreshLiveLabels()
         {
-            float avail = _design.EffectivePowerW;
+            float avail = AvailablePowerW;
             if (PowerBar   != null) PowerBar.fillAmount = Mathf.Clamp01(_activePowerW / Mathf.Max(1f, avail));
             if (PowerLabel != null) PowerLabel.text     = $"{_activePowerW:F0} / {avail:F0} W";
             if (PowerStatusLabel != null)

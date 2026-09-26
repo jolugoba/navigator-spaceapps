@@ -60,6 +60,10 @@ namespace Navigator.UI
         public CameraFeedBackground CameraFeed;
         public GyroCameraRig        Rig;
 
+        [Header("Operaciones")]
+        public MissionEventsUI Events;
+        public TutorialUI      Tutorial;
+
         [Header("Espacio")]
         public PowerupSystem Powerups;
         public AsteroidField Asteroids;
@@ -136,6 +140,8 @@ namespace Navigator.UI
         public void OnLobbyReady()
         {
             if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+            Time.timeScale = 1f;
+            Events?.Cancel();
 
             _rivalArrived = false;
             _remoteScore  = Navigator.UI.ScoreboardUI.RemotePending;
@@ -159,6 +165,7 @@ namespace Navigator.UI
 
             // "Play again" keeps the previous design so the player can iterate on it
             MissionDesignUI?.Show(_lastPlanet, keepDesign: true);
+            Tutorial?.ShowIfFirstTime();
         }
 
         // MissionDesignUI → botón LANZAR
@@ -226,6 +233,7 @@ namespace Navigator.UI
             }
 
             _flightTimer = 0f;
+            Events?.BeginFlight(Mission, Outcome, Ship);
             SetState(GameState.InFlight);
             SetPanels(hud: true);
             SetControls(true);
@@ -313,6 +321,12 @@ namespace Navigator.UI
             if (_flightTimer >= MaxFlightTimeS) { FailMission("fail.timeout");  return; }
         }
 
+        // Cruise decisions (safe mode, waiting for a comm link) cost mission time
+        public void AddFlightTime(float seconds)
+        {
+            if (State == GameState.InFlight) _flightTimer += seconds;
+        }
+
         void RecordFlight(bool arrived)
         {
             var fuel = Ship != null ? Ship.GetComponent<FuelSystem>()      : null;
@@ -337,6 +351,7 @@ namespace Navigator.UI
 
         void Arrive()
         {
+            Events?.Cancel();
             SetControls(false);
             StopShip();
             RecordFlight(true);
@@ -357,6 +372,7 @@ namespace Navigator.UI
 
         void FailMission(string reason)
         {
+            Events?.Cancel();
             SetControls(false);
             StopShip();
             RecordFlight(false);

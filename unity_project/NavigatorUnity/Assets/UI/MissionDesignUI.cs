@@ -22,7 +22,8 @@ namespace Navigator.UI
         [Header("Selección planeta")]
         public Button[] PlanetButtons;    // orden: mercury, venus, mars, jupiter, saturn, uranus, neptune
         public TMP_Text PlanetLabel;
-        public TMP_Text CommDelayLabel;   // "Retraso señal: 3-22 min"
+        public TMP_Text CommDelayLabel;
+        public TMP_Text PlanetScienceLabel;   // qué instrumentos valen más en este planeta
 
         // ── Motor ──────────────────────────────────────────────────────────────
         [Header("Motor")]
@@ -199,9 +200,11 @@ namespace Navigator.UI
                 var label = InstrumentToggles[i] != null ? InstrumentToggles[i].GetComponentInChildren<TMP_Text>() : null;
                 if (label == null) continue;
                 var inst = instValues[i];
-                label.text = $"{Loc.Instrument(inst)}\n<size=70%><color=#8FA3C7>" +
+                float mult = MissionDesign.PlanetScienceMult(_design.TargetPlanetId, inst);
+                string hex = mult >= 1.5f ? "#52EB8C" : mult <= 0.5f ? "#FF5C5C" : "#8FA3C7";
+                label.text = $"{Loc.Instrument(inst)} <color={hex}><b>×{mult:0.#}</b></color>\n<size=70%><color=#8FA3C7>" +
                              $"{MissionDesign.InstrumentMassKg[inst]:F0} kg · {MissionDesign.InstrumentPowerW[inst]:F0} W · " +
-                             $"{MissionDesign.InstrumentSciencePoints[inst]} pts · {MissionDesign.InstrumentDataMb[inst]:F0} Mb</color></size>";
+                             $"{_design.InstrumentPoints(inst):N0} pts · {MissionDesign.InstrumentDataMb[inst]:F0} Mb</color></size>";
             }
         }
 
@@ -211,6 +214,7 @@ namespace Navigator.UI
             // Planeta
             if (PlanetLabel != null)
                 PlanetLabel.text = PlanetDisplayName(_design.TargetPlanetId);
+            if (PlanetScienceLabel != null) PlanetScienceLabel.text = Loc.T("scihint." + _design.TargetPlanetId);
             if (CommDelayLabel != null && MissionDesign.CommDelayLabel.TryGetValue(_design.TargetPlanetId, out var delay))
                 CommDelayLabel.text = Loc.F("design.signal", delay);
 
@@ -298,7 +302,7 @@ namespace Navigator.UI
             foreach (var i in _design.Instruments)
             {
                 instMass += MissionDesign.InstrumentMassKg[i];
-                instPts  += MissionDesign.InstrumentSciencePoints[i];
+                instPts  += _design.InstrumentPoints(i);
             }
             if (InstrumentMassLabel    != null) InstrumentMassLabel.text    = Loc.F("design.instmass", instMass);
             if (InstrumentScienceLabel != null) InstrumentScienceLabel.text = Loc.F("design.instpts", instPts);
