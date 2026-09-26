@@ -142,6 +142,15 @@ namespace Navigator.Editor
             // Real flybys (MESSENGER, Galileo, Cassini, Voyager 2) and the painted sky
             var gravity = EnsureComp<GravityField>(GetOrCreate("GravityField"));
             gravity.GlowMaterial = ParticleMaterial();
+
+            // Free flight: the whole Solar System of today, reusing the same planets, belt and pods
+            var free = EnsureComp<FreeSpace>(GetOrCreate("FreeSpace"));
+            free.Space        = spaceMgr;
+            free.Gravity      = gravity;
+            free.Asteroids    = asteroids;
+            free.Pods         = powerups;
+            free.SunMaterial  = GlowMaterial();
+            free.GlowMaterial = ParticleMaterial();
             var sky = EnsureComp<CosmicSkyFX>(mainCamGO);
             sky.GlowMaterial     = ParticleMaterial();
             sky.NebulaTextures   = SkyTextures("nebula");
@@ -175,6 +184,7 @@ namespace Navigator.Editor
             gm.Powerups     = powerups;
             gm.Asteroids    = asteroids;
             gm.Gravity      = gravity;
+            gm.Free         = free;
 
             // Bridge to the Flutter app that embeds Unity (flutter_app/); no-op when run standalone
             EnsureComp<FlutterBridge>(GetOrCreate(FlutterBridge.ObjectName));

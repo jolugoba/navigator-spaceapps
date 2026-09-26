@@ -62,6 +62,7 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 | Botón **DISPARAR** | Clic del stick derecho | **X** | Láser: no destruye, quita 1 punto de casco a un rival, gasta 1.5 % de combustible |
 | Botón **PROFESOR** (lobby) | — | — | Modo profesor: QR de la clase, preguntas, quién pasa de mundo |
 | Recuadro del nombre (lobby) | — | — | Tu nombre: lo ven los rivales, el marcador y el profesor |
+| Botón **EXPLORAR** (lobby) | Esc / Atrás sale | Esc / Atrás sale | Vuelo libre: el Sistema Solar de hoy, sin misión ni reloj, con todos los conectados |
 | Botón **NAVE** (lobby, arriba) | — | — | Hangar: elige entre NV-01 y NV-10 con vista 3D. Es solo estética y los rivales la ven |
 | **CRÉDITOS** (lobby, abajo) | — | — | Datos NASA, imágenes y software usados (lista completa en `CREDITS.md`) |
 

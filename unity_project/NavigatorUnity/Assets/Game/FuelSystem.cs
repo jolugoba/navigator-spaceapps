@@ -61,8 +61,12 @@ namespace Navigator.Game
 
         // ── Drain (call from PhysicsEngine or ShipController each FixedUpdate)
 
+        // Free flight: the tank never empties (no mission, nothing to budget)
+        [HideInInspector] public bool Infinite;
+
         public void Drain(float thrustMain, bool boosting, float dt)
         {
+            if (Infinite) return;
             if (_empty) return;
 
             float usage = thrustMain / Mathf.Max(1f, BurnTimeS) * (boosting ? 2.2f : 1f) * dt;
@@ -98,6 +102,7 @@ namespace Navigator.Game
 
         public void Leak(float fraction)
         {
+            if (Infinite) return;
             FuelFraction = Mathf.Max(0f, FuelFraction - fraction);
             OnFuelChanged.Invoke(FuelFraction);
         }

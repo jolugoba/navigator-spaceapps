@@ -164,9 +164,11 @@ namespace Navigator.Editor
                                                  new Vector4(0.08f, 0.07f, 0.92f, 0.17f),
                                                  UIStyle.Accent, UIStyle.Ink, 52, FontStyles.Bold);
             lobby.StartGameLabel = lobby.StartGameButton.GetComponentInChildren<TMP_Text>();
-            _campaignButton = UIKit.Button(p, "CampaignButton", "@camp.button", new Vector4(0.08f, 0.18f, 0.6f, 0.26f),
-                                           UIStyle.Gold, UIStyle.Ink, 34, FontStyles.Bold);
-            lobby.SkyButton = UIKit.Button(p, "SkyButton", "@lobby.sky", new Vector4(0.62f, 0.18f, 0.92f, 0.26f),
+            _campaignButton = UIKit.Button(p, "CampaignButton", "@camp.button", new Vector4(0.08f, 0.18f, 0.4f, 0.26f),
+                                           UIStyle.Gold, UIStyle.Ink, 28, FontStyles.Bold);
+            lobby.ExploreButton = UIKit.Button(p, "ExploreButton", "@free.button", new Vector4(0.42f, 0.18f, 0.66f, 0.26f),
+                                               new Color(0.15f, 0.6f, 0.5f, 1f), UIStyle.Text, 26, FontStyles.Bold);
+            lobby.SkyButton = UIKit.Button(p, "SkyButton", "@lobby.sky", new Vector4(0.68f, 0.18f, 0.92f, 0.26f),
                                            new Color(0.35f, 0.25f, 0.7f, 1f), UIStyle.Text, 28, FontStyles.Bold);
             lobby.PasteChallengeButton = UIKit.Button(p, "PasteChallenge", "@lobby.paste", new Vector4(0.57f, 0.395f, 0.92f, 0.455f),
                                                       UIStyle.ButtonIdle, UIStyle.Gold, 30, FontStyles.Bold);
@@ -875,6 +877,14 @@ namespace Navigator.Editor
             hud.InfoCard  = info.gameObject;
             hud.InfoTitle = UIKit.Text(info, "Title", "", 34, new Vector4(0.04f, 0.74f, 0.96f, 0.96f), TextAlignmentOptions.Left, UIStyle.Accent, FontStyles.Bold);
             hud.InfoBody  = UIKit.Text(info, "Body", "", 26, new Vector4(0.04f, 0.05f, 0.96f, 0.74f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+
+            // Free flight only: back to the lobby (top-left, under the top bar)
+            hud.ExitButton = UIKit.Button(p, "ExitButton", "@free.exit", new Vector4(0f, 1f, 0f, 1f),
+                                          new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Text, 20, FontStyles.Bold);
+            var exitRt = (RectTransform)hud.ExitButton.transform;
+            exitRt.pivot = new Vector2(0f, 1f);
+            exitRt.sizeDelta = new Vector2(170f, 56f);
+            exitRt.anchoredPosition = new Vector2(24f, -150f);
 
             hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(1f, 1f, 1f, 1f),
                                           new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 20, FontStyles.Bold);

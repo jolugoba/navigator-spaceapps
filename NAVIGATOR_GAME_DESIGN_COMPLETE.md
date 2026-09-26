@@ -563,6 +563,26 @@ galaxias y el agujero negro del cielo.
 
 Los modelos se piden en [`NAVIGATOR_MESHY_ASSETS_V3.md`](NAVIGATOR_MESHY_ASSETS_V3.md).
 
+## 10i. Exploración libre — `AR/FreeSpace.cs`
+El botón **EXPLORAR** del lobby abre el Sistema Solar completo como mundo abierto, sin misión, sin reloj y sin límite de combustible.
+
+- **Posiciones reales de hoy.** El Sol está en el centro y los 8 planetas en su longitud heliocéntrica media de la fecha UTC, calculada con los elementos orbitales aproximados de NASA/JPL (Standish) y órbitas circulares.
+  - Las distancias están comprimidas: radio = 300 + 550·√UA.
+  - Los tamaños son de juego (Júpiter es el más grande).
+- **Mismo mundo en todos los celulares.** Se calcula solo con la fecha UTC, así que los amigos conectados por QR se encuentran en el mismo Sistema Solar sin enviarse el mapa.
+- **Qué hay en el mundo:**
+  - cada planeta atrae con gravedad y tiene su anillo de asistencia gravitatoria;
+  - cada uno tiene sus lunas y la sonda que lo visitó;
+  - Hubble, JWST, la ISS y el SLS están junto a la Tierra, y DART va hacia el cinturón;
+  - el cinturón de asteroides está entre Marte y Júpiter;
+  - hay pods en el camino.
+- **Tocar el Sol** te rebota con un golpe fuerte. **Perder el casco** te devuelve a la Tierra con una nave nueva; aquí no hay derrota.
+- **Bitácora del explorador:** todo lo que escaneas queda guardado en el celular, de una partida a otra.
+  - El HUD muestra *BITÁCORA encontrados/total* y cuál es el planeta más cercano.
+  - La flecha apunta al próximo mundo sin descubrir.
+- **Invitación:** al entrar se avisa a los conectados ("Ana está explorando… toca EXPLORAR para unirte").
+- Se sale con **SALIR** (arriba a la izquierda) o con Esc / Atrás.
+
 ## 10h. Hangar — `Game/ShipCatalog.cs`, `UI/HangarUI.cs`
 El botón **NAVE** del lobby abre el hangar.
 - Hay 10 cascos (Meshy NV-01 … NV-10) que giran en una vista 3D.

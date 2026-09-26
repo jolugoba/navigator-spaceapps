@@ -45,6 +45,7 @@ namespace Navigator.UI
         [Header("Retos y cielo")]
         public Button   PasteChallengeButton;   // código recibido por chat
         public Button   SkyButton;              // ¿Dónde está esta noche?
+        public Button   ExploreButton;          // free flight, no mission
 
         [Header("Componentes")]
         public Navigator.Network.SendaBridge      Senda;
@@ -65,6 +66,7 @@ namespace Navigator.UI
             if (ScanButton != null) ScanButton.onClick.AddListener(ToggleScan);
             if (LanguageButton != null) LanguageButton.onClick.AddListener(Loc.Toggle);
             if (PasteChallengeButton != null) PasteChallengeButton.onClick.AddListener(PasteChallenge);
+            if (ExploreButton != null) ExploreButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.StartFreeFlight(); });
             if (SkyButton != null) SkyButton.onClick.AddListener(() => { StopScan(); GameManager.Instance?.OpenSkyFinder("mars"); });
             Loc.Changed += OnLanguageChanged;
             SetupNameInput();
@@ -82,6 +84,7 @@ namespace Navigator.UI
             }
 
             Senda.OnPeerConnected.AddListener(OnPeerConnected);
+            Senda.OnMessage.AddListener(OnLobbyMessage);
             Senda.OnPeerDisconnected.AddListener(OnPeerDisconnected);
             if (Sync != null) Sync.OnPeerList.AddListener(OnPeerList);
             ShowMyQR(Senda.NodeId);
@@ -274,6 +277,23 @@ namespace Navigator.UI
         void OnShipChanged(int index)
         {
             if (Senda != null && Senda.Initialized && Senda.ConnectedPeers.Count > 0) BroadcastLobbyInfo();
+        }
+
+        // A friend started free flight: invite shown here, EXPLORE joins them in the same world
+        void OnLobbyMessage(Navigator.Network.NavMsg msg)
+        {
+            if (msg.t != nameof(Navigator.Network.NavMsgType.shipEvent) || msg.pl_json == null) return;
+            if (!msg.pl_json.Contains("\"free\"")) return;
+            if (GameManager.Instance == null || GameManager.Instance.State != GameState.Lobby) return;
+            string who = null;
+            int i = msg.pl_json.IndexOf("\"name\":\"", System.StringComparison.Ordinal);
+            if (i >= 0)
+            {
+                i += 8;
+                int e = msg.pl_json.IndexOf('"', i);
+                if (e > i) who = msg.pl_json[i..e];
+            }
+            SetScanStatus(Loc.F("free.invite", who ?? Loc.T("rival")));
         }
 
         void OnPeerConnected(string nodeId)

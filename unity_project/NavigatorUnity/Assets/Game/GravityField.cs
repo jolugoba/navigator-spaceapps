@@ -40,6 +40,7 @@ namespace Navigator.Game
 
         static readonly Dictionary<string, float> Mu = new()
         {
+            { "mercury", 190000f }, { "mars", 190000f },
             { "venus", 455000f }, { "earth", 470000f }, { "jupiter", 1265000f },
             { "saturn", 535000f }, { "uranus", 445000f }, { "neptune", 570000f },
         };
@@ -91,6 +92,26 @@ namespace Navigator.Game
             }
         }
 
+        // Free flight: a whole Solar System of gravity wells, each with its assist ring.
+        // Returns each body's root so the caller can add moons, probes, labels…
+        public List<Transform> SpawnBodies(IList<(string id, Vector3 pos, float diameter)> bodies, Transform ship)
+        {
+            Clear();
+            _ship      = ship != null ? ship.GetComponent<Rigidbody>()       : null;
+            _collision = ship != null ? ship.GetComponent<CollisionSystem>() : null;
+            _ctrl      = ship != null ? ship.GetComponent<ShipController>()  : null;
+            _fuel      = ship != null ? ship.GetComponent<FuelSystem>()      : null;
+            _cam       = Camera.main;
+            var roots = new List<Transform>();
+            foreach (var b in bodies)
+            {
+                var body = MakeBody(b.id, b.pos, b.diameter, "planet");
+                _bodies.Add(body);
+                roots.Add(body.T);
+            }
+            return roots;
+        }
+
         public void Clear()
         {
             foreach (var b in _bodies) if (b.T != null) Destroy(b.T.gameObject);
@@ -99,8 +120,9 @@ namespace Navigator.Game
             Probe = "";
         }
 
-        Body MakeBody(string id, Vector3 pos)
+        Body MakeBody(string id, Vector3 pos, float diameter = -1f, string scanKind = "flyby")
         {
+            if (diameter <= 0f) diameter = BodyDiameter;
             var root = new GameObject($"Flyby_{id}").transform;
             root.SetParent(transform, false);
             root.position = pos;
@@ -120,14 +142,14 @@ namespace Navigator.Game
                 if (r != null) r.material.color = id == "earth" ? new Color(0.25f, 0.5f, 0.95f) : new Color(0.8f, 0.7f, 0.55f);
             }
             model.transform.localPosition = Vector3.zero;
-            Navigator.Core.ModelFit.FitToSize(model, BodyDiameter);
+            Navigator.Core.ModelFit.FitToSize(model, diameter);
             model.AddComponent<Spin>();
 
-            float radius = BodyDiameter * 0.5f;
+            float radius = diameter * 0.5f;
             AddAtmosphereGlow(root, id, radius);
             var ring = AddAssistRing(root, radius * AssistRingFactor);
 
-            Scannable.Tag(root.gameObject, "flyby", id, radius);
+            Scannable.Tag(root.gameObject, scanKind, id, radius);
             return new Body
             {
                 Id = id, T = root, Radius = radius,

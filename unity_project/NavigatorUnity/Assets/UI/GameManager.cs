@@ -71,6 +71,7 @@ namespace Navigator.UI
         public PowerupSystem Powerups;
         public AsteroidField Asteroids;
         public GravityField  Gravity;
+        public FreeSpace     Free;      // free flight: the whole Solar System, no mission
 
         [Header("Red")]
         public SendaBridge       Senda;
@@ -157,6 +158,7 @@ namespace Navigator.UI
                 SyncService.OnRemoteArrived.AddListener(OnRemoteArrived);
             }
             GravityField.AssistGained += OnGravityAssist;
+            FreeSpace.SunTouched += OnSunTouched;
             ShipTools.Scanned += OnScanDiscovery;
             GravityField.BodyImpact   += OnBodyImpact;
 
@@ -166,6 +168,7 @@ namespace Navigator.UI
         void OnDestroy()
         {
             GravityField.AssistGained -= OnGravityAssist;
+            FreeSpace.SunTouched -= OnSunTouched;
             ShipTools.Scanned -= OnScanDiscovery;
             GravityField.BodyImpact   -= OnBodyImpact;
         }
@@ -191,7 +194,7 @@ namespace Navigator.UI
         // Scanning something new is science: it counts in the score and the debrief
         void OnScanDiscovery(ScanInfo info)
         {
-            if (!info.Discovery || State != GameState.InFlight) return;
+            if (!info.Discovery || State != GameState.InFlight || FreeMode) return;
             Outcome.EventBonusPoints += ShipTools.DiscoveryPoints;
             Outcome.EventLog.Add(Loc.F("scan.log", info.Title));
         }
@@ -201,6 +204,80 @@ namespace Navigator.UI
             if (State != GameState.InFlight) return;
             AudioFX.Play(Sfx.Explosion);
             HUD?.Flash(null, UIStyle.Bad, 1.2f, Loc.F("grav.crash", Loc.Planet(body)));
+        }
+
+        // ══ Free flight ══════════════════════════════════════════════════════
+        // No design, no clock, no fuel limit: fly the real Solar System of today with whoever is
+        // connected, scan everything into your logbook, race, wave, or play laser tag.
+        public bool FreeMode { get; private set; }
+
+        public void StartFreeFlight()
+        {
+            if (State != GameState.Lobby && State != GameState.Scoreboard) return;
+            if (Free == null || Ship == null) return;
+
+            Events?.Cancel();
+            ActiveCampaign = null;
+            FreeMode = true;
+            ShipTools.FreeFlight = true;
+            Mission = MissionDesign.DefaultFor("mars");
+            if (SpaceManager != null) SpaceManager.Locked = true;
+            if (CameraFeed != null) CameraFeed.Play();
+
+            SetShipFrozen(false);
+            ApplySelectedShip();
+            ConfigureShipFromDesign();
+            var fuel = Ship.GetComponent<FuelSystem>();
+            if (fuel != null) { fuel.Infinite = true; fuel.Refuel(1f); }
+            Outcome.Clear();
+
+            Free.Build(Ship.transform);
+            ResetShip(Free.StartFacing);
+            Rig?.Calibrate(false);
+            Physics?.RegisterPlanetGravity("", Vector3.zero);   // planets pull through GravityField
+            HUD?.SetRacePosition(1);
+
+            _flightTimer = 0f;
+            SetState(GameState.InFlight);
+            SetPanels(hud: true);
+            SetControls(true);
+            CosmicSkyFX.MeteorShower(4f);
+            HUD?.Flash(null, UIStyle.Accent, 0f, Loc.T("free.welcome"));
+
+            // Tell everyone connected: they can jump in and meet you (same map on every phone)
+            if (Senda != null && Senda.Initialized)
+                Senda.Broadcast(NavMsg.Build(NavMsgType.shipEvent, Senda.NodeId,
+                    $"{{\"free\":1,\"name\":\"{PlayerName}\",\"text\":\"{Loc.F("free.invite", PlayerName)}\"}}"));
+        }
+
+        void RespawnFree()
+        {
+            var col = Ship.GetComponent<CollisionSystem>();
+            ExplosionVFX.Spawn(col != null ? col.ExplosionPrefab : null, Ship.transform.position, true);
+            ResetShip(Free != null ? Free.StartFacing : Vector3.forward);
+            if (col != null) { col.Lives = 3; col.StartInvincibility(); }
+            Ship.GetComponent<FuelSystem>()?.Refuel(1f);
+            HUD?.Flash(null, UIStyle.Warn, 0.6f, Loc.T("free.respawn"));
+        }
+
+        public void ExitFreeFlight()
+        {
+            if (!FreeMode) return;
+            FreeMode = false;
+            ShipTools.FreeFlight = false;
+            SetControls(false);
+            StopShip();
+            SetShipFrozen(true);
+            var fuel = Ship != null ? Ship.GetComponent<FuelSystem>() : null;
+            if (fuel != null) fuel.Infinite = false;
+            Free?.Clear();
+            if (SpaceManager != null) SpaceManager.Locked = false;
+            EnterLobby();
+        }
+
+        void OnSunTouched()
+        {
+            if (State == GameState.InFlight) HUD?.Flash(null, UIStyle.Bad, 1.2f, Loc.T("free.sun"));
         }
 
         // ── Máquina de estados ─────────────────────────────────────────────────
@@ -483,6 +560,16 @@ namespace Navigator.UI
             if (State != GameState.InFlight || Ship == null) return;
 
             _flightTimer += Time.deltaTime;
+
+            if (FreeMode)
+            {
+                var kb = UnityEngine.InputSystem.Keyboard.current;
+                if (kb != null && kb.escapeKey.wasPressedThisFrame) { ExitFreeFlight(); return; }   // Android back / Esc
+                // Nothing to fail: lose your hull and you're back at Earth with a fresh one
+                var hull = Ship.GetComponent<CollisionSystem>();
+                if (hull != null && hull.Lives <= 0) RespawnFree();
+                return;
+            }
 
             if (SpaceManager != null)
             {

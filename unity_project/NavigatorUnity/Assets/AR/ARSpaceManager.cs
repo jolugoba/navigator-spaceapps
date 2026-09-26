@@ -105,11 +105,22 @@ namespace Navigator.AR
         // ── Landmarks: things worth scanning on the way ──────────────────────
         void PlaceLandmarks(string planetId, Vector3 dir)
         {
+            DecorateBody(_planet.transform, planetId, PlanetDiameter, dir);
+            PlaceLaunchLandmarks(LaunchPoint, dir, JourneyDistance * 0.45f);
+        }
+
+        static Vector3 SideOf(Vector3 dir)
+        {
             Vector3 side = Vector3.Cross(dir, Vector3.up);
             if (side.sqrMagnitude < 0.01f) side = Vector3.right;
-            side.Normalize();
+            return side.normalized;
+        }
 
-            // The real spacecraft that explored this world, parked beside it
+        // The real probe that explored this world and its best-known moons, placed around `body`
+        public void DecorateBody(Transform body, string planetId, float diameter, Vector3 dir)
+        {
+            Vector3 side = SideOf(dir);
+
             var (probe, probeId) = planetId switch
             {
                 "mercury" => (ProbeMessenger, "messenger"),
@@ -117,15 +128,19 @@ namespace Navigator.AR
                 "mars"    => (ProbeMRO,       "mro"),
                 "jupiter" => (ProbeJuno,      "juno"),
                 "saturn"  => (ProbeCassini,   "cassini"),
-                _         => (ProbeVoyager,   "voyager"),
+                "uranus"  => (ProbeVoyager,   "voyager"),
+                "neptune" => (ProbeVoyager,   "voyager"),
+                _         => ((GameObject)null, ""),
             };
-            Landmark(_planet.transform, probe, "probe", probeId, (side * 1.25f + Vector3.up * 0.35f) * PlanetDiameter, 12f, false);
+            if (probe != null)
+                Landmark(body, probe, "probe", probeId, (side * 1.25f + Vector3.up * 0.35f) * diameter, 12f, false);
             if (planetId == "mars")   // the rover that's exploring it right now
-                Landmark(_planet.transform, RoverPerseverance, "probe", "perseverance", (-side * 0.9f - Vector3.up * 0.2f) * PlanetDiameter, 8f, false);
+                Landmark(body, RoverPerseverance, "probe", "perseverance", (-side * 0.9f - Vector3.up * 0.2f) * diameter, 8f, false);
 
             // Its best-known moons (grey spheres until the Meshy models exist)
             (GameObject, string)[] moons = planetId switch
             {
+                "earth"   => new[] { (PlanetMoon, "luna") },
                 "mars"    => new[] { (MoonPhobos, "phobos") },
                 "jupiter" => new[] { (MoonIo, "io"), (PlanetEuropa, "europa") },
                 "saturn"  => new[] { (MoonTitan, "titan"), (MoonEnceladus, "enceladus") },
@@ -136,20 +151,33 @@ namespace Navigator.AR
             for (int i = 0; i < moons.Length; i++)
             {
                 float a = (i + 1) * 2.1f;
-                Vector3 off = (-side * Mathf.Cos(a) + Vector3.up * 0.25f + dir * Mathf.Sin(a) * 0.4f).normalized * PlanetDiameter * (1.4f + 0.5f * i);
-                Landmark(_planet.transform, moons[i].Item1, "moon", moons[i].Item2, off, PlanetDiameter * (i == 0 ? 0.22f : 0.16f), true);
+                Vector3 off = (-side * Mathf.Cos(a) + Vector3.up * 0.25f + dir * Mathf.Sin(a) * 0.4f).normalized * diameter * (1.4f + 0.5f * i);
+                Landmark(body, moons[i].Item1, "moon", moons[i].Item2, off, diameter * (i == 0 ? 0.22f : 0.16f), true);
             }
+        }
 
-            // Telescopes near the launch point (only with their models: a box isn't a telescope)
+        // Telescopes, the ISS and the SLS near the start; DART farther out among the asteroids
+        // (only with their models: a box isn't a telescope)
+        public void PlaceLaunchLandmarks(Vector3 at, Vector3 dir, float dartDistance)
+        {
+            Vector3 side = SideOf(dir);
             if (_launchLandmarks != null) Destroy(_launchLandmarks);
             _launchLandmarks = new GameObject("LaunchLandmarks");
-            _launchLandmarks.transform.position = LaunchPoint;
+            _launchLandmarks.transform.position = at;
             Landmark(_launchLandmarks.transform, Hubble, "probe", "hubble", dir * 160f + side * 70f + Vector3.up * 25f, 14f, false);
             Landmark(_launchLandmarks.transform, Jwst,   "probe", "jwst",   dir * 320f - side * 90f + Vector3.up * 40f, 18f, false);
             Landmark(_launchLandmarks.transform, Iss,    "probe", "iss",    dir * 90f - side * 55f - Vector3.up * 15f, 16f, false);
-            // The Moon rocket towering by the launch point, and DART out among the asteroids
             Landmark(_launchLandmarks.transform, RocketSLS, "probe", "sls",  -dir * 25f + side * 30f, 30f, false);
-            Landmark(_launchLandmarks.transform, Dart,      "probe", "dart", dir * (JourneyDistance * 0.45f) + side * 55f + Vector3.up * 20f, 10f, false);
+            Landmark(_launchLandmarks.transform, Dart,      "probe", "dart", dir * dartDistance + side * 55f + Vector3.up * 20f, 10f, false);
+        }
+
+        // Free flight: remove the mission planet and its decorations
+        public void ClearMissionTarget()
+        {
+            if (_planet != null) Destroy(_planet);
+            _planet = null;
+            if (_launchLandmarks != null) Destroy(_launchLandmarks);
+            _launchLandmarks = null;
         }
 
         void Landmark(Transform parent, GameObject prefab, string kind, string id, Vector3 offset, float size, bool sphereIfMissing)
@@ -186,6 +214,7 @@ namespace Navigator.AR
                 "titan"  => new Color(0.9f, 0.65f, 0.3f),
                 "enceladus" => new Color(0.95f, 0.97f, 1f),
                 "triton" => new Color(0.85f, 0.75f, 0.75f),
+                "luna"   => new Color(0.78f, 0.78f, 0.76f),
                 _         => Color.gray,
             };
             return s;

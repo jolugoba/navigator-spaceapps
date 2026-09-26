@@ -62,6 +62,9 @@ namespace Navigator.UI
         public TMP_Text      InfoTitle;
         public TMP_Text      InfoBody;
 
+        [Header("Exploración libre")]
+        public Button     ExitButton;        // only in free flight: back to the lobby
+
         [Header("Avisos de impacto")]
         public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
 
@@ -181,6 +184,8 @@ namespace Navigator.UI
             });
             ShipTools.Scanned += OnScanned;
             ShipTools.FiredAt += OnFiredAt;
+            ExitButton?.onClick.AddListener(() => GameManager.Instance?.ExitFreeFlight());
+            if (ExitButton != null) ExitButton.gameObject.SetActive(false);
             if (InfoCard != null) InfoCard.SetActive(false);
         }
 
@@ -213,7 +218,9 @@ namespace Navigator.UI
             _infoTimer = info.Kind == "none" ? 3f : 8f;
             if (InfoTitle != null) InfoTitle.text = info.Title;
             if (InfoBody != null)
-                InfoBody.text = (info.Discovery ? $"<color=#FFD633><b>{Loc.F("scan.discovery", ShipTools.DiscoveryPoints)}</b></color>\n" : "") + info.Body;
+                InfoBody.text = (info.Discovery
+                    ? $"<color=#FFD633><b>{(ShipTools.FreeFlight ? Loc.T("scan.logbook") : Loc.F("scan.discovery", ShipTools.DiscoveryPoints))}</b></color>\n"
+                    : "") + info.Body;
         }
 
         void OnFiredAt(string what) =>
@@ -267,6 +274,12 @@ namespace Navigator.UI
         {
             var gm = GameManager.Instance;
             if (TimeLabel == null || gm == null) return;
+            if (gm.FreeMode)
+            {
+                TimeLabel.text  = Loc.T("free.time");
+                TimeLabel.color = UIStyle.Accent;
+                return;
+            }
             float left = Mathf.Max(0f, gm.MaxFlightTimeS - gm.FlightTime);
             TimeLabel.text  = $"{(int)left / 60}:{(int)left % 60:00}";
             TimeLabel.color = left < 30f ? UIStyle.Bad : UIStyle.Text;
@@ -291,8 +304,53 @@ namespace Navigator.UI
             if (FuelLabel != null) FuelLabel.text     = $"{f:P0}";
         }
 
+        float _freeRefresh;
+
+        // Free flight: nearest world, explorer's logbook, arrow to the next thing to discover
+        void UpdateFree(GameManager gm)
+        {
+            var free = gm.Free;
+            if (free == null || _rb == null) return;
+            if (ExitButton != null && !ExitButton.gameObject.activeSelf) ExitButton.gameObject.SetActive(true);
+            if (RacePositionLabel != null) RacePositionLabel.text = "";
+
+            _freeRefresh -= Time.deltaTime;
+            if (_freeRefresh <= 0f)
+            {
+                _freeRefresh = 0.5f;
+                var (id, dist) = free.Nearest(_rb.position);
+                if (DistanceLabel != null)
+                    DistanceLabel.text = Loc.F("free.near", id == "sun" ? Loc.T("scan.sun.t") : Loc.Planet(id));
+                int found = ShipTools.FoundNow(), total = Mathf.Max(1, ShipTools.DiscoverableNow());
+                if (CommDelayLabel != null) CommDelayLabel.text = Loc.F("free.logbook", found, total);
+                if (ProgressBar != null) ProgressBar.fillAmount = found / (float)total;
+                _freeTarget = free.NextToDiscover(_rb.position);
+            }
+            PointArrow(_freeTarget != null ? _freeTarget.position : (Vector3?)null);
+        }
+
+        Transform _freeTarget;
+
+        void PointArrow(Vector3? target)
+        {
+            var cam = Camera.main;
+            if (ArrowToPlanet == null || cam == null) return;
+            if (target == null) { ArrowToPlanet.gameObject.SetActive(false); return; }
+            Vector3 sp = cam.WorldToScreenPoint(target.Value);
+            bool behind = sp.z < 0f;
+            Vector2 d = (Vector2)sp - new Vector2(Screen.width / 2f, Screen.height / 2f);
+            if (behind) d = -d;
+            bool onScreen = !behind && sp.x > 0 && sp.x < Screen.width && sp.y > 0 && sp.y < Screen.height;
+            ArrowToPlanet.gameObject.SetActive(!onScreen);
+            if (!onScreen)
+                ArrowToPlanet.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg - 90f);
+        }
+
         void UpdateDistance()
         {
+            var gm = GameManager.Instance;
+            if (gm != null && gm.FreeMode) { UpdateFree(gm); return; }
+            if (ExitButton != null && ExitButton.gameObject.activeSelf) ExitButton.gameObject.SetActive(false);
             if (_arSpace == null) return;
             if (DistanceLabel != null)
             {

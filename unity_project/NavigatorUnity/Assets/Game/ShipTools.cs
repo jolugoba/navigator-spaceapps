@@ -66,6 +66,54 @@ namespace Navigator.Game
         // Called at the start of every flight
         public static void ResetDiscoveries() => _discovered.Clear();
 
+        // ── Explorer's logbook: everything you've ever scanned, kept on the phone ──
+        const string LogbookKey = "navigator.logbook";
+        static HashSet<string> _logbook;
+        static HashSet<string> Logbook
+        {
+            get
+            {
+                if (_logbook != null) return _logbook;
+                _logbook = new HashSet<string>();
+                foreach (var k in PlayerPrefs.GetString(LogbookKey, "").Split('|'))
+                    if (!string.IsNullOrEmpty(k)) _logbook.Add(k);
+                return _logbook;
+            }
+        }
+
+        static string Key(string kind, string id) => kind == "flyby" ? "planet:" + id : kind + ":" + id;
+        public static bool InLogbook(string kind, string id) => Logbook.Contains(Key(kind, id));
+        public static int  LogbookCount => Logbook.Count;
+
+        // How many different things exist in the current world (rivals don't count)
+        public static int DiscoverableNow()
+        {
+            var seen = new HashSet<string>();
+            foreach (var s in Scannable.All)
+                if (s != null && s.Kind != "ship") seen.Add(Key(s.Kind, s.Id));
+            return seen.Count;
+        }
+
+        public static int FoundNow()
+        {
+            int n = 0;
+            var seen = new HashSet<string>();
+            foreach (var s in Scannable.All)
+                if (s != null && s.Kind != "ship" && seen.Add(Key(s.Kind, s.Id)) && Logbook.Contains(Key(s.Kind, s.Id))) n++;
+            return n;
+        }
+
+        static bool AddToLogbook(string kind, string id)
+        {
+            if (!Logbook.Add(Key(kind, id))) return false;
+            PlayerPrefs.SetString(LogbookKey, string.Join("|", Logbook));
+            PlayerPrefs.Save();
+            return true;
+        }
+
+        // In free flight a discovery is anything new to your logbook (no score there)
+        public static bool FreeFlight;
+
         // Set by GameManager together with the flight controls
         [HideInInspector] public bool ControlsEnabled;
         bool Active => ControlsEnabled;
@@ -123,7 +171,8 @@ namespace Navigator.Game
 
             var info = Describe(Target);
             string key = info.Kind + ":" + (info.Kind == "ship" ? "ship" : info.Id);
-            info.Discovery = _discovered.Add(key) && info.Kind != "ship";
+            bool newToLogbook = info.Kind != "ship" && AddToLogbook(info.Kind, info.Id);
+            info.Discovery = info.Kind != "ship" && (FreeFlight ? newToLogbook : _discovered.Add(key));
             Scanned?.Invoke(info);
 
             if (info.Kind == "ship") SendTo(Target.Id, "{\"scan\":1");
@@ -146,6 +195,10 @@ namespace Navigator.Game
                 case "flyby":
                     info.Title = Loc.Planet(s.Id);
                     info.Body  = Loc.T("scan.planet." + s.Id) + (s.Kind == "flyby" ? "\n" + Loc.T("scan.flyby") : "");
+                    break;
+                case "sun":
+                    info.Title = Loc.T("scan.sun.t");
+                    info.Body  = Loc.T("scan.sun");
                     break;
                 case "probe":
                 case "moon":
