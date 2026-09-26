@@ -1,0 +1,17 @@
+﻿# PENDIENTES DE LANZAR (preview)
+PJ-01-refine=RETRY_REFINE:01a0db55-448e-711c-8bba-5d5452bc8084
+PJ-04=Scientist bust male age 55, white lab coat over spacesuit, glasses, holding tablet left hand, academic appearance, shoulders and head only, detailed face.
+PL-01=Planet Mercury, gray-brown sphere, heavily cratered rocky surface, no atmosphere, detailed impact craters, smallest rocky planet.
+PL-02=Planet Venus, yellow-orange sphere with dense layered cloud cover, thick swirling atmosphere, warm glowing colors.
+PL-04=Planet Jupiter, large gas giant sphere, horizontal orange brown cream bands, prominent Great Red Spot storm southern hemisphere.
+PL-05=Planet Saturn with separate ring mesh, golden yellow sphere, prominent tilted ring system as separate submesh around planet.
+PL-07=Planet Neptune, deep intense blue sphere, dark storm spot visible, atmospheric glow at edges.
+OB-01=Irregular space asteroid rock, jagged rocky surface, rough stone texture with craters, not perfectly round, floating space debris.
+OB-02=Space wormhole portal ring, glowing metallic energy ring structure, empty interior, metallic outer ring with energy conduits.
+OB-03=Mission beacon, small octahedron diamond shaped floating object, glowing geometric edges, metallic surface, navigation waypoint.
+OB-04=Small scientific satellite with two large extended solar panel arrays, sensors and antennas, realistic orbiting space satellite.
+OB-05-A=Broken spaceship hull panel fragment, jagged torn metal edges, burnt damaged surface, space debris wreckage.
+OB-05-B=Destroyed spaceship engine fragment, burnt thruster piece, torn metal casing, blackened exhaust damage.
+IC-01=Scientific camera on extensible tripod, large telescope camera mounted on foldable tripod stand, space science instrument.
+IC-02=Parabolic transmission antenna dish on support structure, classic satellite dish, deployable space mission antenna.
+IC-03=Magnetometer on extendable robotic arm, articulated arm with cylindrical sensor at tip, small rotor on sensor end.
