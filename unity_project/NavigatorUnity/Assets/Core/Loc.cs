@@ -190,6 +190,7 @@ namespace Navigator.Core
             { "hud.fuel",           ("FUEL", "COMBUSTIBLE") },
             { "hud.hull",           ("HULL {0}/3", "CASCO {0}/3") },
             { "hud.signal",         ("Signal delay: {0}", "Retardo de señal: {0}") },
+            { "hud.date",           ("{0} (day {1})", "{0} (día {1})") },
             { "hud.lowfuel",        ("LOW FUEL", "COMBUSTIBLE BAJO") },
             { "hud.nofuel",         ("OUT OF FUEL", "SIN COMBUSTIBLE") },
             { "hud.controls", ("Joystick or tilt the phone to steer · hold THRUST · Q/E turn (double-tap: barrel roll)", "Joystick o inclina el celular · mantén ACELERAR · Q/E giran (doble toque: tonel)") },

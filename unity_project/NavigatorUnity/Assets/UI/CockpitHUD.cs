@@ -407,6 +407,7 @@ namespace Navigator.UI
             }
 
             if (ProgressBar != null) ProgressBar.fillAmount = _arSpace.Progress01;
+            UpdateCalendar(gm, _arSpace.Progress01);
 
             // Flecha apunta al planeta; cuando está detrás, WorldToScreenPoint se invierte
             var cam = Camera.main;
@@ -500,10 +501,26 @@ namespace Navigator.UI
 
         // ── Setters externos ──────────────────────────────────────────────────
 
+        private string _signal;
+
         public void SetCommDelay(string delay)
         {
+            _signal = delay;
             if (CommDelayLabel != null)
                 CommDelayLabel.text = Loc.F("hud.signal", delay);
+        }
+
+        // Mission calendar: the real date along the Lambert transfer (launch → arrival) as you fly
+        void UpdateCalendar(GameManager gm, float progress)
+        {
+            var m = gm != null ? gm.Mission : null;
+            if (CommDelayLabel == null || m == null || m.TransferDays <= 0f ||
+                !System.DateTime.TryParse(m.LaunchDateIso, System.Globalization.CultureInfo.InvariantCulture,
+                                          System.Globalization.DateTimeStyles.None, out var launch)) return;
+            var today = launch.AddDays(m.TransferDays * Mathf.Clamp01(progress));
+            string date = today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            CommDelayLabel.text = (_signal != null ? Loc.F("hud.signal", _signal) + "   ·   " : "") +
+                                  Loc.F("hud.date", date, Mathf.RoundToInt(m.TransferDays * Mathf.Clamp01(progress)));
         }
 
         public void SetRacePosition(int pos)
