@@ -29,7 +29,9 @@ El `manifest.json` instala automáticamente:
 - ARKit XR Plugin (iOS)
 - URP 17.0.3
 - Input System 1.9.0
-- TextMeshPro
+- TextMeshPro 3.0.6 (estable)
+- UGUI 2.0.0
+- Newtonsoft.Json 3.2.1
 
 ---
 
@@ -67,6 +69,7 @@ Este paquete no está en Package Manager — se instala del Asset Store:
    - Target API Level: **34**
    - Scripting Backend: **IL2CPP**
    - Target Architectures: **ARM64**
+   - **Active Input Handling: Both** ← sin esto `Input.gyro` no compila con Input System 1.9
 
 ---
 

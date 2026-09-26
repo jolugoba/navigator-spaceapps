@@ -20,8 +20,9 @@ namespace Navigator.Game
         public bool    IsLocalPlayer = true;
 
         [Header("Physics")]
-        public PhysicsEngine Physics;
-        public float         BaseMaxSpeed   = 80f;
+        public PhysicsEngine  Physics;
+        public float          BaseMaxSpeed   = 80f;
+        public MissionDesign  Mission;
 
         [Header("Steering")]
         public float YawSpeed   = 60f;
@@ -102,7 +103,7 @@ namespace Navigator.Game
                 var state = ShipStateNet.FromTransform(
                     NodeId, DisplayName, transform, _rb,
                     ThrustMain, Boosting, _burnout.BurnoutActive,
-                    "mars", 0f,   // TODO: get from MissionTarget component
+                    Mission?.TargetPlanetId ?? "mars", 0f,
                     _collision.Lives, _fuelFraction, 0);
                 _sync.Broadcast(state);
             }

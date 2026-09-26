@@ -1,12 +1,12 @@
-﻿{
+{
     "name": "Navigator.Editor",
     "rootNamespace": "Navigator.Editor",
     "references": [
-        "GUID:Navigator.Core",
-        "GUID:Navigator.Game",
-        "GUID:Navigator.Network",
-        "GUID:Navigator.AR",
-        "GUID:Navigator.UI"
+        "Navigator.Core",
+        "Navigator.Game",
+        "Navigator.Network",
+        "Navigator.AR",
+        "Navigator.UI"
     ],
     "includePlatforms": [
         "Editor"

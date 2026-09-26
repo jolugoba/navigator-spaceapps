@@ -1,12 +1,12 @@
-﻿{
+{
     "name": "Navigator.AR",
     "rootNamespace": "Navigator.AR",
     "references": [
-        "GUID:Navigator.Core",
-        "GUID:Navigator.Game",
-        "GUID:Navigator.Network",
-        "com.unity.xr.arfoundation",
-        "com.unity.xr.arsubsystems"
+        "Navigator.Core",
+        "Navigator.Game",
+        "Navigator.Network",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.ARSubsystems"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,5 +1,5 @@
 # NAVIGATOR 2.0 — Estado Scripts Unity
-**Guacalita Inc. | Fecha: 2026-09-24**
+**Guacalita Inc. | Fecha: 2026-09-26**
 
 ---
 
@@ -72,18 +72,27 @@
 
 ---
 
-## SCRIPTS COMPLETOS ✅ (23 total)
+## SCRIPTS COMPLETOS ✅ (27 total)
 
-### UI/ (añadidos 2026-09-25)
+### UI/ (completos)
 | Script | Qué hace |
 |---|---|
+| `GameManager.cs` | State machine Lobby→MissionDesign→Countdown→InFlight→ScienceOps→Scoreboard |
 | `MissionDesignUI.cs` | Pantalla completa de diseño — planetas, motores, combustible slider, instrumentos, ΔV bar, presupuesto, lanzar |
 | `ScienceOpsUI.cs` | Pantalla llegada al planeta — barras progreso instrumentos, potencia, score en vivo, completar misión |
+| `ScoreboardUI.cs` | Tabla de scores al final de misión — muestra ranking por criterios |
 
-### Game/ (añadidos 2026-09-25)
+### Game/ (completos)
 | Script | Qué hace |
 |---|---|
+| `ExplosionVFX.cs` | Control de partículas de explosión post-colisión, secuencia de impacto |
+| `ShipAnimator.cs` | Animaciones procedurales de la nave (propulsores, daño visual, aterrizaje) |
 | `PowerupSystem.cs` | Pods flotantes (Fuel/Boost/Shield/EMP/GravityAssist) + SpawnManager con respawn. Animación bob+rotate. |
+
+### Editor/ (herramientas Unity Editor)
+| Script | Qué hace |
+|---|---|
+| `NavigatorSceneSetup.cs` | Editor tool para crear la escena mínima (AR Session, XR Origin, GameManager, etc.) en un click |
 
 ### Métodos añadidos a scripts existentes
 | Script | Método | Para qué |
@@ -97,9 +106,7 @@
 ## LO QUE FALTA ❌
 
 ### Scripts pendientes
-| Script | Para qué sirve | Prioridad |
-|---|---|---|
-| `ExplosionVFX.cs` | Control de partículas de explosión post-colisión | Media |
+*Todos los 27 scripts de C# están escritos.* Los pendientes son configuración, assets y compile blockers.
 
 ### Assets necesarios (de Meshy — checklist en NAVIGATOR_MESHY_CHECKLIST.md)
 ```

@@ -1,9 +1,10 @@
-﻿{
+{
     "name": "Navigator.Game",
     "rootNamespace": "Navigator.Game",
     "references": [
-        "GUID:Navigator.Core",
-        "GUID:Navigator.Network"
+        "Navigator.Core",
+        "Navigator.Network",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

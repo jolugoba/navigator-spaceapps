@@ -1,8 +1,8 @@
-﻿{
+{
     "name": "Navigator.Network",
     "rootNamespace": "Navigator.Network",
     "references": [
-        "GUID:Navigator.Core"
+        "Navigator.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
