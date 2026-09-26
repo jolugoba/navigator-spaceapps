@@ -525,20 +525,26 @@ namespace Navigator.Editor
             hud.Vignette.type   = UnityEngine.UI.Image.Type.Simple;
 
             // Barra superior: posición · distancia · tiempo
-            var top = UIKit.Card(p, "TopBar", new Vector4(0.03f, 0.905f, 0.97f, 0.985f), UIStyle.HudCard);
-            hud.RacePositionLabel = UIKit.Text(top, "Position", "#1", 64, new Vector4(0.04f, 0f, 0.26f, 1f),
+            var top = UIKit.Card(p, "TopBar", new Vector4(0.02f, 1f, 0.98f, 1f), UIStyle.HudCard);
+            top.pivot = new Vector2(0.5f, 1f);
+            top.offsetMin = new Vector2(0f, -86f); top.offsetMax = new Vector2(0f, -10f);
+            hud.RacePositionLabel = UIKit.Text(top, "Position", "#1", 52, new Vector4(0.04f, 0f, 0.26f, 1f),
                                                TextAlignmentOptions.Left, UIStyle.Gold, FontStyles.Bold);
-            hud.DistanceLabel = UIKit.Text(top, "Distance", "", 44, new Vector4(0.26f, 0f, 0.74f, 1f),
+            hud.DistanceLabel = UIKit.Text(top, "Distance", "", 36, new Vector4(0.26f, 0f, 0.74f, 1f),
                                            TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
-            hud.TimeLabel = UIKit.Text(top, "Time", "", 44, new Vector4(0.74f, 0f, 0.96f, 1f),
+            hud.TimeLabel = UIKit.Text(top, "Time", "", 36, new Vector4(0.74f, 0f, 0.96f, 1f),
                                        TextAlignmentOptions.Right, UIStyle.Text);
-            hud.ProgressBar = UIKit.Bar(p, "Progress", new Vector4(0.03f, 0.89f, 0.97f, 0.898f), UIStyle.Accent);
-            hud.CommDelayLabel = UIKit.Text(p, "CommDelay", "", 28, new Vector4(0.03f, 0.85f, 0.97f, 0.885f),
+            hud.ProgressBar = UIKit.Bar(p, "Progress", new Vector4(0.02f, 1f, 0.98f, 1f), UIStyle.Accent);
+            hud.ProgressBar.rectTransform.offsetMin = new Vector2(0f, -100f);
+            hud.ProgressBar.rectTransform.offsetMax = new Vector2(0f, -92f);
+            hud.CommDelayLabel = UIKit.Text(p, "CommDelay", "", 24, new Vector4(0.02f, 1f, 0.98f, 1f),
                                             TextAlignmentOptions.Center, UIStyle.Muted);
+            hud.CommDelayLabel.rectTransform.offsetMin = new Vector2(0f, -140f);
+            hud.CommDelayLabel.rectTransform.offsetMax = new Vector2(0f, -104f);
 
             // Flecha al planeta: gira alrededor del centro de la pantalla
             hud.ArrowToPlanet = UIKit.Image(p, "ArrowToPlanet", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), UIStyle.Accent);
-            hud.ArrowToPlanet.rectTransform.sizeDelta = new Vector2(560, 560);
+            hud.ArrowToPlanet.rectTransform.sizeDelta = new Vector2(300, 300);
             hud.ArrowToPlanet.sprite = ArrowSprite();
             hud.ArrowToPlanet.type   = UnityEngine.UI.Image.Type.Simple;
 
@@ -557,28 +563,30 @@ namespace Navigator.Editor
             hud.ImpactLabel = UIKit.Text(p, "Impact", "", 50, new Vector4(0.04f, 0.47f, 0.96f, 0.54f),
                                          TextAlignmentOptions.Center, UIStyle.Warn, FontStyles.Bold);
 
-            UIKit.Text(p, "ControlsHint", "@hud.controls", 26,
-                       new Vector4(0.03f, 0.265f, 0.97f, 0.29f), TextAlignmentOptions.Center, UIStyle.Muted);
+            // Bottom-centre cluster, fixed size, between the joystick (left) and the buttons (right)
+            var bottom = UIKit.Pin(p, "BottomCluster", new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(500f, 190f));
+            UIKit.Text(bottom, "ControlsHint", "@hud.controls", 18,
+                       new Vector4(0f, 0.84f, 1f, 1f), TextAlignmentOptions.Center, UIStyle.Muted);
 
             // Burnout + casco
-            UIKit.Text(p, "BurnoutTitle", "BURNOUT", 28, new Vector4(0.03f, 0.235f, 0.5f, 0.26f),
+            UIKit.Text(bottom, "BurnoutTitle", "BURNOUT", 20, new Vector4(0f, 0.7f, 0.5f, 0.83f),
                        TextAlignmentOptions.Left, UIStyle.Burnout, FontStyles.Bold);
-            hud.LivesLabel = UIKit.Text(p, "Lives", "HULL 3/3", 28, new Vector4(0.5f, 0.235f, 0.97f, 0.26f),
+            hud.LivesLabel = UIKit.Text(bottom, "Lives", "HULL 3/3", 20, new Vector4(0.5f, 0.7f, 1f, 0.83f),
                                         TextAlignmentOptions.Right, UIStyle.Text, FontStyles.Bold);
-            hud.BurnoutBar = UIKit.Bar(p, "BurnoutBar", new Vector4(0.03f, 0.215f, 0.97f, 0.232f), UIStyle.Burnout);
+            hud.BurnoutBar = UIKit.Bar(bottom, "BurnoutBar", new Vector4(0f, 0.63f, 1f, 0.68f), UIStyle.Burnout);
 
-            // Velocidad y combustible
-            var speed = UIKit.Card(p, "SpeedCard", new Vector4(0.03f, 0.03f, 0.485f, 0.2f), UIStyle.HudCard);
-            UIKit.Text(speed, "Title", "@hud.speed", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
-            hud.SpeedLabel = UIKit.Text(speed, "Value", "0 m/s", 60, new Vector4(0.08f, 0.28f, 0.92f, 0.72f),
+            // Velocidad y combustible: compact cards
+            var speed = UIKit.Card(bottom, "SpeedCard", new Vector4(0f, 0f, 0.49f, 0.58f), UIStyle.HudCard);
+            UIKit.Text(speed, "Title", "@hud.speed", 18, new Vector4(0.08f, 0.68f, 0.92f, 0.94f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+            hud.SpeedLabel = UIKit.Text(speed, "Value", "0 m/s", 40, new Vector4(0.08f, 0.26f, 0.92f, 0.7f),
                                         TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
-            hud.SpeedGaugeFill = UIKit.Bar(speed, "Gauge", new Vector4(0.08f, 0.12f, 0.92f, 0.2f), UIStyle.Accent);
+            hud.SpeedGaugeFill = UIKit.Bar(speed, "Gauge", new Vector4(0.08f, 0.1f, 0.92f, 0.18f), UIStyle.Accent);
 
-            var fuel = UIKit.Card(p, "FuelCard", new Vector4(0.515f, 0.03f, 0.97f, 0.2f), UIStyle.HudCard);
-            UIKit.Text(fuel, "Title", "@hud.fuel", 26, new Vector4(0.08f, 0.7f, 0.92f, 0.92f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
-            hud.FuelLabel = UIKit.Text(fuel, "Value", "100%", 60, new Vector4(0.08f, 0.28f, 0.92f, 0.72f),
+            var fuel = UIKit.Card(bottom, "FuelCard", new Vector4(0.51f, 0f, 1f, 0.58f), UIStyle.HudCard);
+            UIKit.Text(fuel, "Title", "@hud.fuel", 18, new Vector4(0.08f, 0.68f, 0.92f, 0.94f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+            hud.FuelLabel = UIKit.Text(fuel, "Value", "100%", 40, new Vector4(0.08f, 0.26f, 0.92f, 0.7f),
                                        TextAlignmentOptions.Left, UIStyle.Text, FontStyles.Bold);
-            hud.FuelBar = UIKit.Bar(fuel, "Bar", new Vector4(0.08f, 0.12f, 0.92f, 0.2f), UIStyle.Good);
+            hud.FuelBar = UIKit.Bar(fuel, "Bar", new Vector4(0.08f, 0.1f, 0.92f, 0.18f), UIStyle.Good);
 
             foreach (var g in go.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
 
@@ -590,27 +598,31 @@ namespace Navigator.Editor
         // Phones and tablets have no keyboard: stick to steer, buttons to thrust and boost
         static void BuildTouchControls(Transform p, CockpitHUD hud, ARShipController ship)
         {
-            var area = UIKit.Rect(p, "Joystick", new Vector4(0.03f, 0.295f, 0.4f, 0.47f));
-            area.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            // Thumb-sized and pinned to the bottom corners, whatever the screen shape
+            var area = UIKit.Pin(p, "Joystick", new Vector2(0f, 0f), new Vector2(36f, 36f), new Vector2(230f, 230f));
             var baseImg = area.gameObject.AddComponent<Image>();
             baseImg.sprite = UIKit.KnobSprite;
-            baseImg.color  = new Color(1f, 1f, 1f, 0.12f);
+            baseImg.color  = new Color(1f, 1f, 1f, 0.10f);
             baseImg.raycastTarget = true;
-            var knob = UIKit.Image(area, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.55f));
+            var knob = UIKit.Image(area, "Knob", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.2f, 0.8f, 1f, 0.5f));
             knob.sprite = UIKit.KnobSprite;
             knob.type   = UnityEngine.UI.Image.Type.Simple;
-            knob.rectTransform.sizeDelta = new Vector2(120, 120);
+            knob.rectTransform.sizeDelta = new Vector2(90, 90);
             var stick = area.gameObject.AddComponent<VirtualJoystick>();
             stick.Knob  = knob.rectTransform;
-            stick.Range = 100f;
+            stick.Range = 80f;
 
-            var thrust = HoldButtonAt(p, "ThrustButton", "@hud.thrust", new Vector4(0.62f, 0.355f, 0.97f, 0.47f),
-                                      new Color(0.2f, 0.8f, 1f, 0.45f), 38);
-            var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector4(0.66f, 0.295f, 0.97f, 0.345f),
-                                      new Color(1f, 0.5f, 0.1f, 0.45f), 30);
+            var thrust = HoldButtonAt(p, "ThrustButton", "@hud.thrust", new Vector2(-36f, 36f), new Vector2(190f, 150f),
+                                      new Color(0.2f, 0.8f, 1f, 0.42f), 28);
+            var boost  = HoldButtonAt(p, "BoostButton", "@hud.boost", new Vector2(-36f, 196f), new Vector2(190f, 70f),
+                                      new Color(1f, 0.5f, 0.1f, 0.42f), 22);
 
-            hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(0.74f, 0.8f, 0.97f, 0.84f),
-                                          new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 24, FontStyles.Bold);
+            hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(1f, 1f, 1f, 1f),
+                                          new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 20, FontStyles.Bold);
+            var gyroRt = (RectTransform)hud.GyroButton.transform;
+            gyroRt.pivot = Vector2.one;
+            gyroRt.sizeDelta = new Vector2(170f, 56f);
+            gyroRt.anchoredPosition = new Vector2(-24f, -150f);
             hud.GyroLabel = hud.GyroButton.GetComponentInChildren<TMP_Text>();
 
             if (ship != null)
@@ -622,9 +634,10 @@ namespace Navigator.Editor
             }
         }
 
-        static HoldButton HoldButtonAt(Transform p, string name, string label, Vector4 a, Color color, float size)
+        // Pinned to the bottom-right corner
+        static HoldButton HoldButtonAt(Transform p, string name, string label, Vector2 pos, Vector2 box, Color color, float size)
         {
-            var img = UIKit.Image(p, name, a, color);
+            var img = UIKit.PinImage(p, name, new Vector2(1f, 0f), pos, box, color);
             img.raycastTarget = true;
             UIKit.Text(img.rectTransform, "Label", label, size, new Vector4(0f, 0f, 1f, 1f),
                        TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
@@ -908,6 +921,26 @@ namespace Navigator.Editor
             rt.anchorMax = new Vector2(a.z, a.w);
             rt.offsetMin = rt.offsetMax = Vector2.zero;
             return rt;
+        }
+
+        // Fixed size (reference units) pinned to a point of `parent`; the pivot sits on that
+        // point, so (0,0) = bottom-left corner, (1,0) = bottom-right, (0.5,0) = bottom-centre.
+        // Unlike fractional anchors, it stays thumb-sized on both portrait and landscape phones.
+        public static RectTransform Pin(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size)
+        {
+            var rt = Rect(parent, name, new Vector4(anchor.x, anchor.y, anchor.x, anchor.y));
+            rt.pivot            = anchor;
+            rt.sizeDelta        = size;
+            rt.anchoredPosition = pos;
+            return rt;
+        }
+
+        public static Image PinImage(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size, Color c)
+        {
+            var img = Pin(parent, name, anchor, pos, size).gameObject.AddComponent<Image>();
+            Rounded(img, c);
+            img.raycastTarget = false;
+            return img;
         }
 
         // Pixel placement from the top edge of `parent`, horizontally by normalized x0..x1

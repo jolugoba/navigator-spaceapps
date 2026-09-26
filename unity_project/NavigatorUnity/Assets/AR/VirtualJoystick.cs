@@ -12,6 +12,8 @@ namespace Navigator.AR
         public RectTransform Knob;
         [Tooltip("Knob travel in UI units")]
         public float Range = 110f;
+        [Range(0f, 0.5f)] public float DeadZone = 0.12f;
+        [Range(1f, 3f)]   public float Exponent = 1.5f;
 
         // -1..1 on each axis; x = turn, y = climb
         public Vector2 Value { get; private set; }
@@ -25,9 +27,15 @@ namespace Navigator.AR
         public void OnDrag(PointerEventData e)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_rt, e.position, e.pressEventCamera, out var p);
+            p -= _rt.rect.center;   // measure from the middle of the stick, whatever the pivot
             Vector2 v = Vector2.ClampMagnitude(p, Range);
             if (Knob != null) Knob.anchoredPosition = v;
-            Value = v / Range;
+
+            // Dead zone so a resting thumb doesn't drift, then a soft curve for fine aiming
+            Vector2 n = v / Range;
+            float m = n.magnitude;
+            Value = m < DeadZone ? Vector2.zero
+                  : n / m * Mathf.Pow((m - DeadZone) / (1f - DeadZone), Exponent);
         }
 
         public void OnPointerUp(PointerEventData e) => Release();

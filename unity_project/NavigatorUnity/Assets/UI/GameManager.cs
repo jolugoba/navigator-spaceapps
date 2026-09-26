@@ -70,6 +70,7 @@ namespace Navigator.UI
         [Header("Espacio")]
         public PowerupSystem Powerups;
         public AsteroidField Asteroids;
+        public GravityField  Gravity;
 
         [Header("Red")]
         public SendaBridge       Senda;
@@ -125,8 +126,41 @@ namespace Navigator.UI
                 SyncService.OnRemoteScore.AddListener(OnRemoteScore);
                 SyncService.OnRemoteArrived.AddListener(OnRemoteArrived);
             }
+            GravityField.AssistGained += OnGravityAssist;
+            GravityField.BodyImpact   += OnBodyImpact;
 
             EnterLobby();
+        }
+
+        void OnDestroy()
+        {
+            GravityField.AssistGained -= OnGravityAssist;
+            GravityField.BodyImpact   -= OnBodyImpact;
+        }
+
+        // A real flyby: free ΔV and propellant saved, like Voyager and Cassini
+        void OnGravityAssist(string body, float dv, float fuelSaved)
+        {
+            if (State != GameState.InFlight) return;
+            Outcome.EventBonusPoints += Mathf.RoundToInt(dv * 5f);
+            Outcome.EventLog.Add(Loc.F("grav.log", Loc.Planet(body), dv, fuelSaved * 100f));
+            HUD?.Flash(null, UIStyle.Good, 0.35f, Loc.F("grav.assist", Loc.Planet(body), dv, fuelSaved * 100f));
+        }
+
+        IEnumerator FlybyHint(string target, string probe)
+        {
+            yield return new WaitForSeconds(2.5f);
+            if (State != GameState.InFlight) yield break;
+            var names = new List<string>();
+            foreach (var b in GravityField.RealFlybys[target].bodies) names.Add(Loc.Planet(b));
+            HUD?.Flash(null, UIStyle.Accent, 0f, Loc.F("grav.intro", probe, string.Join(" → ", names)));
+        }
+
+        void OnBodyImpact(string body)
+        {
+            if (State != GameState.InFlight) return;
+            AudioFX.Play(Sfx.Explosion);
+            HUD?.Flash(null, UIStyle.Bad, 1.2f, Loc.F("grav.crash", Loc.Planet(body)));
         }
 
         // ── Máquina de estados ─────────────────────────────────────────────────
@@ -238,6 +272,7 @@ namespace Navigator.UI
             if (SpaceManager != null) SpaceManager.Locked = false;
             Powerups?.ClearAll();
             Asteroids?.Clear();
+            Gravity?.Clear();
             SetShipFrozen(false);
             ResetShip(Vector3.forward);
             if (Score != null) Score.Clear();
@@ -313,6 +348,13 @@ namespace Navigator.UI
 
             Powerups?.SpawnAlongRoute(launch, target);
             if (Ship != null) Asteroids?.SpawnAlongRoute(launch, target, Ship.transform);
+            if (Ship != null && Gravity != null)
+            {
+                Gravity.PrefabFor = id => SpaceManager != null ? SpaceManager.GetPlanetPrefab(id) : null;
+                Gravity.SpawnAlongRoute(Mission.TargetPlanetId, launch, target, Ship.transform);
+                if (!string.IsNullOrEmpty(Gravity.Probe)) StartCoroutine(FlybyHint(Mission.TargetPlanetId, Gravity.Probe));
+            }
+            CosmicSkyFX.MeteorShower(4f);
 
             if (HUD != null)
             {
@@ -464,7 +506,9 @@ namespace Navigator.UI
             SetShipFrozen(true);
             Powerups?.ClearAll();
             Asteroids?.Clear();
+            Gravity?.Clear();
 
+            CosmicSkyFX.MeteorShower(6f);
             ArrivalPos = _rivalsArrived.Count + 1;
             SyncService?.BroadcastArrival(ArrivalPos);
             Chat?.ArrivalBroadcast(ArrivalPos);
@@ -486,6 +530,7 @@ namespace Navigator.UI
             Outcome.FailReason = reason;
             Powerups?.ClearAll();
             Asteroids?.Clear();
+            Gravity?.Clear();
 
             FailReason = reason;
             ArrivalPos = 0;

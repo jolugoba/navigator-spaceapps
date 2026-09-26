@@ -229,6 +229,8 @@ comunicaciones, objetivos y operación. Aparece la primera vez; el botón **?** 
 | Apuntar el celular | clic derecho + arrastrar, flechas | La nave gira hacia donde miras |
 | 1 dedo en pantalla | clic izquierdo o W | Empuje |
 | 2 dedos o doble toque | Espacio | Boost (tope de velocidad ×1.5, gasta ×2.2) |
+| Joystick (esquina inferior izquierda, tamaño fijo, zona muerta 12 %) | A/D, **Q/E** | Girar; la nave se inclina hasta 40° en la curva |
+| — | Q/E dos veces seguidas | Tonel para esquivar (360°, el rumbo no cambia) |
 
 ### Física — `Core/PhysicsEngine.cs`, `Game/ShipController.cs`
 ```
@@ -236,8 +238,41 @@ Empuje:     40 u/s² × multiplicador del motor (×2.2 con boost)
 Arrastre:   0.5 (arcade: si sueltas, frenas → hay que seguir empujando)
 Velocidad:  tope 80 u/s · ×1.5 con boost · ×2.5 en modo Burnout
 Gravedad:   a = μ / r² hacia el planeta (μ Marte = 190,000; Júpiter = 1,265,000)
+            y hacia cada planeta de asistencia gravitatoria en la ruta (ver abajo)
 Llegada:    a menos de radio del planeta (60) + 40 unidades
 ```
+
+### Asistencias gravitatorias reales — `Game/GravityField.cs`
+En la ruta aparecen los planetas que usaron las sondas reales de la NASA para llegar a ese destino:
+
+| Destino | Sonda real | Sobrevuelos en el juego |
+|---|---|---|
+| Mercurio | MESSENGER | Venus |
+| Júpiter | Galileo (VEEGA) | Venus → Tierra |
+| Saturno | Cassini (VVEJGA) | Venus → Tierra → Júpiter |
+| Urano | Voyager 2 | Júpiter → Saturno |
+| Neptuno | Voyager 2 | Júpiter → Saturno → Urano |
+| Venus, Marte | vuelo directo | — |
+
+- Cada planeta tira de la nave con **a = μ / r²** (μ de la tabla × 0.06, suavizado junto a la superficie).
+  La trayectoria se curva de verdad.
+- Están 70 u fuera de la línea recta: desviarse es una **decisión**.
+- Un **anillo azul** de 3 radios marca la zona de asistencia. Si la cruzas, al salir recibes:
+  - hasta **+32 m/s** en tu dirección de vuelo, con el tope de velocidad ×1.6 durante 4 s;
+  - hasta **6 % de combustible devuelto**, porque el ΔV que no quemas es propelente que conservas;
+  - **ΔV × 5 puntos**, y la asistencia queda escrita en el informe final.
+- Mientras más cerca pases, mejor. Pero si bajas de 1.05 radios **chocas contra la atmósfera** y pierdes una vida.
+
+### Cielo — `Game/CosmicSkyFX.cs`
+Sobre la cámara del celular se dibujan, "en el infinito" (siguen la posición de la cámara, nunca su rotación):
+- 4 nebulosas;
+- una galaxia espiral;
+- un hoyo negro con disco de acreción, anillo de fotones y brillo Doppler;
+- 1 400 estrellas de colores según su temperatura;
+- estrellas fugaces, con **lluvia de estrellas** al despegar y al llegar.
+
+Todo se genera por código. Si hay arte de Meshy en `Assets/Art/Sky`, se usa ese arte
+(ver [`NAVIGATOR_MESHY_VISUALS.md`](NAVIGATOR_MESHY_VISUALS.md)). El Sky Finder lo oculta para mostrar el cielo real.
 
 ### Combustible — `Game/FuelSystem.cs`
 El ΔV del diseño se convierte en **segundos de empuje**:

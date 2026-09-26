@@ -63,6 +63,11 @@ namespace Navigator.Core
             { "you",                ("You", "Tú") },
 
             // ── Planets / objectives / instruments ───────────────────────────
+            { "planet.earth",   ("Earth", "Tierra") },
+            { "grav.assist",    ("GRAVITY ASSIST · {0}\n+{1:F0} m/s free · {2:F0}% fuel saved", "ASISTENCIA GRAVITATORIA · {0}\n+{1:F0} m/s gratis · {2:F0}% combustible ahorrado") },
+            { "grav.log",       ("Gravity assist at {0}: +{1:F0} m/s, {2:F0}% propellant saved", "Asistencia gravitatoria en {0}: +{1:F0} m/s, {2:F0}% de propelente ahorrado") },
+            { "grav.crash",     ("Too low! You hit {0}'s atmosphere", "¡Demasiado bajo! Chocaste con la atmósfera de {0}") },
+            { "grav.intro",     ("Real route of {0}: {1}\nFly through the blue rings for a gravity assist", "Ruta real de {0}: {1}\nPasa por los anillos azules para una asistencia gravitatoria") },
             { "planet.mercury", ("Mercury", "Mercurio") },
             { "planet.venus",   ("Venus", "Venus") },
             { "planet.mars",    ("Mars", "Marte") },
@@ -174,7 +179,7 @@ namespace Navigator.Core
             { "hud.signal",         ("Signal delay: {0}", "Retardo de señal: {0}") },
             { "hud.lowfuel",        ("LOW FUEL", "COMBUSTIBLE BAJO") },
             { "hud.nofuel",         ("OUT OF FUEL", "SIN COMBUSTIBLE") },
-            { "hud.controls", ("Joystick or tilt the phone to steer · hold THRUST · Q/E or LB/RB: barrel roll", "Joystick o inclina el celular para girar · mantén ACELERAR · Q/E o LB/RB: tonel") },
+            { "hud.controls", ("Joystick or tilt the phone to steer · hold THRUST · Q/E turn (double-tap: barrel roll)", "Joystick o inclina el celular · mantén ACELERAR · Q/E giran (doble toque: tonel)") },
             { "hud.hit.light",      ("BUMP", "ROCE") },
             { "hud.hit.medium",     ("IMPACT · FUEL LEAK −10%", "IMPACTO · FUGA DE COMBUSTIBLE −10%") },
             { "hud.hit.heavy",      ("HEAVY HIT · HULL −1 · FUEL −25%", "GOLPE FUERTE · CASCO −1 · COMBUSTIBLE −25%") },

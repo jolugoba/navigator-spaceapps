@@ -55,7 +55,8 @@ Package Manager → *Add package by name* → `com.unity.cloud.gltfast` → y vu
 | Botón **ACELERAR** o 1 dedo en pantalla | RT o A | **W** o clic izquierdo | Acelerar |
 | Botón **BOOST**, 2 dedos o doble toque | LT o B | **Espacio** | Boost |
 | — | X | **S** | Frenar |
-| — | LB / RB | **Q / E** | Tonel (barrel roll) |
+| Joystick a los lados (la nave se inclina) | LB / RB | **Q / E** (mantener) | Girar a izquierda / derecha, inclinándose como un avión |
+| — | LB / RB dos veces seguidas | **Q / E** dos veces seguidas | Tonel (barrel roll) para esquivar |
 | Botón **GYRO ON/OFF** | — | — | Jugar sin mover el celular (solo joystick) |
 
 En Windows, el Editor carga `Assets/Plugins/senda_core.dll` y el QR funciona.
