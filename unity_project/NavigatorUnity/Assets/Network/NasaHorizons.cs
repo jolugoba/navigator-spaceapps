@@ -51,24 +51,28 @@ namespace Navigator.Network
             // Geodetic site: east longitude, latitude (degrees), altitude (km)
             string site  = $"{longitude.ToString("F4", ci)},{latitude.ToString("F4", ci)},0";
 
-            string url = Api + "?format=text" +
+            string query = "?format=text" +
                          Q("COMMAND", bodyId) + Q("OBJ_DATA", "NO") + Q("MAKE_EPHEM", "YES") +
                          Q("EPHEM_TYPE", "OBSERVER") + Q("CENTER", "coord@399") +
                          Q("COORD_TYPE", "GEODETIC") + Q("SITE_COORD", site) +
                          Q("START_TIME", now) + Q("STOP_TIME", later) + Q("STEP_SIZE", "1 m") +
                          Q("QUANTITIES", "4,20") + Q("CSV_FORMAT", "YES");
 
-            using var req = UnityWebRequest.Get(url);
-            req.timeout = 10;
-            yield return req.SendWebRequest();
-
-            if (req.result != UnityWebRequest.Result.Success)
+            string text = null;
+            foreach (string api in Endpoints())
             {
-                Debug.LogWarning($"[Horizons] {planetId}: {req.error}");
+                using var req = UnityWebRequest.Get(api + query);
+                req.timeout = 10;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success) { text = req.downloadHandler.text; break; }
+                Debug.LogWarning($"[Horizons] {planetId} ({api}): {req.error}");
+            }
+            if (text == null)
+            {
                 onResult(default);
                 yield break;
             }
-            var pos = Parse(req.downloadHandler.text);
+            var pos = Parse(text);
             if (pos.Ok) Debug.Log($"[Horizons] {planetId}: az={pos.Azimuth:F1} alt={pos.Altitude:F1} dist={pos.DistanceAU:F3} AU sun='{pos.Sun}'");
             else        Debug.LogWarning($"[Horizons] {planetId}: could not parse the ephemeris");
             onResult(pos);
@@ -82,6 +86,17 @@ namespace Navigator.Network
             yield return GetSky(planetId, latitude, longitude, p => sky = p);
             if (sky.Ok) onResult(sky.Azimuth, sky.Altitude, sky.DistanceAU);
             else        onResult(FallbackAzimuth.GetValueOrDefault(planetId, 180f), 25f, 1f);
+        }
+
+        // A browser may refuse to call NASA directly (CORS): the web build then asks its own server,
+        // which forwards /nasa-horizons/ to ssd.jpl.nasa.gov (see space-nginx.conf)
+        static IEnumerable<string> Endpoints()
+        {
+            yield return Api;
+            if (Application.platform == RuntimePlatform.WebGLPlayer && !string.IsNullOrEmpty(Application.absoluteURL) &&
+                System.Uri.TryCreate(Application.absoluteURL, System.UriKind.Absolute, out var page) &&
+                (page.Scheme == "https" || page.Scheme == "http"))
+                yield return new System.Uri(page, "/nasa-horizons/api/horizons.api").ToString();
         }
 
         static string Q(string key, string value) => $"&{key}={UnityWebRequest.EscapeURL($"'{value}'")}";

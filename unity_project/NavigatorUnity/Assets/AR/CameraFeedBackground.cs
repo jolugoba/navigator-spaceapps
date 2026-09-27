@@ -1,5 +1,6 @@
 // Navigator 2.0 — CameraFeedBackground.cs
 // Muestra la cámara trasera del celular detrás de la escena 3D (AR sin ARCore/ARKit)
+// En la versión web la cámara la abre el navegador (BrowserCamera): WebCamTexture no funciona ahí.
 // Guacalita Inc. — SAL / Claude
 
 using System.Collections;
@@ -18,15 +19,18 @@ namespace Navigator.AR
         public int    RequestedHeight = 720;
         public int    RequestedFPS    = 30;
 
-        public bool IsPlaying => _tex != null && _tex.isPlaying;
+        public bool IsPlaying => _web != null ? _web.Running : _tex != null && _tex.isPlaying;
 
         private WebCamTexture      _tex;
+        private BrowserCamera      _web;
+        private bool               _webShown;
         private RawImage           _image;
         private Canvas             _canvas;
 
         void Awake()
         {
             if (ARCamera == null) ARCamera = Camera.main;
+            if (BrowserCamera.Available) _web = new BrowserCamera(720);
             BuildCanvas();
         }
 
@@ -55,12 +59,20 @@ namespace Navigator.AR
         public void Play()
         {
             if (IsPlaying) return;
+            if (_web != null)
+            {
+                // The browser asks for permission and opens the camera; frames arrive in Update
+                _webShown = false;
+                _web.Start();
+                return;
+            }
             StartCoroutine(PlayRoutine());
         }
 
         public void Stop()
         {
             StopAllCoroutines();
+            if (_web != null) { _web.Stop(); _webShown = false; }
             if (_tex != null) _tex.Stop();
             if (_canvas != null) _canvas.gameObject.SetActive(false);
         }
@@ -114,6 +126,7 @@ namespace Navigator.AR
 
         void Update()
         {
+            if (_web != null) { UpdateWeb(); return; }
             if (!IsPlaying || _tex.width <= 16) return;
 
             int angle = _tex.videoRotationAngle;
@@ -133,8 +146,35 @@ namespace Navigator.AR
                 : new Rect(0f, 0f, 1f, 1f);
         }
 
+        // Web: the browser already turns the picture upright; rows arrive top first
+        void UpdateWeb()
+        {
+            if (!_web.Running || !_web.Update()) return;
+            var tex = _web.Texture;
+            if (!_webShown)
+            {
+                _webShown = true;
+                if (ARCamera != null)
+                {
+                    ARCamera.clearFlags      = CameraClearFlags.SolidColor;
+                    ARCamera.backgroundColor = Color.black;
+                }
+                _image.texture = tex;
+                _image.color   = Color.white;
+                _image.uvRect  = new Rect(0f, 1f, 1f, -1f);
+                _image.rectTransform.localEulerAngles = Vector3.zero;
+                _canvas.gameObject.SetActive(true);
+            }
+            else if (_image.texture != tex) _image.texture = tex;   // new size (phone rotated)
+
+            Vector2 screen = ((RectTransform)_image.rectTransform.parent).rect.size;
+            float scale = Mathf.Max(screen.x / tex.width, screen.y / tex.height);
+            _image.rectTransform.sizeDelta = new Vector2(tex.width * scale, tex.height * scale);
+        }
+
         void OnDestroy()
         {
+            if (_web != null) _web.Dispose();
             if (_tex != null) { _tex.Stop(); Destroy(_tex); }
         }
     }

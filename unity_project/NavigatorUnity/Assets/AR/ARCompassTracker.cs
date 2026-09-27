@@ -38,31 +38,32 @@ namespace Navigator.AR
 
         IEnumerator InitGPS()
         {
-            // Solicitar permiso de localización
-            if (!Input.location.isEnabledByUser)
+            // Web: never ask on page load; use the location once the Sky Finder got permission
+            if (Application.platform == RuntimePlatform.WebGLPlayer)
             {
-                Debug.LogWarning("[Compass] GPS desactivado. Se usará dirección fallback.");
+                while (DeviceLocation.State != DeviceLocation.Status.Running) yield return new WaitForSeconds(2f);
+                _latitude  = DeviceLocation.Latitude;
+                _longitude = DeviceLocation.Longitude;
+                _gpsReady  = true;
                 yield break;
             }
 
-            Input.location.Start(10f, 5f);  // 10m precisión, update cada 5m
-            Input.compass.enabled = true;
-
-            float timeout = 10f;
-            while (Input.location.status == LocationServiceStatus.Initializing && timeout > 0f)
+            DeviceLocation.Start();
+            float timeout = 20f;
+            while ((DeviceLocation.State == DeviceLocation.Status.Asking || DeviceLocation.State == DeviceLocation.Status.Idle) && timeout > 0f)
             {
                 yield return new WaitForSeconds(0.5f);
                 timeout -= 0.5f;
             }
 
-            if (Input.location.status != LocationServiceStatus.Running)
+            if (DeviceLocation.State != DeviceLocation.Status.Running)
             {
-                Debug.LogWarning("[Compass] GPS timeout. Se usará dirección fallback.");
+                Debug.LogWarning("[Compass] Sin GPS. Se usará dirección fallback.");
                 yield break;
             }
 
-            _latitude  = Input.location.lastData.latitude;
-            _longitude = Input.location.lastData.longitude;
+            _latitude  = DeviceLocation.Latitude;
+            _longitude = DeviceLocation.Longitude;
             _gpsReady  = true;
             Debug.Log($"[Compass] GPS listo: {_latitude:F4}, {_longitude:F4}");
         }

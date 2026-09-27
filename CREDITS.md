@@ -40,6 +40,7 @@ Ships, planets, moons, probes and objects in `Assets/Models`: generated with **M
 | Unity 6 (URP, TextMeshPro, Input System) | Unity Terms of Service |
 | glTFast (Unity) | Apache 2.0 |
 | ZXing.Net (QR codes) | Apache 2.0 |
+| jsQR 1.4.0 (QR reader in the web build) — Cosmo Wolfe | Apache 2.0 |
 | flutter_embed_unity (James Allen) | MIT (`Assets/FlutterEmbed/LICENSE.txt`) |
 | Flutter, shared_preferences, permission_handler | BSD / MIT |
 | Senda P2P (Guacalita Inc.), built on Iroh (n0) | Iroh: MIT / Apache 2.0 |

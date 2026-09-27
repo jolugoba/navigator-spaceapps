@@ -83,12 +83,16 @@ namespace Navigator.AR
             _calibrated = DeviceGyro.HasData;
             float currentYaw = DeviceRotation().eulerAngles.y;
             float targetYaw  = 0f;
-            if (alignToNorth && Input.compass.enabled && Input.compass.timestamp > 0)
-                targetYaw = Input.compass.trueHeading;   // clockwise from north, same as Unity yaw
+            // Compass: heading of the camera from north (clockwise, same as Unity yaw)
+            if (alignToNorth && DeviceLocation.TryHeading(ToUnity, out float heading))
+                targetYaw = heading;
             _yawOffset = Quaternion.Euler(0f, targetYaw - currentYaw, 0f);
         }
 
         private bool _calibrated;
+
+        // True once a compass reading exists (in a browser it can arrive after the first tap)
+        public bool HasCompass => _useGyro && DeviceLocation.TryHeading(ToUnity, out _);
 
         void LateUpdate()
         {
@@ -138,11 +142,10 @@ namespace Navigator.AR
         }
 
         // Unity-space orientation of a portrait phone from the gyro attitude
-        static Quaternion DeviceRotation()
-        {
-            Quaternion q = DeviceGyro.Attitude;
-            return Quaternion.Euler(90f, 0f, 0f) * new Quaternion(q.x, q.y, -q.z, -q.w);
-        }
+        static Quaternion DeviceRotation() => ToUnity(DeviceGyro.Attitude);
+
+        static Quaternion ToUnity(Quaternion q) =>
+            Quaternion.Euler(90f, 0f, 0f) * new Quaternion(q.x, q.y, -q.z, -q.w);
 
         Quaternion MouseRotation()
         {
