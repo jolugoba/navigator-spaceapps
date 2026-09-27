@@ -10,8 +10,8 @@ import 'src/strings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // The AR view maps the gyroscope assuming a portrait phone
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // The game is played in landscape (twin-stick controls); fixed so it never flips mid-flight
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
   final prefs = await SharedPreferences.getInstance();
   final lang = prefs.getString(NavigatorApp.langKey) == 'es' ? AppLang.es : AppLang.en;
   runApp(NavigatorApp(initialLang: lang));

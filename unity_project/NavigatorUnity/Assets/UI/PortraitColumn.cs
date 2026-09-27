@@ -1,6 +1,6 @@
 // Navigator 2.0 — PortraitColumn.cs
-// Keeps a screen laid out as a phone-shaped column, centred, whatever the window shape.
-// Portrait phones use the full width; landscape windows (Editor, tablets) get a centred column.
+// Keeps a screen's layout area centred and no wider than MaxAspect × its height. The game is
+// landscape: the builder uses a wide stage (2.1), so only ultra-wide windows get side margins.
 // Guacalita Inc. — SAL / Claude
 
 using UnityEngine;

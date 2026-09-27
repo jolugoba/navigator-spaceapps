@@ -23,6 +23,10 @@ namespace Navigator.AR
         [DllImport("__Internal")] static extern void   NavGyro_Start();
         [DllImport("__Internal")] static extern int    NavGyro_HasData();
         [DllImport("__Internal")] static extern double NavGyro_Get(int axis);
+        [DllImport("__Internal")] static extern int    NavScreen_Angle();
+
+        // How far the picture is turned from the phone's portrait (0, 90 = landscape top-left, 180, 270)
+        public static int ScreenAngle => NavScreen_Angle();
 
         public static bool Supported => NavGyro_Supported() == 1;
         public static void Enable()  => NavGyro_Start();
@@ -41,6 +45,14 @@ namespace Navigator.AR
         public static void Enable()  => Input.gyro.enabled = true;
         public static bool HasData   => true;
         public static Quaternion Attitude => Input.gyro.attitude;
+
+        public static int ScreenAngle => Screen.orientation switch
+        {
+            ScreenOrientation.LandscapeLeft      => 90,
+            ScreenOrientation.PortraitUpsideDown => 180,
+            ScreenOrientation.LandscapeRight     => 270,
+            _ => 0,
+        };
 #endif
 
         // DeviceOrientation (alpha, beta, gamma in radians) → quaternion (x, y, z, w)

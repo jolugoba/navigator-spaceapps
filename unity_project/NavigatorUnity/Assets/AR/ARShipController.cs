@@ -1,8 +1,11 @@
 // Navigator 2.0 — ARShipController.cs
 // Piloting. The ship always flies toward where the camera looks; every input just moves that aim.
-//   Phone:    tilt the phone (gyro) · on-screen joystick steers · ACELERAR / BOOST buttons
-//             (or 1 finger anywhere = thrust, 2 fingers / double tap = boost)
-//   Gamepad:  left stick steers · RT or A = thrust · LT or B = boost · LB / RB = turn (double press = barrel roll)
+//   Phone (landscape, twin-stick like mobile shooters):
+//             LEFT stick moves — up = thrust (the more you push, the more thrust), down = brake,
+//             sideways = strafe · RIGHT stick looks around 360° (the ship turns where you look)
+//             · tilting the phone (gyro) also looks · BOOST / FIRE / SCAN buttons
+//   Gamepad:  left stick moves · right stick looks · RT or A = thrust · LT or B = boost
+//             · LB / RB = turn (double press = barrel roll)
 //   Keyboard: W thrust · S brake · A/D or Q/E turn (the ship banks) · ↑/↓ or R/F climb · Space boost
 //             double-tap Q/E = barrel roll (dodge)
 // Guacalita Inc. — SAL / Claude
@@ -24,7 +27,8 @@ namespace Navigator.AR
         public GyroCameraRig Rig;
 
         [Header("Controles en pantalla")]
-        public VirtualJoystick Stick;
+        public VirtualJoystick Stick;        // twin-stick: LEFT = move · single stick (old layout): steer
+        public VirtualJoystick LookStick;    // RIGHT = look around; when set, Stick moves the ship
         public HoldButton      ThrustButton;
         public HoldButton      BoostButton;
 
@@ -35,6 +39,7 @@ namespace Navigator.AR
         public float RollSpeed        = 720f;   // degrees per second during a barrel roll
         public float MaxBank          = 40f;    // how far the ship leans into a turn
         public float BankSharpness    = 6f;
+        public float StrafeAccel      = 14f;    // left stick sideways, m/s² (small side jets, no fuel)
 
         // Only true while in flight — GameManager toggles it
         [HideInInspector] public bool ControlsEnabled;
@@ -44,7 +49,7 @@ namespace Navigator.AR
         private float      _lastTapTime = -1f;
         private Quaternion _aim = Quaternion.identity;
         private float      _roll, _rollTarget;
-        private float      _bank, _turn;
+        private float      _bank, _turn, _strafe;
         private float      _lastRollKey = -1f;
         private int        _lastRollDir;
         // Knock: a damped spring on the attitude (pitch, yaw, roll in degrees) — hits jolt the
@@ -91,7 +96,7 @@ namespace Navigator.AR
                 Ship.Boosting   = false;
                 _aim = transform.rotation;   // start the next flight from wherever the ship was placed
                 _roll = _rollTarget = 0f;
-                _bank = _turn = 0f;
+                _bank = _turn = _strafe = 0f;
                 _knock = _knockVel = Vector3.zero;
                 return;
             }
@@ -120,6 +125,10 @@ namespace Navigator.AR
             if (_rb != null) _rb.MoveRotation(next);
             else             transform.rotation = next;
 
+            // Strafe: side jets push the ship sideways without turning it
+            if (_rb != null && !_rb.isKinematic && Mathf.Abs(_strafe) > 0.01f)
+                _rb.AddForce(transform.right * (_strafe * StrafeAccel), ForceMode.Acceleration);
+
             Ship.SteerPitch = 0f;
             Ship.SteerYaw   = 0f;
         }
@@ -143,13 +152,22 @@ namespace Navigator.AR
             }
             _boostTimer = Mathf.Max(0f, _boostTimer - Time.deltaTime);
 
-            bool thrust = fingers >= 1;
-            bool boost  = fingers >= 2 || _boostTimer > 0f;
+            // Twin sticks: touching empty space does nothing (like mobile shooters), the left stick moves
+            bool twin = LookStick != null;
+            bool thrust = !twin && fingers >= 1;
+            bool boost  = !twin && (fingers >= 2 || _boostTimer > 0f);
             bool brake  = false;
-            Vector2 steer = Vector2.zero;
+            float throttle = 0f;     // analog thrust from the left stick (0..1)
+            float brakeAmount = 0f;
+            Vector2 steer = Vector2.zero, look = Vector2.zero, move = Vector2.zero;
 
-            // ── On-screen joystick and buttons ────────────────────────────────
-            if (Stick != null)        steer  += Stick.Value;
+            // ── On-screen joysticks and buttons ───────────────────────────────
+            if (twin)
+            {
+                if (Stick != null) move += Stick.Value;
+                look += LookStick.Value;
+            }
+            else if (Stick != null) steer += Stick.Value;
             if (ThrustButton != null) thrust |= ThrustButton.Held;
             if (BoostButton != null)  boost  |= BoostButton.Held;
 
@@ -158,7 +176,9 @@ namespace Navigator.AR
             if (pad != null)
             {
                 Vector2 ls = pad.leftStick.ReadValue();
-                if (ls.sqrMagnitude > 0.02f) steer += ls;
+                Vector2 rs = pad.rightStick.ReadValue();
+                if (rs.sqrMagnitude > 0.02f) { look += rs; if (ls.sqrMagnitude > 0.02f) move += ls; }
+                else if (ls.sqrMagnitude > 0.02f) { if (twin) move += ls; else steer += ls; }
                 thrust |= pad.rightTrigger.ReadValue() > 0.2f || pad.buttonSouth.isPressed;
                 boost  |= pad.leftTrigger.ReadValue()  > 0.2f || pad.buttonEast.isPressed;
                 brake  |= pad.buttonWest.isPressed;
@@ -190,18 +210,27 @@ namespace Navigator.AR
                 }
             }
 
+            // Left stick: up = thrust (analog), down = brake, sideways = strafe
+            move = Vector2.ClampMagnitude(move, 1f);
+            if (move.y > 0.1f)   throttle    = Mathf.InverseLerp(0.1f, 0.9f, move.y);
+            if (move.y < -0.25f) brakeAmount = Mathf.InverseLerp(-0.25f, -0.9f, move.y);
+            _strafe = Mathf.Abs(move.x) > 0.15f ? move.x : 0f;
+
             if (Rig != null && steer.sqrMagnitude > 0f) Rig.Steer(Vector2.ClampMagnitude(steer, 1f));
+            if (Rig != null && look.sqrMagnitude > 0f)  Rig.Look(Vector2.ClampMagnitude(look, 1f));
             // Bank from whatever is turning the ship (A/D reach the rig directly when the gyro is off)
-            float turn = steer.x;
+            float turn = steer.x + look.x + _strafe * 0.6f;
             if (Rig != null && !Rig.GyroOn) turn += Input.GetAxis("Horizontal");
             _turn = Mathf.Clamp(turn, -1f, 1f);
 
-            Ship.ThrustMain = thrust || boost ? TouchThrottle : 0f;
+            float power = thrust || boost ? 1f : throttle;
+            Ship.ThrustMain = power * TouchThrottle;
             Ship.Boosting   = boost;
 
             // Brake: bleed off speed without spending fuel
-            if (brake && _rb != null && !_rb.isKinematic)
-                _rb.linearVelocity *= Mathf.Clamp01(1f - 2.5f * Time.deltaTime);
+            if (brake) brakeAmount = 1f;
+            if (brakeAmount > 0f && _rb != null && !_rb.isKinematic)
+                _rb.linearVelocity *= Mathf.Clamp01(1f - 2.5f * brakeAmount * Time.deltaTime);
         }
 
         void RollKey(int direction)

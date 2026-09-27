@@ -31,6 +31,7 @@ namespace Navigator.AR
 
         [Header("Joystick / control")]
         public float StickTurnRate = 90f;   // degrees per second at full deflection
+        public float LookTurnRate  = 160f;  // right stick (look around 360°), degrees per second
 
         const string GyroPref = "navigator.gyro";
         public bool GyroAvailable => DeviceGyro.Supported;
@@ -41,6 +42,10 @@ namespace Navigator.AR
 
         // Called every frame by whoever reads the stick/keys; x = turn, y = climb (-1..1)
         public void Steer(Vector2 input) => _steer += input;
+
+        // Right stick: look around (faster, 360° in yaw); x = turn, y = look up
+        public void Look(Vector2 input) => _look += input;
+        private Vector2 _look;
 
         // Players without room to move (or with a gamepad) can switch the gyro off
         public void SetGyro(bool on)
@@ -98,9 +103,11 @@ namespace Navigator.AR
         {
             if (_useGyro && !_calibrated && DeviceGyro.HasData) Calibrate(false);
             float dt = Time.deltaTime;
-            _stickYaw  += Mathf.Clamp(_steer.x, -1f, 1f) * StickTurnRate * dt;
-            _stickPitch = Mathf.Clamp(_stickPitch - Mathf.Clamp(_steer.y, -1f, 1f) * StickTurnRate * 0.8f * dt, -80f, 80f);
-            _steer = Vector2.zero;
+            float yawRate   = Mathf.Clamp(_steer.x, -1f, 1f) * StickTurnRate + Mathf.Clamp(_look.x, -1f, 1f) * LookTurnRate;
+            float pitchRate = Mathf.Clamp(_steer.y, -1f, 1f) * StickTurnRate + Mathf.Clamp(_look.y, -1f, 1f) * LookTurnRate * 0.7f;
+            _stickYaw   = Mathf.Repeat(_stickYaw + yawRate * dt, 360f);
+            _stickPitch = Mathf.Clamp(_stickPitch - pitchRate * 0.8f * dt, -80f, 80f);
+            _steer = _look = Vector2.zero;
 
             LookRotation = _useGyro
                 ? Quaternion.Euler(0f, _stickYaw, 0f) * _yawOffset * DeviceRotation() * Quaternion.Euler(_stickPitch, 0f, 0f)
@@ -141,11 +148,14 @@ namespace Navigator.AR
             _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, fov, 1f - Mathf.Exp(-4f * Time.deltaTime));
         }
 
-        // Unity-space orientation of a portrait phone from the gyro attitude
+        // Unity-space orientation of the camera from the gyro attitude. The attitude is the phone's
+        // (portrait axes); the picture is turned by the screen angle, so turn the camera with it:
+        // landscape with the top to the left (90°) → roll −90° (checked numerically for 0/90/270).
         static Quaternion DeviceRotation() => ToUnity(DeviceGyro.Attitude);
 
         static Quaternion ToUnity(Quaternion q) =>
-            Quaternion.Euler(90f, 0f, 0f) * new Quaternion(q.x, q.y, -q.z, -q.w);
+            Quaternion.Euler(90f, 0f, 0f) * new Quaternion(q.x, q.y, -q.z, -q.w) *
+            Quaternion.Euler(0f, 0f, -DeviceGyro.ScreenAngle);
 
         Quaternion MouseRotation()
         {

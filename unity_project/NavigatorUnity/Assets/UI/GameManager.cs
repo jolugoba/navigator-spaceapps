@@ -141,8 +141,13 @@ namespace Navigator.UI
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
 
-            // Gyro mapping assumes portrait; the AR view must not rotate under the player
-            Screen.orientation         = ScreenOrientation.Portrait;
+            // Always landscape (twin-stick controls); fixed so the view never flips mid-flight.
+            // The browser can only lock from a tap in full screen: NavScreen.jspre does that.
+#if !UNITY_WEBGL || UNITY_EDITOR
+            Screen.autorotateToPortrait = Screen.autorotateToPortraitUpsideDown = false;
+            Screen.autorotateToLandscapeLeft = Screen.autorotateToLandscapeRight = false;
+            Screen.orientation         = ScreenOrientation.LandscapeLeft;
+#endif
             Screen.sleepTimeout        = SleepTimeout.NeverSleep;
             Application.targetFrameRate = 60;
         }

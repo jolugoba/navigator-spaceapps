@@ -53,7 +53,18 @@ Ambos en la misma Wi-Fi, o uno comparte datos (punto de acceso) y el otro se con
 
 Todos los mensajes pasan por el anfitrión, así que cada jugador ve a todos los demás.
 
-## 6. Qué cambia respecto a la app (y qué no)
+## 6. Pantalla horizontal y controles
+
+- El juego es **siempre horizontal**. En Android, al primer toque la página pasa a pantalla completa y
+  se bloquea en horizontal; instalada como app abre directo en horizontal. En iPhone (Safari no deja
+  bloquear) aparece "Gira tu celular" mientras esté vertical.
+- **Dos joysticks**, como en los shooters del celular: el **izquierdo mueve** (arriba acelera, abajo
+  frena, a los lados te deslizas) y el **derecho mira 360°**; la nave va hacia donde miras. Inclinar el
+  celular también mira (se puede apagar con GYRO). Botones redondos: **DISPARAR** (el anillo muestra la
+  recarga), **BOOST** (mantener) y **ESCANEAR**.
+- Con control Bluetooth: stick izquierdo mueve, derecho mira, gatillos aceleran / boost.
+
+## 7. Qué cambia respecto a la app (y qué no)
 
 | | App Android | Web |
 |---|---|---|
@@ -65,7 +76,7 @@ Todos los mensajes pasan por el anfitrión, así que cada jugador ve a todos los
 | Vibración | ✅ | ✅ en Android · ❌ iPhone (Safari no la permite) |
 | "¿Dónde está esta noche?" (NASA Horizons) | ✅ | ✅ con internet · sin conexión no carga datos. Si el navegador bloquea la llamada directa a la NASA, la pide a tu servidor en `/nasa-horizons/` (ya está en `space-nginx.conf`) |
 
-## 7. Si algo falla
+## 8. Si algo falla
 
 - **"The file 'level0' is corrupted"** o comportamiento raro tras recompilar: el navegador mezcló
   la build vieja guardada offline con la nueva. Desde esta versión cada build usa nombres únicos

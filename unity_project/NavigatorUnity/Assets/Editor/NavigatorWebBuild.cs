@@ -11,6 +11,8 @@
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace Navigator.Editor
@@ -81,6 +83,26 @@ namespace Navigator.Editor
                 EditorUtility.RevealInFinder(output);
             }
             else Debug.LogError($"[Navigator] Web build failed: {summary.result} ({summary.totalErrors} errors). See the Console.");
+        }
+    }
+
+    // After any web build (menu or Build Profiles): the installed app opens in landscape
+    public class NavigatorWebManifest : IPostprocessBuildWithReport
+    {
+        public int callbackOrder => 0;
+
+        public void OnPostprocessBuild(BuildReport report)
+        {
+            if (report.summary.platform != BuildTarget.WebGL) return;
+            string path = Path.Combine(report.summary.outputPath, "manifest.webmanifest");
+            if (!File.Exists(path)) return;
+            string json = File.ReadAllText(path);
+            var rx = new System.Text.RegularExpressions.Regex("\"orientation\"\\s*:\\s*\"[^\"]*\"");
+            json = rx.IsMatch(json)
+                ? rx.Replace(json, "\"orientation\": \"landscape\"")
+                : json.Insert(json.IndexOf('{') + 1, "\n  \"orientation\": \"landscape\",");
+            File.WriteAllText(path, json);
+            Debug.Log("[Navigator] manifest.webmanifest → orientation: landscape");
         }
     }
 }

@@ -40,6 +40,9 @@ mergeInto(LibraryManager.library, {
   NavGeo_State: function () { return window['NavCam']['geo'].state; },
   NavGeo_Get: function (axis) { var g = window['NavCam']['geo']; return axis === 0 ? g.lat : g.lon; },
 
+  // ── Screen: rotation angle (0 · 90 = landscape, top to the left · 180 · 270) ─
+  NavScreen_Angle: function () { return window['NavScreen'] ? window['NavScreen']['angle']() : 0; },
+
   // ── Compass ───────────────────────────────────────────────────────────────
   NavCompass_Start: function () { window['NavCam']['compassStart'](); },
   // 0 none yet · 1 absolute orientation (Android) · 2 heading only (iPhone)

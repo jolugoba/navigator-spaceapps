@@ -28,7 +28,8 @@ namespace Navigator.Editor
         {
             EnsureTag("LocalShip");
             EnsureTag("RemoteShip");
-            PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+            PlayerSettings.allowedAutorotateToPortrait = PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
 
             // ── Luz ───────────────────────────────────────────────────────────
             var sun = Object.FindFirstObjectByType<Light>();
