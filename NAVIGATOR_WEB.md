@@ -60,9 +60,10 @@ Todos los mensajes pasan por el anfitrión, así que cada jugador ve a todos los
 | Juego, física, diseño, informe, campaña, estilos | ✅ | ✅ igual |
 | P2P | Iroh (1 escaneo) | WebRTC (2 escaneos, uno por lado) |
 | Giroscopio | Nativo | Sensor del navegador (en iPhone pide permiso al primer toque) |
-| Cámara de fondo | ✅ | ✅ (el navegador pide permiso) |
+| Cámara de fondo y escáner QR | ✅ | ✅ la abre el navegador (pide permiso); el QR lo lee el navegador (BarcodeDetector en Android, jsQR en iPhone/PC) |
+| GPS y brújula ("¿Dónde está?") | ✅ | ✅ el navegador pregunta "¿permitir ubicación?"; brújula del sensor de orientación |
 | Vibración | ✅ | ✅ en Android · ❌ iPhone (Safari no la permite) |
-| "¿Dónde está esta noche?" (NASA Horizons) | ✅ | ✅ con internet · sin conexión no carga datos |
+| "¿Dónde está esta noche?" (NASA Horizons) | ✅ | ✅ con internet · sin conexión no carga datos. Si el navegador bloquea la llamada directa a la NASA, la pide a tu servidor en `/nasa-horizons/` (ya está en `space-nginx.conf`) |
 
 ## 7. Si algo falla
 
@@ -71,7 +72,17 @@ Todos los mensajes pasan por el anfitrión, así que cada jugador ve a todos los
   y una versión de caché nueva, así que ya no pasa; para limpiar lo que quedó de antes:
   Chrome → F12 → **Application → Storage → Clear site data** y recarga.
 
-- **La cámara no abre**: la página debe estar en **https://** y hay que aceptar el permiso.
+- **La cámara no abre**: la página debe estar en **https://** y hay que aceptar el permiso. Si lo negaste:
+  candado de la barra de direcciones → Permisos → Cámara → Permitir, y recarga.
+- **"Ubicación bloqueada"** en *¿Dónde está?*: igual, candado → Ubicación → Permitir. Además el GPS
+  del celular debe estar encendido.
+- **iPhone, brújula**: Safari pide permiso de "movimiento y orientación" al primer toque; acéptalo.
+- Nota técnica: Unity `WebCamTexture` y `Input.location` no sirven en el navegador (el primero llenaba
+  la consola de `glCopySubTextureCHROMIUM: Offset overflows texture dimensions` y no se podía volver a
+  abrir; el segundo nunca pide permiso). La versión web usa `NavCam.jspre` / `BrowserCamera.cs` /
+  `DeviceLocation.cs`. Probado en Chromium con cámara simulada: QR de 139 caracteres leído en 0,3 s,
+  cámara que se cierra y se vuelve a abrir, GPS y brújula.
+- Los avisos de *shaders de post-procesado eliminados* y `JS_FileSystem_Sync` son normales y no afectan.
 - **No conectan**: los dos en la misma red; algunas redes de escuela bloquean conexiones entre
   dispositivos → usar el punto de acceso de un celular.
 - **iPhone se cierra al cargar**: Safari limita la memoria; usa el perfil *Web - Mobile* y los

@@ -35,6 +35,7 @@ namespace Navigator.UI
         private string      _planet = "mars";
         private SkyPosition _sky;
         private bool        _located;
+        private bool        _northAligned;
         private GameObject  _marker;
         private Coroutine   _locate;
 
@@ -83,28 +84,21 @@ namespace Navigator.UI
         {
             SetStatus(Loc.T("sky.gps"), UIStyle.Muted);
 
-            if (Input.location.status != LocationServiceStatus.Running)
+            // Native: Unity's location service. Web: the browser asks "allow location?"
+            DeviceLocation.Start();
+            float wait = 25f;   // the player may take a while to answer the permission prompt
+            while ((DeviceLocation.State == DeviceLocation.Status.Asking || DeviceLocation.State == DeviceLocation.Status.Idle)
+                   && wait > 0f && !Application.isEditor)
             {
-                if (!Input.location.isEnabledByUser && !Application.isEditor)
-                {
-                    SetStatus(Loc.T("sky.nogps"), UIStyle.Bad);
-                    yield break;
-                }
-                Input.location.Start(50f, 10f);
-                float wait = 15f;
-                while (Input.location.status == LocationServiceStatus.Initializing && wait > 0f)
-                {
-                    wait -= Time.unscaledDeltaTime;
-                    yield return null;
-                }
+                wait -= Time.unscaledDeltaTime;
+                yield return null;
             }
-            Input.compass.enabled = true;
 
             float lat, lon;
-            if (Input.location.status == LocationServiceStatus.Running)
+            if (DeviceLocation.State == DeviceLocation.Status.Running)
             {
-                lat = Input.location.lastData.latitude;
-                lon = Input.location.lastData.longitude;
+                lat = DeviceLocation.Latitude;
+                lon = DeviceLocation.Longitude;
             }
             else if (Application.isEditor)
             {
@@ -112,14 +106,15 @@ namespace Navigator.UI
             }
             else
             {
-                SetStatus(Loc.T("sky.nogps"), UIStyle.Bad);
+                SetStatus(Loc.T(DeviceLocation.State == DeviceLocation.Status.Denied ? "sky.gpsdenied" : "sky.nogps"), UIStyle.Bad);
                 yield break;
             }
 
             // Let the compass settle, then make "forward" true north so the sky lines up
-            yield return new WaitForSeconds(0.8f);
+            yield return new WaitForSeconds(1.2f);
             var rig = ARCamera != null ? ARCamera.GetComponent<GyroCameraRig>() : null;
             if (rig != null) rig.Calibrate(true);
+            _northAligned = rig == null || rig.HasCompass;
 
             SetStatus(Loc.T("sky.asking"), UIStyle.Muted);
             SkyPosition sky = default;
@@ -188,6 +183,13 @@ namespace Navigator.UI
             if (Panel == null || !Panel.activeSelf || !_located) { Toggle(false, false); return; }
             var cam = ARCamera != null ? ARCamera : Camera.main;
             if (cam == null) return;
+
+            // Browser: the compass may only start after a tap (iPhone permission); align as soon as it does
+            if (!_northAligned && cam.TryGetComponent<GyroCameraRig>(out var rig) && rig.HasCompass)
+            {
+                rig.Calibrate(true);
+                _northAligned = true;
+            }
 
             Vector3 world = cam.transform.position + Direction(_sky) * MarkerDistance;
             if (_marker != null) _marker.transform.position = world;   // follows the camera, stays in its sky spot

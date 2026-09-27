@@ -52,6 +52,7 @@ namespace Navigator.UI
         public Navigator.Network.ShipSyncService  Sync;
 
         private WebCamTexture _cam;
+        private Navigator.AR.BrowserCamera _webCam;   // web build: the browser's camera + QR reader
         private bool          _scanning = false;
         private int           _peersConnected = 0;
 
@@ -187,6 +188,7 @@ namespace Navigator.UI
                 return;
             }
 #endif
+            if (Navigator.AR.BrowserCamera.Available) { StartWebScan(); return; }
             if (!Navigator.AR.CameraPicker.HasPermission) { StartCoroutine(AskCameraThenScan()); return; }
             _scanning = true;
             SetScanButtonLabel(Loc.T("lobby.cancel"));
@@ -205,6 +207,55 @@ namespace Navigator.UI
             StartCoroutine(ScanLoop());
         }
 
+        // Web: the browser opens the camera (it asks for permission itself) and reads the QR
+        // (BarcodeDetector or jsQR); the preview is its frames, the result arrives in OnWebScan
+        void StartWebScan()
+        {
+            _scanning = true;
+            SetScanButtonLabel(Loc.T("lobby.cancel"));
+            SetScanStatus(Loc.T("lobby.aim"));
+            if (_webCam == null) _webCam = new Navigator.AR.BrowserCamera(720);
+            _webCam.Start();
+            Navigator.AR.BrowserCamera.ScanStart(gameObject.name);
+            if (ScanPreview != null)
+            {
+                ScanPreview.texture = null;
+                ScanPreview.color   = Color.black;
+                ScanPreview.uvRect  = new Rect(0f, 1f, 1f, -1f);   // browser frames arrive top row first
+                ScanPreview.rectTransform.localEulerAngles = Vector3.zero;
+                ScanPreview.gameObject.SetActive(true);
+            }
+            StartCoroutine(WebScanPreview());
+        }
+
+        IEnumerator WebScanPreview()
+        {
+            while (_scanning && _webCam != null && _webCam.Running)
+            {
+                if (_webCam.Update() && ScanPreview != null)
+                {
+                    ScanPreview.texture = _webCam.Texture;
+                    ScanPreview.color   = Color.white;
+                }
+                if (_webCam.State == Navigator.AR.BrowserCamera.CamState.Failed)
+                {
+                    StopScan();
+                    SetScanStatus(Loc.T("lobby.nocamera"));
+                    yield break;
+                }
+                yield return null;
+            }
+        }
+
+        // Called by NavCam.jslib with the text of the QR it found
+        public void OnWebScan(string text)
+        {
+            if (!_scanning) return;
+            Debug.Log($"[Lobby] QR escaneado: {text}");
+            StopScan();
+            ConnectToScanned(text);
+        }
+
         // Browser / iOS: ask for the camera first, then scan
         IEnumerator AskCameraThenScan()
         {
@@ -218,6 +269,11 @@ namespace Navigator.UI
             _scanning = false;
             if (_cam != null) _cam.Stop();
             _cam = null;
+            if (_webCam != null)
+            {
+                Navigator.AR.BrowserCamera.ScanStop();
+                _webCam.Stop();
+            }
             if (ScanPreview != null) ScanPreview.gameObject.SetActive(false);
             SetScanButtonLabel(Loc.T("lobby.scan"));
         }
@@ -423,6 +479,7 @@ namespace Navigator.UI
             GameManager.PlayerNameChanged -= OnNameChanged;
             ShipCatalog.SelectionChanged -= OnShipChanged;
             if (_cam != null) _cam.Stop();
+            if (_webCam != null) _webCam.Dispose();
         }
     }
 }
