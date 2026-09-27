@@ -66,10 +66,16 @@ Todos los mensajes pasan por el anfitrión, así que cada jugador ve a todos los
 
 ## 7. Si algo falla
 
+- **"The file 'level0' is corrupted"** o comportamiento raro tras recompilar: el navegador mezcló
+  la build vieja guardada offline con la nueva. Desde esta versión cada build usa nombres únicos
+  y una versión de caché nueva, así que ya no pasa; para limpiar lo que quedó de antes:
+  Chrome → F12 → **Application → Storage → Clear site data** y recarga.
+
 - **La cámara no abre**: la página debe estar en **https://** y hay que aceptar el permiso.
 - **No conectan**: los dos en la misma red; algunas redes de escuela bloquean conexiones entre
   dispositivos → usar el punto de acceso de un celular.
 - **iPhone se cierra al cargar**: Safari limita la memoria; usa el perfil *Web - Mobile* y los
   modelos optimizados.
-- Probado aquí en navegadores reales (Chromium): conexión por códigos, 3 jugadores, mensajes a
-  todos y reenviados por el anfitrión, y modo sin servidores STUN (el caso sin internet).
+- Probado aquí en navegadores reales (Chromium): conexión por códigos compactos (~140 caracteres,
+  QR pequeño), 3 jugadores, mensajes a todos y reenviados por el anfitrión, con IPs y con nombres
+  mDNS (como los celulares), y sin servidores STUN (el caso sin internet).

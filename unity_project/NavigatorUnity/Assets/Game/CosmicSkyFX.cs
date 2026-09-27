@@ -114,11 +114,28 @@ namespace Navigator.Game
             _ => new Color(1f, 0.6f, 0.3f),      // dusty orange
         };
 
+        static Mesh _quad;
+        static Mesh QuadMesh
+        {
+            get
+            {
+                if (_quad != null) return _quad;
+                _quad = new Mesh { name = "SkyQuad" };
+                _quad.vertices  = new[] { new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f) };
+                _quad.uv        = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+                _quad.triangles = new[] { 0, 3, 1, 3, 0, 2 };   // same winding as Unity's built-in quad (faces −Z)
+                _quad.RecalculateNormals();
+                _quad.RecalculateBounds();
+                return _quad;
+            }
+        }
+
         void Billboard(string name, Texture tex, Vector3 dir, float size, Color tint, bool additive)
         {
             if (GlowMaterial == null) return;
-            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            Destroy(go.GetComponent<Collider>());
+            // A plain quad: CreatePrimitive would add a MeshCollider, which web builds strip
+            var go = new GameObject("Quad", typeof(MeshFilter), typeof(MeshRenderer));
+            go.GetComponent<MeshFilter>().sharedMesh = QuadMesh;
             go.name = name;
             // Real photos are scanned by their file name (nebula_01 = Orion…); generated ones by kind
             string id = tex != null && !string.IsNullOrEmpty(tex.name) && tex.name.Contains("_") ? tex.name : name.ToLowerInvariant();

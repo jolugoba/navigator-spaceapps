@@ -135,8 +135,8 @@ namespace Navigator.UI
 
             try
             {
-                // Web codes are long (~550 chars): a bigger texture keeps every module crisp
-                if (MyQRImage != null) MyQRImage.texture = GenerateQR(nodeId, nodeId.Length > 100 ? 600 : 256);
+                // Web codes (~140 chars) get a bigger texture so every module stays crisp
+                if (MyQRImage != null) MyQRImage.texture = GenerateQR(nodeId, nodeId.Length > 60 ? 600 : 256);
             }
             catch (System.Exception e)
             {
@@ -151,8 +151,9 @@ namespace Navigator.UI
         {
             var hints = new System.Collections.Generic.Dictionary<EncodeHintType, object>
             {
-                { EncodeHintType.MARGIN, 2 },
+                { EncodeHintType.MARGIN, 4 },   // wide white border: cameras lock on faster
                 { EncodeHintType.CHARACTER_SET, "UTF-8" },
+                { EncodeHintType.ERROR_CORRECTION, ZXing.QrCode.Internal.ErrorCorrectionLevel.M },   // survives glare on a phone screen
             };
             BitMatrix m = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints);
             int w = m.Width, h = m.Height;
@@ -274,7 +275,7 @@ namespace Navigator.UI
             WebPlatform.Paste(text =>
             {
                 // Web: a friend's join code sent by message works like scanning their QR
-                var join = System.Text.RegularExpressions.Regex.Match(text ?? "", @"NV[OA][01]\.[A-Za-z0-9_-]+");
+                var join = System.Text.RegularExpressions.Regex.Match(text ?? "", @"NV[OA][012]\.[A-Za-z0-9_-]+");
                 if (Navigator.Network.SendaBridge.IsWeb && join.Success)
                 {
                     StopScan();

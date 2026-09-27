@@ -27,6 +27,7 @@ namespace Navigator.Editor
             PlayerSettings.WebGL.compressionFormat     = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching           = true;
+            PlayerSettings.WebGL.nameFilesAsHashes     = true;   // every build has new file names: never mixed with a cached one
             PlayerSettings.WebGL.exceptionSupport      = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.WebGL.powerPreference       = WebGLPowerPreference.HighPerformance;
             PlayerSettings.runInBackground             = true;   // keep the P2P link alive if the tab loses focus
@@ -56,13 +57,22 @@ namespace Navigator.Editor
                 return;
             }
             string output = Path.GetFullPath(Path.Combine(Application.dataPath, "..", OutputDir));
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            // The offline cache is named after the version: a new one per build makes phones pick up
+            // the update instead of mixing old and new files. The Android version is restored after.
+            string version = PlayerSettings.bundleVersion;
+            PlayerSettings.bundleVersion = $"{version}-web{System.DateTime.Now:yyyyMMddHHmm}";
+            UnityEditor.Build.Reporting.BuildReport report;
+            try
             {
-                scenes           = scenes,
-                locationPathName = output,
-                target           = BuildTarget.WebGL,
-                options          = BuildOptions.None,
-            });
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes           = scenes,
+                    locationPathName = output,
+                    target           = BuildTarget.WebGL,
+                    options          = BuildOptions.None,
+                });
+            }
+            finally { PlayerSettings.bundleVersion = version; }
             var summary = report.summary;
             if (summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
             {
