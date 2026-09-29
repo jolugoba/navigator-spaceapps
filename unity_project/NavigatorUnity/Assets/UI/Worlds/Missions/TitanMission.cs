@@ -103,7 +103,7 @@ namespace Navigator.Worlds
             _craft = new DescentCraft
             {
                 T = _capsule.transform, Terrain = Ter, Gravity = P.Gravity, AirDensity = P.AirDensity, ScaleHeight = 420f,
-                Mass = 1200f, BodyCdA = 1.5f, ChuteCdA = 55f, Wind = 5f, WindDir = new Vector3(0.6f, 0f, 1f),
+                Mass = 1200f, BodyCdA = 1.5f, ChuteCdA = 55f, Wind = 2.5f, WindDir = new Vector3(0.6f, 0f, 1f),
                 Vel = new Vector3(0f, -12f, 0f), ThrustAllowed = false, Fuel = 0f, FuelMax = 1f,
             };
             H.SetTitle(T("w.titan.title"), T("w.titan.goal.descent"));

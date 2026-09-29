@@ -79,6 +79,14 @@ namespace Navigator.Worlds
                 m.transform.localPosition = Vector3.zero;
                 if (alignLong) Navigator.Core.ModelFit.AlignLongAxisToForward(m);
                 Navigator.Core.ModelFit.FitToSize(m, size);
+                // FitToSize centres the model; vehicles stand on their wheels/legs: lift the bottom to the origin
+                var rs = m.GetComponentsInChildren<Renderer>();
+                if (rs.Length > 0)
+                {
+                    Bounds b = rs[0].bounds;
+                    for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+                    m.transform.position += Vector3.up * (root.transform.position.y - b.min.y);
+                }
             }
             else
             {

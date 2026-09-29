@@ -119,7 +119,7 @@ namespace Navigator.Worlds
             _craft = new DescentCraft
             {
                 T = _probe.transform, Terrain = Ter, Gravity = P.Gravity, AirDensity = P.AirDensity, ScaleHeight = 260f,
-                Mass = 1500f, BodyCdA = 8f, ChuteCdA = ok ? 60f : 30f, Wind = 12f, WindDir = new Vector3(1f, 0f, 0.3f),
+                Mass = 1500f, BodyCdA = 8f, ChuteCdA = ok ? 60f : 30f, Wind = 6f, WindDir = new Vector3(1f, 0f, 0.3f),
                 Vel = new Vector3(0f, -30f, 0f), ThrustAllowed = false, Fuel = 0f, FuelMax = 1f,
             };
             D.Focus = _probe.transform;

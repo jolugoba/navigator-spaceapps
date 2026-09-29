@@ -73,6 +73,14 @@ namespace Navigator.Worlds
             // Very dense air (Venus) would make explicit steps unstable: cap the drag change
             if (rho > 5f) Vel = Vector3.Lerp(Vel, air + Vector3.down * TerminalSpeed(rho), 1f - Mathf.Exp(-rho * 0.02f * dt));
             T.position += Vel * dt;
+            // Wind or steering must never carry the craft off the edge of the map
+            if (Terrain != null)
+            {
+                var c = Terrain.Clamp(T.position, 25f);
+                if (c.x != T.position.x) Vel.x = 0f;
+                if (c.z != T.position.z) Vel.z = 0f;
+                T.position = c;
+            }
             Fuel = Mathf.Max(0f, Fuel - Throttle * dt);
         }
 

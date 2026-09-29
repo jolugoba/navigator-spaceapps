@@ -69,7 +69,7 @@ namespace Navigator.Worlds
         GameObject Spawn(GameObject model, string shape, float size, Vector3 at)
         {
             GameObject go;
-            if (model != null) go = A.Spawn(model, PrimitiveType.Cube, Vector3.one, Color.white, size, Root);
+            if (model != null) go = A.Spawn(model, PrimitiveType.Cube, Vector3.one, Color.white, size, Root, alignLong: shape == "rover");
             else go = VehicleShapes.Build(A, shape, Root);
             go.transform.position = at;
             return go;
@@ -168,7 +168,7 @@ namespace Navigator.Worlds
             _stack.transform.position = at;
             _crane = Spawn(A.SkyCrane, "skycrane", 3.6f, at);
             _crane.transform.SetParent(_stack.transform, true);
-            _rover = Spawn(A.Rover, "rover", 3f, at + Vector3.down * 1.2f);
+            _rover = Spawn(A.Rover, "rover", 3f, at + Vector3.down * 2.4f);   // hangs under the crane
             _rover.transform.SetParent(_stack.transform, true);
             _flame = Flame(_crane.transform, Vector3.zero);
 
@@ -271,7 +271,7 @@ namespace Navigator.Worlds
             DescentMeters(_craft);
 
             _roverDrop = Mathf.Min(9f, _roverDrop + 2.2f * dt);   // cables pay out at ~0.75 m/s (sped up)
-            Vector3 hang = _stack.transform.position + Vector3.down * (1.2f + _roverDrop);
+            Vector3 hang = _stack.transform.position + Vector3.down * (2.4f + _roverDrop);
             float ground = Ter.Height(hang);
             bool touching = hang.y <= ground + 0.05f;
             if (touching) hang.y = ground;
