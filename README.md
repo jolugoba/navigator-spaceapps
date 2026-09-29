@@ -52,6 +52,7 @@ the result — and what would have happened if you had chosen differently.
 **Web version (offline, local multiplayer, no server):** menu **Navigator → Web → Build** — see [`NAVIGATOR_WEB.md`](NAVIGATOR_WEB.md).
 See [`NAVIGATOR_UNITY_QUICKSTART.md`](NAVIGATOR_UNITY_QUICKSTART.md) and [`flutter_app/README.md`](flutter_app/README.md).
 **Design & equations:** [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md).
+**The 7 worlds (landing and surface missions, in Spanish):** [`docs/mundos/`](docs/mundos/00_GUIA_MUNDOS.md) · models: [`NAVIGATOR_MESHY_MUNDOS.md`](NAVIGATOR_MESHY_MUNDOS.md).
 **Credits & licenses:** [`CREDITS.md`](CREDITS.md) · **Submission kit:** [`SPACE_APPS_SUBMISSION.md`](SPACE_APPS_SUBMISSION.md).
 
 ---
