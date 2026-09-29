@@ -16,7 +16,8 @@ namespace Navigator.Core
     public enum ScienceInstrument
     {
         WideAngleCamera, NarrowAngleCamera, UVSpectrometer, InfraredMapper,
-        Magnetometer, ParticleDetector, RadioScience, RadarAltimeter
+        Magnetometer, ParticleDetector, RadioScience, RadarAltimeter,
+        SampleDrill   // drill + sample arm (Perseverance's coring drill); only useful on the ground
     }
 
     [Serializable]
@@ -178,6 +179,7 @@ namespace Navigator.Core
             { ScienceInstrument.ParticleDetector,  22f },
             { ScienceInstrument.RadioScience,      5f  },
             { ScienceInstrument.RadarAltimeter,    42f },
+            { ScienceInstrument.SampleDrill,       30f },
         };
         public static readonly Dictionary<ScienceInstrument, float> InstrumentPowerW = new()
         {
@@ -189,6 +191,7 @@ namespace Navigator.Core
             { ScienceInstrument.ParticleDetector,  30f },
             { ScienceInstrument.RadioScience,      10f },
             { ScienceInstrument.RadarAltimeter,    80f },
+            { ScienceInstrument.SampleDrill,       60f },
         };
         public static readonly Dictionary<ScienceInstrument, float> InstrumentCostM = new()
         {
@@ -200,6 +203,7 @@ namespace Navigator.Core
             { ScienceInstrument.ParticleDetector,  55f },
             { ScienceInstrument.RadioScience,      20f },
             { ScienceInstrument.RadarAltimeter,    65f },
+            { ScienceInstrument.SampleDrill,       40f },
         };
         public static readonly Dictionary<ScienceInstrument, int> InstrumentSciencePoints = new()
         {
@@ -211,6 +215,7 @@ namespace Navigator.Core
             { ScienceInstrument.ParticleDetector,  1400 },
             { ScienceInstrument.RadioScience,      600  },
             { ScienceInstrument.RadarAltimeter,    1600 },
+            { ScienceInstrument.SampleDrill,       1500 },
         };
 
         // Distance from Sun in AU — for solar degradation
@@ -251,13 +256,20 @@ namespace Navigator.Core
             { "neptune", 1800f },
         };
 
-        // Descent from orbit to the surface; gas giants have no surface to land on.
-        // Mars/Venus are cheap thanks to aerobraking and parachutes; Mercury is all rocket.
+        // Descent from orbit to the surface. Mars/Venus are cheap thanks to aerobraking and
+        // parachutes; Mercury is all rocket. The giants have no surface: "landing" there means
+        // what NASA did or plans — an atmospheric probe released from orbit (Jupiter: Galileo
+        // probe; Uranus: Uranus Orbiter and Probe), or landing on their big moon (Saturn → Titan
+        // with a parachute, like Huygens; Neptune → Triton with rockets, it has almost no air).
         public static readonly Dictionary<string, float> LandingDV = new()
         {
             { "mercury", 3000f },
             { "venus",   600f  },
             { "mars",    900f  },
+            { "jupiter", 150f  },   // aim the probe; the atmosphere does the braking
+            { "saturn",  700f  },   // Saturn orbit → Titan, then heat shield + parachutes
+            { "uranus",  150f  },
+            { "neptune", 1800f },   // Neptune orbit → Triton, powered landing (no air)
         };
 
         public const float LanderMassKg = 250f;
@@ -285,12 +297,16 @@ namespace Navigator.Core
             ("mars",    "landing") => "Perseverance (2021)",
             ("jupiter", "flyby")   => "Pioneer 10 (1973)",
             ("jupiter", "orbit")   => "Juno (2016)",
+            ("jupiter", "landing") => "Galileo Probe (1995)",
             ("saturn",  "flyby")   => "Voyager 1 (1980)",
             ("saturn",  "orbit")   => "Cassini (2004)",
+            ("saturn",  "landing") => "Huygens → Titan (2005)",
             ("uranus",  "flyby")   => "Voyager 2 (1986)",
             ("uranus",  "orbit")   => Loc.F("mission.proposal", "Uranus Orbiter and Probe"),
+            ("uranus",  "landing") => Loc.F("mission.proposal", "Uranus Orbiter and Probe"),
             ("neptune", "flyby")   => "Voyager 2 (1989)",
             ("neptune", "orbit")   => Loc.F("mission.proposal", "Neptune Odyssey"),
+            ("neptune", "landing") => Loc.T("mission.first"),
             _                      => Loc.T("mission.none"),
         };
 
@@ -308,6 +324,8 @@ namespace Navigator.Core
             { "mars:landing",    ("Perseverance", 4010f, 2700f, 203f,  "") },
             { "jupiter:flyby",   ("Pioneer 10",   258f,  0f,    641f,  "") },
             { "jupiter:orbit",   ("Juno",         3625f, 1100f, 1796f, "earth") },
+            { "jupiter:landing", ("Galileo",      2562f, 1600f, 2241f, "venus,earth") },
+            { "saturn:landing",  ("Cassini-Huygens", 5712f, 3260f, 2648f, "venus,earth,jupiter") },
             { "saturn:flyby",    ("Voyager 1",    825f,  0f,    1164f, "jupiter") },
             { "saturn:orbit",    ("Cassini",      5712f, 3260f, 2451f, "venus,earth,jupiter") },
             { "uranus:flyby",    ("Voyager 2",    825f,  0f,    3079f, "jupiter,saturn") },
@@ -315,19 +333,19 @@ namespace Navigator.Core
         };
 
         // ── Science value per planet ──────────────────────────────────────────
-        // Order: WideCam, NarrowCam, UV, IR, Magnetometer, Particles, RadioScience, Radar.
+        // Order: WideCam, NarrowCam, UV, IR, Magnetometer, Particles, RadioScience, Radar, Drill.
         // Grounded in what real missions found valuable: Magellan's radar under Venus' clouds,
         // HiRISE/SHARAD at Mars, Juno's magnetometer and particle detectors at Jupiter,
         // Cassini's ring radio occultations, Voyager 2 finding the tilted fields of the ice giants.
         static readonly Dictionary<string, float[]> PlanetScience = new()
         {
-            { "mercury", new[] { 1.0f, 1.2f, 1.0f, 1.5f, 2.0f, 1.0f, 1.0f, 1.5f } },
-            { "venus",   new[] { 0.3f, 0.3f, 2.0f, 1.5f, 0.5f, 0.7f, 1.5f, 2.0f } },
-            { "mars",    new[] { 1.5f, 2.0f, 0.8f, 1.5f, 1.0f, 0.8f, 1.0f, 2.0f } },
-            { "jupiter", new[] { 1.2f, 1.0f, 1.5f, 1.5f, 2.0f, 2.0f, 1.5f, 0.3f } },
-            { "saturn",  new[] { 1.5f, 1.5f, 1.2f, 1.5f, 1.5f, 1.5f, 2.0f, 1.0f } },
-            { "uranus",  new[] { 1.0f, 1.0f, 1.2f, 1.5f, 2.0f, 1.5f, 1.5f, 0.3f } },
-            { "neptune", new[] { 1.5f, 1.2f, 1.0f, 1.5f, 2.0f, 1.2f, 1.5f, 0.3f } },
+            { "mercury", new[] { 1.0f, 1.2f, 1.0f, 1.5f, 2.0f, 1.0f, 1.0f, 1.5f, 1.5f } },
+            { "venus",   new[] { 0.3f, 0.3f, 2.0f, 1.5f, 0.5f, 0.7f, 1.5f, 2.0f, 1.5f } },
+            { "mars",    new[] { 1.5f, 2.0f, 0.8f, 1.5f, 1.0f, 0.8f, 1.0f, 2.0f, 2.0f } },
+            { "jupiter", new[] { 1.2f, 1.0f, 1.5f, 1.5f, 2.0f, 2.0f, 1.5f, 0.3f, 0.3f } },
+            { "saturn",  new[] { 1.5f, 1.5f, 1.2f, 1.5f, 1.5f, 1.5f, 2.0f, 1.0f, 1.5f } },
+            { "uranus",  new[] { 1.0f, 1.0f, 1.2f, 1.5f, 2.0f, 1.5f, 1.5f, 0.3f, 0.3f } },
+            { "neptune", new[] { 1.5f, 1.2f, 1.0f, 1.5f, 2.0f, 1.2f, 1.5f, 0.3f, 1.5f } },
         };
 
         public static float PlanetScienceMult(string planet, ScienceInstrument inst) =>
@@ -348,6 +366,7 @@ namespace Navigator.Core
             { ScienceInstrument.ParticleDetector,  10f },
             { ScienceInstrument.RadioScience,      2f  },
             { ScienceInstrument.RadarAltimeter,    50f },
+            { ScienceInstrument.SampleDrill,       20f },
         };
 
         // Game-time downlink. Real rates span 12,000× (0.5 kbps → 6 Mbps), which would make

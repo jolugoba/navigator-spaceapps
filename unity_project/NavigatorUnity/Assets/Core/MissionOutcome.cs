@@ -34,6 +34,12 @@ namespace Navigator.Core
         public float  PowerLossW;
         public int    GoodCalls;                          // decisions where the design paid off
 
+        // The world at the planet (landing missions): descent, touchdown and surface mission
+        public bool   WorldPlayed, WorldSuccess, WorldLanded;
+        public int    WorldStars, WorldPoints;
+        public string WorldFailKey;
+        public readonly List<string> WorldLines = new();
+
         public void Clear()
         {
             Arrived = false; FailReason = null; FlightTimeS = 0f; FuelAtArrival = 1f;
@@ -41,6 +47,7 @@ namespace Navigator.Core
             InstrumentsPlanned = InstrumentsScanned = InstrumentsReceived = 0;
             PointsReceived = PointsLost = 0; PowerWaitS = 0f; DataSentMb = DataTotalMb = 0f;
             LostInstruments.Clear(); EventLog.Clear(); EventBonusPoints = 0; PowerLossW = 0f; GoodCalls = 0;
+            WorldPlayed = WorldSuccess = WorldLanded = false; WorldStars = WorldPoints = 0; WorldFailKey = null; WorldLines.Clear();
         }
     }
 }

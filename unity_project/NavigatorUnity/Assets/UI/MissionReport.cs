@@ -90,6 +90,7 @@ namespace Navigator.UI
             foreach (var e in o.EventLog) Line(sb, Accent, Loc.F("rep.ops", e));
             if (o.EventBonusPoints > 0) Line(sb, Good, Loc.F("rep.ops.bonus", o.EventBonusPoints));
 
+            World(sb, d, o);
             Budget(sb, d);
 
             if (o.Takedowns > 0 || o.HullLeft < 3)
@@ -101,6 +102,35 @@ namespace Navigator.UI
         }
 
         const float G0 = 9.80665f;
+
+        // The world at the planet: how the descent and the surface mission went, and which
+        // design choices changed it (power source, drill, radar, infrared, antenna)
+        static void World(StringBuilder sb, MissionDesign d, MissionOutcome o)
+        {
+            if (!o.WorldPlayed) return;
+            var p = Navigator.Worlds.WorldProfile.Get(d.TargetPlanetId);
+            string body = p != null ? Loc.T("w.body." + p.Body) : Loc.Planet(d.TargetPlanetId);
+            Line(sb, o.WorldSuccess ? Good : o.WorldLanded ? Warn : Bad,
+                 Loc.F("rep.world", body, new string('★', o.WorldStars) + new string('☆', 3 - o.WorldStars), o.WorldPoints));
+            int shown = 0;
+            foreach (var l in o.WorldLines)
+            {
+                if (shown++ >= 8) break;
+                Line(sb, Muted, "   " + l);
+            }
+            // Design lessons of the world
+            bool ground = p == null || p.HasGround;
+            if (p != null && ground && !d.Instruments.Contains(ScienceInstrument.SampleDrill) && p.Vehicle != Navigator.Worlds.WorldVehicle.FallingProbe)
+                Line(sb, Warn, Loc.T("rep.world.nodrill"));
+            if (!d.Instruments.Contains(ScienceInstrument.RadarAltimeter) && ground)
+                Line(sb, Warn, Loc.T("rep.world.noradar"));
+            if (d.Power == PowerSystem.Solar && p != null && (p.Body == "mars" || p.Body == "titan" || p.Body == "triton" || p.Body == "venus"))
+                Line(sb, Warn, Loc.T("rep.world.solar." + p.Body));
+            if (p != null && (p.Body == "mercury" || p.Body == "triton") && !d.Instruments.Contains(ScienceInstrument.InfraredMapper))
+                Line(sb, Warn, Loc.T("rep.world.noir." + p.Body));
+            if (d.Antenna == AntennaType.LowGain && p != null && (p.Body == "venus" || !p.HasGround))
+                Line(sb, Warn, Loc.T("rep.world.antenna"));
+        }
 
         // "What if…?": the same mission with one decision changed, recomputed with the real equations
         // (Tsiolkovsky, inverse-square sunlight, the downlink rates and the porkchop scan)

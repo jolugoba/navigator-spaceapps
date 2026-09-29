@@ -96,6 +96,7 @@ namespace Navigator.UI
             { ScienceInstrument.ParticleDetector,  18f },
             { ScienceInstrument.RadioScience,      5f  },
             { ScienceInstrument.RadarAltimeter,    30f },
+            { ScienceInstrument.SampleDrill,       15f },
         };
 
         private static readonly Dictionary<string, float> SurfaceGravity = new()

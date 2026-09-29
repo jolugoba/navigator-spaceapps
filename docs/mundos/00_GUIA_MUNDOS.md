@@ -137,9 +137,31 @@ Esta es la parte más importante para el reto: las decisiones del diseño **se v
 
 ## 6. Multijugador
 
-Todos los que aterrizan en el mismo mundo lo comparten, igual que el vuelo libre: ves los vehículos de tus amigos. Cada ficha propone su versión de carrera (quién saca primero las 3 muestras, etc.).
+En esta versión cada jugador baja a **su propio** mundo y los puntos del mundo cuentan en el marcador final, que se compara con los rivales como siempre. Ver los vehículos de los demás dentro del mismo mundo (las carreras de cada ficha) queda para la próxima versión.
 
-## 7. Orden para construir
+## 7. Estado: ya está en el juego
+
+Los 7 mundos están programados en `Assets/UI/Worlds/` y se activan al llegar con el objetivo **Aterrizar**. En Júpiter y Urano el objetivo "Aterrizar" es la sonda atmosférica; en Saturno y Neptuno, el aterrizaje en Titán y Tritón.
+
+| Pieza | Archivo |
+|---|---|
+| Datos de cada mundo | `WorldProfile.cs` |
+| Terreno, cielo, luz, clima, rocas | `WorldTerrain.cs`, `WorldEnvironment.cs` |
+| Vehículos y su física | `WorldVehicles.cs` |
+| Controles y cámara | `WorldControls.cs` |
+| Pantalla del mundo | `WorldHUD.cs` (la construye `NavigatorUIBuilder`) |
+| Misiones | `Missions/` (una por mundo; Júpiter y Urano en `ProbeMissions.cs`) |
+| Arranque y cierre, reintentar, salir | `WorldDirector.cs` |
+| Textos EN/ES | `Core/LocWorlds.cs` |
+
+**Cómo se prueba:**
+1. Corre **Navigator → Setup Scene**.
+2. Diseña una misión con objetivo **Aterrizar** y llévate el **taladro de muestras**.
+3. Al llegar al planeta se abre su mundo.
+
+En el editor los controles son: WASD mover, flechas mirar, Espacio = A, E = B, Q = C, Esc = salir.
+
+## 8. Orden en que se construyó
 
 1. **Marte completo.** Es el más conocido y el mejor para el video; construye el terreno, el descenso y el rover.
 2. **Mercurio y Tritón.** Reusan el descenso con cohetes y el rover (Tritón con salto).

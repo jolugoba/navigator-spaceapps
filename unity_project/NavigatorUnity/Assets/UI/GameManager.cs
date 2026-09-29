@@ -1,5 +1,7 @@
 // Navigator 2.0 — GameManager.cs
-// Máquina de estados: Lobby → Diseño → Cuenta atrás → Vuelo → Ciencia → Scoreboard
+// Máquina de estados: Lobby → Diseño → Cuenta atrás → Vuelo → (Mundo) → Ciencia → Scoreboard
+// With the objective LANDING, arriving opens the planet's world (docs/mundos/): descent,
+// landing and the surface mission; then the science phase and the debrief as always.
 // Es el director que conecta todos los demás scripts
 // Guacalita Inc. — SAL / Claude
 
@@ -25,6 +27,7 @@ namespace Navigator.UI
         ScienceOps,
         Scoreboard,
         SkyFinder,
+        World,
     }
 
     public class GameManager : MonoBehaviour
@@ -66,6 +69,9 @@ namespace Navigator.UI
         public TutorialUI      Tutorial;
         public SkyFinderUI     SkyFinder;
         public ShareChallengeUI Share;
+
+        [Header("Mundos (aterrizaje)")]
+        public Navigator.Worlds.WorldDirector Worlds;
 
         [Header("Espacio")]
         public PowerupSystem Powerups;
@@ -659,6 +665,55 @@ namespace Navigator.UI
             SyncService?.BroadcastArrival(ArrivalPos);
             Chat?.ArrivalBroadcast(ArrivalPos);
 
+            // Landing: go down to the world first
+            if (Worlds != null && Navigator.Worlds.WorldDirector.HasWorld(Mission))
+            {
+                EnterWorld();
+                return;
+            }
+            StartScienceOps();
+        }
+
+        void EnterWorld()
+        {
+            SetState(GameState.World);
+            SetPanels();
+            if (Ship != null) Ship.gameObject.SetActive(false);
+            if (CameraFeed != null) CameraFeed.Stop();   // the world is a full 3D scene
+            Worlds.Open(Mission, Outcome, SkyBodyPrefab, OnWorldDone);
+            Debug.Log($"[GM] Mundo: {Mission?.TargetPlanetId}");
+        }
+
+        GameObject SkyBodyPrefab(string id)
+        {
+            if (SpaceManager == null) return null;
+            return id switch
+            {
+                "phobos" => SpaceManager.MoonPhobos,
+                "titan"  => SpaceManager.MoonTitan,
+                "triton" => SpaceManager.MoonTriton,
+                _        => SpaceManager.GetPlanetPrefab(id),
+            };
+        }
+
+        void OnWorldDone(Navigator.Worlds.WorldResult r)
+        {
+            Outcome.WorldPlayed  = true;
+            Outcome.WorldSuccess = r.Success;
+            Outcome.WorldLanded  = r.Landed;
+            Outcome.WorldStars   = r.Stars;
+            Outcome.WorldPoints  = r.Points;
+            Outcome.WorldFailKey = r.FailKey;
+            Outcome.WorldLines.Clear();
+            Outcome.WorldLines.AddRange(r.Lines);
+            Outcome.EventBonusPoints += r.Points;   // counts as science in the score
+            if (Ship != null) Ship.gameObject.SetActive(true);
+            if (CameraFeed != null) CameraFeed.Play();
+            StartScienceOps();
+        }
+
+        void StartScienceOps()
+        {
             SetState(GameState.ScienceOps);
             SetPanels(scienceOps: true);
             ScienceOpsUI?.ShowOnArrival(Mission, ArrivalPos, Outcome);

@@ -389,9 +389,11 @@ namespace Navigator.UI
                 ObjectiveInfoLabel.text = _design.Objective switch
                 {
                     "orbit"   => Loc.F("design.obj.orbit", _design.InsertionDeltaV),
-                    "landing" => _design.CanLandOnTarget
-                        ? Loc.F("design.obj.landing", _design.InsertionDeltaV + _design.LandingDeltaV, MissionDesign.LanderMassKg, MissionDesign.LanderCostM)
-                        : Loc.F("design.obj.nosurface", PlanetDisplayName(pid)),
+                    "landing" => !_design.CanLandOnTarget
+                        ? Loc.F("design.obj.nosurface", PlanetDisplayName(pid))
+                        : Loc.Has("design.obj.landing." + pid)   // the giants: a probe, or their moon
+                        ? Loc.F("design.obj.landing." + pid, _design.InsertionDeltaV + _design.LandingDeltaV)
+                        : Loc.F("design.obj.landing", _design.InsertionDeltaV + _design.LandingDeltaV, MissionDesign.LanderMassKg, MissionDesign.LanderCostM),
                     _         => Loc.T("design.obj.flyby"),
                 };
                 ObjectiveInfoLabel.color = _design.IsObjectiveOk ? UIStyle.Muted : UIStyle.Bad;

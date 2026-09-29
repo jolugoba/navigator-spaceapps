@@ -15,6 +15,7 @@ using Navigator.Game;
 using Navigator.Network;
 using Navigator.AR;
 using Navigator.UI;
+using Navigator.Worlds;
 
 namespace Navigator.Editor
 {
@@ -53,7 +54,8 @@ namespace Navigator.Editor
             cam.fieldOfView     = 60f;
             var rig = EnsureComp<GyroCameraRig>(mainCamGO);
             EnsureComp<AudioFX>(mainCamGO);
-            EnsureComp<SpaceDustFX>(mainCamGO).ParticleMaterial = ParticleMaterial();
+            var spaceDust = EnsureComp<SpaceDustFX>(mainCamGO);
+            spaceDust.ParticleMaterial = ParticleMaterial();
 
             var feedGO = GetOrCreate("CameraFeed");
             var feed   = EnsureComp<CameraFeedBackground>(feedGO);
@@ -192,8 +194,24 @@ namespace Navigator.Editor
             EnsureComp<FlutterBridge>(GetOrCreate(FlutterBridge.ObjectName));
             gm.Score        = score;
 
+            // ── Mundos: aterrizaje y misión en cada planeta (docs/mundos/) ────
+            var worlds = EnsureComp<WorldDirector>(GetOrCreate("Worlds"));
+            worlds.Cam = cam;
+            worlds.Sun = sun;
+            worlds.DisableWhileOpen = new MonoBehaviour[] { rig, spaceDust };
+            worlds.Assets ??= new WorldAssets();
+            worlds.Assets.TerrainMaterial = LitMaterial("WorldTerrain", Color.white, 0.08f);
+            worlds.Assets.PropMaterial    = LitMaterial("WorldProp", Color.white, 0.3f);
+            worlds.Assets.DustMaterial    = DustMaterial();
+            worlds.Assets.GlowMaterial    = ParticleMaterial();
+            models += NavigatorAssignModels.AssignWorlds(worlds.Assets);
+            gm.Worlds = worlds;
+            KeepFogShaders();
+
             // ── UI completa ───────────────────────────────────────────────────
             bool uiBuilt = NavigatorUIBuilder.Build(gm) != null;
+            worlds.Hud = Object.FindFirstObjectByType<WorldHUD>(FindObjectsInactive.Include);
+            EditorUtility.SetDirty(worlds);
 
             EditorSceneManager.MarkAllScenesDirty();
             AddOpenSceneToBuild();
@@ -429,6 +447,64 @@ namespace Navigator.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
             Object.DestroyImmediate(go);
             return prefab;
+        }
+
+        // Plain URP Lit material saved as an asset (web builds keep the shaders of saved materials)
+        static Material LitMaterial(string name, Color color, float smoothness)
+        {
+            string path = $"{MatDir}/{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null) return mat;
+            Directory.CreateDirectory(MatDir);
+            mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        // Soft alpha-blended particles: dust, acid haze, methane rain, geyser plumes, cloud layers
+        static Material DustMaterial()
+        {
+            string path = $"{MatDir}/WorldDust.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null) return mat;
+            Directory.CreateDirectory(MatDir);
+            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit");
+            mat = new Material(shader);
+            var tex = AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd");
+            if (tex != null)
+            {
+                if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
+                mat.mainTexture = tex;
+            }
+            if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);
+            if (mat.HasProperty("_Blend"))   mat.SetFloat("_Blend", 0f);   // alpha
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        // The worlds use exponential fog; with "automatic" stripping a build whose scene has no
+        // fog would drop the fog shader variants, so keep them explicitly
+        static void KeepFogShaders()
+        {
+            var assets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset");
+            if (assets == null || assets.Length == 0) return;
+            var so = new SerializedObject(assets[0]);
+            var strip = so.FindProperty("m_FogStripping");
+            var exp   = so.FindProperty("m_FogKeepExp");
+            if (strip == null || exp == null) return;
+            strip.intValue = 1;          // custom
+            exp.boolValue = true;
+            var lin = so.FindProperty("m_FogKeepLinear");
+            if (lin != null) lin.boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static Material ParticleMaterial()

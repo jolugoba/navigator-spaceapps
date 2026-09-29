@@ -41,12 +41,12 @@ namespace Navigator.Core
 
         public static void Toggle() => Set(Current == Lang.English ? Lang.Spanish : Lang.English);
 
-        public static bool Has(string key) => Table.ContainsKey(key);
+        public static bool Has(string key) => Table.ContainsKey(key) || LocWorlds.Table.ContainsKey(key);
 
         public static string T(string key)
         {
             if (string.IsNullOrEmpty(key)) return "";
-            if (!Table.TryGetValue(key, out var e)) return key;
+            if (!Table.TryGetValue(key, out var e) && !LocWorlds.Table.TryGetValue(key, out e)) return key;
             return Current == Lang.Spanish ? e.es : e.en;
         }
 
@@ -91,6 +91,7 @@ namespace Navigator.Core
             { "inst.ParticleDetector",  ("Particle detector", "Detector de partículas") },
             { "inst.RadioScience",      ("Radio science", "Radio ciencia") },
             { "inst.RadarAltimeter",    ("Radar altimeter", "Radar altímetro") },
+            { "inst.SampleDrill",       ("Sample drill", "Taladro de muestras") },
 
             { "engine.Chemical", ("Chemical", "Químico") },
             { "engine.Ion",      ("Ion", "Iónico") },
@@ -168,6 +169,10 @@ namespace Navigator.Core
             { "design.obj.flyby",   ("Fly past: no extra cost · science ×1", "Pasas de largo: sin costo extra · ciencia ×1") },
             { "design.obj.orbit",   ("+{0:N0} m/s to brake into orbit · science ×1.5", "+{0:N0} m/s para frenar en órbita · ciencia ×1.5") },
             { "design.obj.landing", ("+{0:N0} m/s, +{1:F0} kg and +${2:F0}M lander · science ×2", "+{0:N0} m/s, +{1:F0} kg y +${2:F0}M de módulo · ciencia ×2") },
+            { "design.obj.landing.jupiter", ("+{0:N0} m/s and a 250 kg atmospheric probe (Galileo) · no surface: it falls through the clouds · science ×2", "+{0:N0} m/s y una sonda atmosférica de 250 kg (Galileo) · sin suelo: cae por las nubes · ciencia ×2") },
+            { "design.obj.landing.uranus",  ("+{0:N0} m/s and a 250 kg atmospheric probe · no surface: it falls through the clouds · science ×2", "+{0:N0} m/s y una sonda atmosférica de 250 kg · sin suelo: cae por las nubes · ciencia ×2") },
+            { "design.obj.landing.saturn",  ("+{0:N0} m/s · Saturn has no surface: you land on its moon Titan, like Huygens · science ×2", "+{0:N0} m/s · Saturno no tiene suelo: aterrizas en su luna Titán, como Huygens · ciencia ×2") },
+            { "design.obj.landing.neptune", ("+{0:N0} m/s · Neptune has no surface: you land on its moon Triton · science ×2", "+{0:N0} m/s · Neptuno no tiene suelo: aterrizas en su luna Tritón · ciencia ×2") },
             { "design.obj.nosurface", ("{0} has no solid surface", "{0} no tiene superficie sólida") },
             { "design.ok",          ("OK", "OK") },
             { "design.short",       ("TOO LOW", "INSUFICIENTE") },

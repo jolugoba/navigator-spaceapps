@@ -139,6 +139,36 @@ namespace Navigator.Editor
             return assigned;
         }
 
+        // Vehicles and props of the 7 worlds (NAVIGATOR_MESHY_MUNDOS.md); all optional
+        public static int AssignWorlds(Navigator.Worlds.WorldAssets a)
+        {
+            if (a == null) return 0;
+            int n = 0;
+            n += Opt(ref a.Lander,          "VH-01");
+            n += Opt(ref a.ThermalRover,    "VH-02");
+            n += Opt(ref a.EntryCapsule,    "VH-03");
+            n += Opt(ref a.VenusLander,     "VH-04");
+            n += Opt(ref a.SkyCrane,        "VH-05");
+            n += Opt(ref a.AtmoProbe,       "VH-06");
+            n += Opt(ref a.Dragonfly,       "VH-07");
+            n += Opt(ref a.UranusOrbiter,   "VH-08");
+            n += Opt(ref a.Parachute,       "VH-09");
+            n += Opt(ref a.Hopper,          "VH-10");
+            n += Opt(ref a.Rover,           "OB-18");
+            n += Opt(ref a.IceChunk,        "PR-01");
+            n += Opt(ref a.MercuryBoulder,  "PR-02");
+            n += Opt(ref a.VenusSlab,       "PR-03");
+            n += Opt(ref a.MarsLayeredRock, "PR-04");
+            n += Opt(ref a.SampleTube,      "PR-05");
+            n += Opt(ref a.MarsBoulder,     "PR-06");
+            n += Opt(ref a.TitanPebbles,    "PR-07");
+            n += Opt(ref a.HeatShield,      "PR-08");
+            n += Opt(ref a.GeyserVent,      "PR-09");
+            n += Opt(ref a.TritonRock,      "PR-10");
+            n += Opt(ref a.Beacon,          "OB-03");
+            return n;
+        }
+
         // Which end is the nose can't be measured; "Flip Ship Nose" toggles it and remembers
         static float NoseFlip(string model) => EditorPrefs.GetBool("Navigator.NoseFlip." + model, false) ? 180f : 0f;
 

@@ -16,6 +16,7 @@ using Navigator.Core;
 using Navigator.Network;
 using Navigator.UI;
 using Navigator.AR;
+using Navigator.Worlds;
 
 namespace Navigator.Editor
 {
@@ -98,6 +99,7 @@ namespace Navigator.Editor
             BuildSettings(root.transform, safe, root.AddComponent<SettingsUI>());
             gm.SkyFinder = BuildSkyFinder(root.transform, root.AddComponent<SkyFinderUI>(), gm);
             gm.Share     = BuildShare(root.transform, root.AddComponent<ShareChallengeUI>());
+            BuildWorldHUD(root.transform, root.AddComponent<WorldHUD>());
             gm.Events   = events;
             gm.Tutorial = tutor;
 
@@ -980,6 +982,167 @@ namespace Navigator.Editor
                 ship.BoostButton  = boost;
                 EditorUtility.SetDirty(ship);
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // MUNDOS: descenso y misión en la superficie (docs/mundos/)
+        // Same layout as the flight HUD: sticks and round buttons A/B/C, meters top-left
+        // ══════════════════════════════════════════════════════════════════════
+
+        static void BuildWorldHUD(Transform root, WorldHUD w)
+        {
+            var go = UIKit.Stretch(root, "WorldPanel").gameObject;
+            var safe = UIKit.Stretch(go.transform, "Content");
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            var p = safe.transform;
+            w.Panel = go;
+
+            w.FlashImage = UIKit.Image(go.transform, "Flash", new Vector4(0, 0, 1, 1), new Color(1f, 1f, 1f, 0f));
+            w.FlashImage.sprite = VignetteSprite();
+            w.FlashImage.type = UnityEngine.UI.Image.Type.Simple;
+            w.FlashImage.transform.SetAsFirstSibling();
+
+            // Title and current goal (top centre)
+            var title = UIKit.Pin(p, "Title", new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(1000f, 52f));
+            w.Title = UIKit.Text(title, "Text", "", 34, new Vector4(0, 0, 1, 1), TextAlignmentOptions.Center, UIStyle.Accent, FontStyles.Bold);
+            var goal = UIKit.Pin(p, "Goal", new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(1000f, 40f));
+            w.Objective = UIKit.Text(goal, "Text", "", 24, new Vector4(0, 0, 1, 1), TextAlignmentOptions.Center, UIStyle.Text);
+
+            // Data sent (under the goal)
+            var data = UIKit.Pin(p, "Data", new Vector2(0.5f, 1f), new Vector2(0f, -104f), new Vector2(520f, 40f));
+            w.DataBox = data.gameObject;
+            w.DataFill = UIKit.Bar(data, "Bar", new Vector4(0f, 0f, 1f, 0.35f), UIStyle.Accent);
+            w.DataLabel = UIKit.Text(data, "Label", "", 18, new Vector4(0f, 0.4f, 1f, 1f), TextAlignmentOptions.Center, UIStyle.Muted);
+
+            // Three meters, top-left
+            var meters = UIKit.Card(p, "Meters", new Vector4(0f, 1f, 0f, 1f), UIStyle.HudCard);
+            meters.anchorMin = meters.anchorMax = meters.pivot = new Vector2(0f, 1f);
+            meters.sizeDelta = new Vector2(430f, 180f);
+            meters.anchoredPosition = new Vector2(24f, -12f);
+            w.Meters = new Meter[3];
+            for (int i = 0; i < 3; i++)
+            {
+                float y1 = 0.96f - i * 0.32f, y0 = y1 - 0.3f;
+                var row = UIKit.Rect(meters, "Meter" + i, new Vector4(0.05f, y0, 0.95f, y1));
+                var m = new Meter { Root = row.gameObject };
+                m.Label = UIKit.Text(row, "Label", "", 18, new Vector4(0f, 0.45f, 0.5f, 1f), TextAlignmentOptions.Left, UIStyle.Muted, FontStyles.Bold);
+                m.Value = UIKit.Text(row, "Value", "", 24, new Vector4(0.45f, 0.4f, 1f, 1f), TextAlignmentOptions.Right, UIStyle.Text, FontStyles.Bold);
+                m.Fill  = UIKit.Bar(row, "Bar", new Vector4(0f, 0.05f, 1f, 0.3f), UIStyle.Accent);
+                w.Meters[i] = m;
+            }
+
+            // Checklist of the mission, top-right
+            var check = UIKit.Pin(p, "Checklist", new Vector2(1f, 1f), new Vector2(-24f, -86f), new Vector2(380f, 170f));
+            w.Checklist = UIKit.Text(check, "Text", "", 20, new Vector4(0, 0, 1, 1), TextAlignmentOptions.TopRight, UIStyle.Text);
+
+            // Hint above the buttons, and the big banner in the middle
+            var prompt = UIKit.Pin(p, "Prompt", new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(860f, 70f));
+            w.Prompt = UIKit.Text(prompt, "Text", "", 24, new Vector4(0, 0, 1, 1), TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            var banner = UIKit.Image(p, "Banner", new Vector4(0.2f, 0.6f, 0.8f, 0.72f), new Color(0.02f, 0.03f, 0.08f, 0.78f));
+            UIKit.Rim(banner, UIStyle.Accent);
+            banner.gameObject.AddComponent<UIPopIn>();
+            w.BannerBox = banner.gameObject;
+            w.Banner = UIKit.Text(banner.rectTransform, "Text", "", 38, new Vector4(0.03f, 0.05f, 0.97f, 0.95f), TextAlignmentOptions.Center, UIStyle.Accent, FontStyles.Bold);
+
+            // Arrow to the next objective, with its name and distance
+            var arrow = UIKit.Image(p, "Arrow", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), UIStyle.Gold);
+            arrow.sprite = ArrowSprite();
+            arrow.type = UnityEngine.UI.Image.Type.Simple;
+            arrow.rectTransform.sizeDelta = new Vector2(90f, 90f);
+            w.Arrow = arrow.rectTransform;
+            w.ArrowLabel = UIKit.Text(arrow.rectTransform, "Label", "", 20, new Vector4(0.5f, 0f, 0.5f, 0f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
+            w.ArrowLabel.rectTransform.sizeDelta = new Vector2(360f, 34f);
+            w.ArrowLabel.rectTransform.anchoredPosition = new Vector2(0f, -30f);
+
+            // Timing bar: press when the needle is in the green
+            var win = UIKit.Pin(p, "Window", new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(720f, 90f));
+            w.WindowBox = win.gameObject;
+            w.WindowLabel = UIKit.Text(win, "Label", "", 26, new Vector4(0f, 0.55f, 1f, 1f), TextAlignmentOptions.Center, UIStyle.Text, FontStyles.Bold);
+            var track = UIKit.Image(win, "Track", new Vector4(0f, 0.05f, 1f, 0.45f), new Color(1f, 1f, 1f, 0.15f));
+            var zone = UIKit.Image(track.rectTransform, "Zone", new Vector4(0.3f, 0f, 0.7f, 1f), new Color(UIStyle.Good.r, UIStyle.Good.g, UIStyle.Good.b, 0.75f));
+            w.WindowZone = zone.rectTransform;
+            var needle = UIKit.Image(track.rectTransform, "Needle", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), Color.white);
+            needle.sprite = null;
+            needle.rectTransform.sizeDelta = new Vector2(8f, 58f);
+            w.WindowNeedle = needle.rectTransform;
+
+            // Entry: keep the dot inside the circle; heat bar under it
+            var entry = UIKit.Pin(p, "Entry", new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(360f, 420f));
+            w.EntryBox = entry.gameObject;
+            var circle = UIKit.Image(entry, "Circle", new Vector4(0.5f, 0.57f, 0.5f, 0.57f), new Color(UIStyle.Good.r, UIStyle.Good.g, UIStyle.Good.b, 0.7f));
+            circle.sprite = UIKit.RingSprite;
+            circle.type = UnityEngine.UI.Image.Type.Simple;
+            circle.rectTransform.sizeDelta = new Vector2(150f, 150f);
+            var outer = UIKit.Image(entry, "Outer", new Vector4(0.5f, 0.57f, 0.5f, 0.57f), new Color(1f, 1f, 1f, 0.2f));
+            outer.sprite = UIKit.RingSprite;
+            outer.type = UnityEngine.UI.Image.Type.Simple;
+            outer.rectTransform.sizeDelta = new Vector2(320f, 320f);
+            var dot = UIKit.Image(outer.rectTransform, "Dot", new Vector4(0.5f, 0.5f, 0.5f, 0.5f), UIStyle.Gold);
+            dot.sprite = UIKit.StickSprite;
+            dot.type = UnityEngine.UI.Image.Type.Simple;
+            dot.rectTransform.sizeDelta = new Vector2(46f, 46f);
+            w.EntryDot = dot.rectTransform;
+            w.EntryHeat = UIKit.Bar(entry, "Heat", new Vector4(0.1f, 0.02f, 0.9f, 0.07f), UIStyle.Warn);
+            w.EntryLabel = UIKit.Text(entry, "Label", "@w.entry.heat", 18, new Vector4(0f, 0.08f, 1f, 0.15f), TextAlignmentOptions.Center, UIStyle.Muted);
+
+            // Touchdown: vertical, sideways, tilt
+            var land = UIKit.Pin(p, "Landing", new Vector2(0.5f, 0f), new Vector2(0f, 190f), new Vector2(760f, 44f));
+            w.LandingBox = land.gameObject;
+            var landBg = UIKit.Image(land, "Bg", new Vector4(0, 0, 1, 1), UIStyle.HudCard);
+            landBg.raycastTarget = false;
+            w.LandV    = UIKit.Text(land, "V", "", 22, new Vector4(0.02f, 0f, 0.34f, 1f), TextAlignmentOptions.Center, UIStyle.Good, FontStyles.Bold);
+            w.LandH    = UIKit.Text(land, "H", "", 22, new Vector4(0.34f, 0f, 0.66f, 1f), TextAlignmentOptions.Center, UIStyle.Good, FontStyles.Bold);
+            w.LandTilt = UIKit.Text(land, "Tilt", "", 22, new Vector4(0.66f, 0f, 0.98f, 1f), TextAlignmentOptions.Center, UIStyle.Good, FontStyles.Bold);
+
+            foreach (var g in go.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
+
+            // Controls (the only parts that take taps)
+            w.MoveStick = Stick(p, "WorldMove", new Vector2(0f, 0f), new Vector2(20f, 20f), "@hud.move",
+                                new Color(0.4f, 0.85f, 1f, 0.35f), new Color(0.4f, 0.9f, 1f, 0.95f));
+            w.LookStick = Stick(p, "WorldLook", new Vector2(1f, 0f), new Vector2(-20f, 20f), "@hud.look",
+                                new Color(1f, 0.78f, 0.35f, 0.35f), new Color(1f, 0.82f, 0.4f, 0.95f));
+            w.BtnA = WorldButton(p, "WorldA", new Vector2(-440f, 50f), 200f, new Color(1f, 0.5f, 0.15f, 0.95f), 28);
+            w.BtnB = WorldButton(p, "WorldB", new Vector2(-465f, 280f), 150f, new Color(0.25f, 0.55f, 1f, 0.95f), 22);
+            w.BtnC = WorldButton(p, "WorldC", new Vector2(-150f, 440f), 136f, new Color(0.2f, 0.95f, 0.5f, 0.95f), 20);
+
+            w.ExitButton = UIKit.Button(p, "Exit", "@w.exit", new Vector4(0f, 1f, 0f, 1f),
+                                        new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Text, 20, FontStyles.Bold);
+            var exitRt = (RectTransform)w.ExitButton.transform;
+            exitRt.pivot = new Vector2(0f, 1f);
+            exitRt.sizeDelta = new Vector2(170f, 56f);
+            exitRt.anchoredPosition = new Vector2(24f, -206f);
+
+            // Result card
+            var result = UIKit.Card(p, "Result", new Vector4(0.24f, 0.08f, 0.76f, 0.92f), UIStyle.Card);
+            result.GetComponent<Image>().raycastTarget = true;
+            result.gameObject.AddComponent<UIPopIn>().From = 0.85f;
+            w.ResultPanel = result.gameObject;
+            w.ResultTitle = UIKit.Text(result, "Title", "", 40, new Vector4(0.05f, 0.85f, 0.95f, 0.97f), TextAlignmentOptions.Center, UIStyle.Good, FontStyles.Bold);
+            w.ResultStars = UIKit.Text(result, "Stars", "", 60, new Vector4(0.05f, 0.72f, 0.95f, 0.85f), TextAlignmentOptions.Center, UIStyle.Gold, FontStyles.Bold);
+            w.ResultBody  = UIKit.Text(result, "Body", "", 22, new Vector4(0.06f, 0.22f, 0.94f, 0.72f), TextAlignmentOptions.TopLeft, UIStyle.Text);
+            w.RetryButton    = UIKit.Button(result, "Retry", "@w.retry", new Vector4(0.05f, 0.04f, 0.47f, 0.17f), UIStyle.ButtonIdle, UIStyle.Text, 30, FontStyles.Bold);
+            w.ContinueButton = UIKit.Button(result, "Continue", "@w.continue", new Vector4(0.53f, 0.04f, 0.95f, 0.17f), UIStyle.Accent, UIStyle.Ink, 30, FontStyles.Bold);
+
+            go.transform.SetAsLastSibling();
+            go.SetActive(false);
+        }
+
+        // Round hold button for the worlds, with a radial ring for "hold to…" actions
+        static ActionButton WorldButton(Transform p, string name, Vector2 pos, float size, Color color, float fontSize)
+        {
+            var hold = RoundHoldButton(p, name, "", pos, size, color, fontSize);
+            var img = hold.GetComponent<Image>();
+            var ring = UIKit.Image(img.transform, "Ring", new Vector4(0f, 0f, 1f, 1f), new Color(1f, 0.95f, 0.6f, 0.95f));
+            ring.sprite = RoundButtonSprite(charge: true);
+            ring.type = UnityEngine.UI.Image.Type.Filled;
+            ring.fillMethod = UnityEngine.UI.Image.FillMethod.Radial360;
+            ring.fillOrigin = (int)UnityEngine.UI.Image.Origin360.Top;
+            ring.fillAmount = 0f;
+            ring.raycastTarget = false;
+            var label = img.GetComponentInChildren<TMP_Text>();
+            var lz = label.GetComponent<LocalizedText>();
+            if (lz != null) Object.DestroyImmediate(lz);   // the label changes with the phase
+            return new ActionButton { Root = img.gameObject, Hold = hold, Face = img, Label = label, Fill = ring };
         }
 
         // Invisible touch zone in a bottom corner with a floating stick that appears under the thumb
