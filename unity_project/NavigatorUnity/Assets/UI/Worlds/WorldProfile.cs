@@ -32,6 +32,7 @@ namespace Navigator.Worlds
         public float SunAzimuth   = 30f;
         public Color Ambient;
         public bool  StarsVisible;     // black sky (no air to scatter light)
+        public float SunGlowDeg;       // apparent size of the Sun's glare (0 = hidden by clouds/haze)
         public Weather Weather;
 
         // Terrain shape (metres)
@@ -68,7 +69,7 @@ namespace Navigator.Worlds
             SkyTop = H("#000000"), SkyHorizon = H("#05060A"), Fog = H("#000000"), FogDensity = 0f,
             GroundA = H("#7D7873"), GroundB = H("#4B4845"), Rock = H("#B8B3AC"), Accent = H("#CFE6F5"),
             SunColor = H("#FFF8EE"), SunIntensity = 2.4f, SunElevation = 4f, SunAzimuth = 60f,
-            Ambient = H("#101012"), StarsVisible = true, Weather = Weather.None,
+            Ambient = H("#101012"), StarsVisible = true, Weather = Weather.None, SunGlowDeg = 10f,   // up to 3× bigger than from Earth
             Relief = 5f, Craters = 26, Seed = 11,
         };
 
@@ -92,7 +93,7 @@ namespace Navigator.Worlds
             SkyTop = H("#B98A64"), SkyHorizon = H("#D9B48E"), Fog = H("#C9A27E"), FogDensity = 0.0035f,
             GroundA = H("#B5532D"), GroundB = H("#D08A5A"), Rock = H("#5A3A2A"), Accent = H("#E7C9A8"),
             SunColor = H("#FFE2C0"), SunIntensity = 1.05f, SunElevation = 35f, SunAzimuth = 40f,
-            Ambient = H("#5A3A2A"), Weather = Weather.Dust,
+            Ambient = H("#5A3A2A"), Weather = Weather.Dust, SunGlowDeg = 3f,
             Relief = 9f, Craters = 10, Dunes = 0.5f, Seed = 33,
             SkyBody = "phobos", SkyBodyDeg = 3f, SkyBodyElevation = 30f,
         };
@@ -139,7 +140,7 @@ namespace Navigator.Worlds
             SkyTop = H("#000000"), SkyHorizon = H("#04060C"), Fog = H("#000000"), FogDensity = 0f,
             GroundA = H("#E8D5CF"), GroundB = H("#9AA3B5"), Rock = H("#C9C2C8"), Accent = H("#3B3530"),
             SunColor = H("#DCE6FF"), SunIntensity = 0.7f, SunElevation = 25f, SunAzimuth = -40f,
-            Ambient = H("#26324F"), StarsVisible = true, Weather = Weather.Frost,
+            Ambient = H("#26324F"), StarsVisible = true, Weather = Weather.Frost, SunGlowDeg = 1.2f,   // a very bright star
             Relief = 4f, Craters = 6, Seed = 77,
             SkyBody = "neptune", SkyBodyDeg = 8f, SkyBodyElevation = 14f,
         };

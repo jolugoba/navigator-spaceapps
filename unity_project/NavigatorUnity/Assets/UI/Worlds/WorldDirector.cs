@@ -60,6 +60,8 @@ namespace Navigator.Worlds
             _profile = WorldProfile.Get(design.TargetPlanetId);
             Assets.SkyBodyPrefab = skyBodies;
             _attempts = 0;
+            WorldFX.Glow = Assets.GlowMaterial;
+            WorldFX.Dust = Assets.DustMaterial;
             if (Cam == null) Cam = Camera.main;
             WorldCam = Cam.GetComponent<WorldCamera>();
             if (WorldCam == null) WorldCam = Cam.gameObject.AddComponent<WorldCamera>();
@@ -67,12 +69,15 @@ namespace Navigator.Worlds
             IsOpen = true;
             if (Hud != null) { Hud.Cam = Cam; Hud.Show(true); }
             StartAttempt();
+            Hud?.Flash(Color.white, 1f);   // the jump from space into the world
+            Navigator.Game.AudioFX.Play(Navigator.Game.Sfx.Go, 0.7f);
         }
 
         void StartAttempt()
         {
             _attempts++;
             _resultShown = false;
+            WorldFX.ResetTime();
             Hud?.ResetAll();
             _mission = Create(_profile.Planet);
             Env = new WorldEnvironment(Cam, Sun, Assets);
@@ -123,7 +128,31 @@ namespace Navigator.Worlds
             Hud?.SetButton(Hud.BtnC, null, BtnState.Hidden);
             Hud?.SetArrow(null, null);
             Hud?.ShowResult(r.Success, title, sb.ToString(), r.Stars, true);
+            Hud?.SetCinematic(true);
+
+            // Celebrate, or show what went wrong
+            var at = Focus != null ? Focus.position : WorldCenter;
+            if (r.Success)
+            {
+                StartCoroutine(WorldFX.Fireworks(Env.Root.transform, at));
+                Hud?.Flash(new Color(1f, 0.9f, 0.5f), 0.5f);
+            }
+            else if (r.FailKey != null && CrashFail(r.FailKey))
+            {
+                WorldFX.Explosion(Env.Root.transform, at + Vector3.up);
+                WorldCam?.Shake(1.2f);
+                WorldCam?.Punch(12f);
+                Hud?.Flash(new Color(1f, 0.3f, 0.2f), 1f);
+                WorldFX.SlowMo(this, 0.3f, 0.8f);
+            }
+            else Hud?.Flash(new Color(1f, 0.3f, 0.2f), 0.6f);
         }
+
+        static bool CrashFail(string key) => key switch
+        {
+            "w.fail.frozen" or "w.fail.acid" or "w.fail.overheat" or "w.fail.lake" => false,
+            _ => true,
+        };
 
         void OnExit()
         {
@@ -135,6 +164,7 @@ namespace Navigator.Worlds
         void Retry()
         {
             if (!IsOpen) return;
+            StopAllCoroutines();
             Env?.Teardown();
             StartAttempt();
         }
@@ -143,6 +173,8 @@ namespace Navigator.Worlds
         {
             if (!IsOpen) return;
             var result = _mission != null ? _mission.Result : new WorldResult();
+            StopAllCoroutines();
+            WorldFX.ResetTime();
             Env?.Teardown();
             Env = null;
             _mission = null;

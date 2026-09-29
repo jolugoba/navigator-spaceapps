@@ -28,6 +28,7 @@ namespace Navigator.Worlds
         bool _shieldOff, _radarBlind, _cut, _onPad;
         int _samples, _deposited, _organics;
         Site _depot;
+        ParticleSystem _wheelDust;
 
         public override void Shape(WorldTerrain t)
         {
@@ -124,6 +125,7 @@ namespace Navigator.Worlds
             _chute = Spawn(A.Parachute, "parachute", 14f * Mathf.Lerp(0.6f, 1f, _chuteQuality), _capsule.transform.position + Vector3.up * 16f);
             _chute.transform.SetParent(_capsule.transform, true);
             AudioFX.Play(Sfx.Beep);
+            FxJolt();
             Cam.Distance = 30f; Cam.Height = 8f;
             H.SetTitle(T("w.mars.title"), T("w.mars.goal.shield"));
             H.SetPrompt(T("w.shield.hint"));
@@ -142,6 +144,7 @@ namespace Navigator.Worlds
             else Score(150);
             var shield = Spawn(A.HeatShield, "capsule", 3f, _capsule.transform.position + Vector3.down * 1.5f);
             _shield = shield;
+            FxJolt(0.4f);
             SetButtons(null, BtnState.Hidden, null, BtnState.Hidden, null, BtnState.Hidden);
             H.SetPrompt("");
             Go("chutefall");
@@ -150,7 +153,11 @@ namespace Navigator.Worlds
         void TickChuteFall(float dt)
         {
             _capsule.transform.position += Vector3.down * 25f * dt;
-            if (_shield != null) _shield.transform.position += Vector3.down * 45f * dt;
+            if (_shield != null)
+            {
+                _shield.transform.position += Vector3.down * 45f * dt;
+                _shield.transform.Rotate(90f * dt, 40f * dt, 25f * dt);   // tumbles away
+            }
             H.SetMeter(0, T("w.m.alt"), $"{(_capsule.transform.position.y - Ter.Center.y):F0} m", 1f, UIStyle.Accent);
             if (PhaseT < 3f) return;
             if (_shield != null) Object.Destroy(_shield);
@@ -193,6 +200,7 @@ namespace Navigator.Worlds
             H.SetPrompt(T("w.powered.hint"));
             SetButtons(T("w.btn.thrust"), BtnState.On, null, BtnState.Hidden, null, BtnState.Hidden);
             H.ShowBanner(T("w.mars.sep"), UIStyle.Accent);
+            FxJolt(0.5f);
             Go("powered");
         }
 
@@ -202,6 +210,7 @@ namespace Navigator.Worlds
             _craft.Control(In.MoveV, Cam.Yaw, AHeld, dt);
             _craft.Step(dt);
             SetFlame(_flame, _craft.Throttle);
+            FxRocketDust(_stack.transform.position, _craft.Altitude, _craft.Throttle);
             DescentMeters(_craft);
             if (_radarBlind && _craft.Altitude > 200f) H.SetMeter(0, T("w.m.alt"), "???", 0.5f, UIStyle.Warn);
             H.SetFill(H.BtnA, _craft.Fuel / _craft.FuelMax);
@@ -268,6 +277,7 @@ namespace Navigator.Worlds
             _craft.Control(In.MoveV, Cam.Yaw, AHeld, dt);
             _craft.Step(dt);
             SetFlame(_flame, _craft.Throttle);
+            FxRocketDust(_stack.transform.position, _craft.Altitude, _craft.Throttle);
             DescentMeters(_craft);
 
             _roverDrop = Mathf.Min(9f, _roverDrop + 2.2f * dt);   // cables pay out at ~0.75 m/s (sped up)
@@ -286,6 +296,7 @@ namespace Navigator.Worlds
             {
                 if (!touching && hang.y - ground > 1.5f) { Fail("w.fail.dropped"); return; }
                 _cut = true;
+                WorldFX.Sparks(Root, _stack.transform.position + Vector3.down * 1.5f);
                 Object.Destroy(_cables.gameObject);
                 Score(600, "w.mars.log.crane");
                 Touchdown(hang);
@@ -296,7 +307,8 @@ namespace Navigator.Worlds
         void Touchdown(Vector3 at)
         {
             Result.Landed = true;
-            Haptics.Buzz();
+            FxRocketDustOff();
+            FxTouchdown(at);
             AudioFX.Play(Sfx.Hit, 0.6f);
             foreach (var p in PadAt)
                 if (new Vector2(at.x - (Ter.Center.x + p.x), at.z - (Ter.Center.z + p.y)).magnitude < PadR) _onPad = true;
@@ -323,6 +335,7 @@ namespace Navigator.Worlds
                 IsSoftSand = pos => { foreach (var s in _sand) if (new Vector2(pos.x - Ter.Center.x - s.c.x, pos.z - Ter.Center.z - s.c.y).magnitude < s.r) return true; return false; },
             };
             _car.Place(_rover.transform.position, _stack != null ? _stack.transform.eulerAngles.y : 0f);
+            _wheelDust = WheelDust(_rover.transform);
             if (_stack != null) Object.Destroy(_stack, 6f);
 
             // Three rocks, one of them hides organic molecules
@@ -376,12 +389,14 @@ namespace Navigator.Worlds
                 drilling = true;
                 _drill += dt;
                 Cam.Shake(0.02f);
+                FxDrill(here.Pos, dt);
                 if (_drill >= 3f)
                 {
                     _drill = 0f;
                     MarkDone(here);
                     _samples++;
                     Score(500, "w.mars.log.sample", T(here.Key));
+                    FxSample(here.Pos);
                     if (here.Special && Has(ScienceInstrument.UVSpectrometer)) { _organics++; Score(400, "w.mars.log.organics"); }
                     H.ShowBanner(F("w.sample.got", _samples, 3), UIStyle.Good);
                 }
@@ -402,6 +417,7 @@ namespace Navigator.Worlds
                     tube.transform.position = _depot.Pos + new Vector3((_deposited - i) * 0.5f - 1.5f, 0.1f, 0f);
                     tube.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
                 }
+                FxSample(_depot.Pos);
             }
 
             // C: scan the rock (the UV spectrometer says which one has organics)
@@ -416,6 +432,7 @@ namespace Navigator.Worlds
 
             // Drive
             _car.Step(In.MoveV, dt);
+            WheelDustRate(_wheelDust, _car.Speed, _car.Airborne);
             float sun = _stormT >= 0f ? 0.4f : 1f;
             _car.Battery = Mathf.Clamp01(_car.Battery + ChargeRate(sun) * dt - (drilling ? 0.02f * dt : 0f));
             if (_car.Stuck) H.SetPrompt(T("w.rover.stuck"), 0.5f);

@@ -24,6 +24,7 @@ namespace Navigator.Worlds
         float _sample, _rainT = -1f;
         bool _smallChute, _lowBattery;
         int _samples, _organics;
+        ParticleSystem _wash;
 
         public override void Shape(WorldTerrain t)
         {
@@ -99,6 +100,7 @@ namespace Navigator.Worlds
             if (ok) Score(250, "w.log.chute.ok"); else Result.Lines.Add(T("w.mars.log.late"));
             H.ShowBanner(T(ok ? "w.chute.ok" : "w.chute.late"), ok ? UIStyle.Good : UIStyle.Warn);
             _chute = Spawn(A.Parachute, "parachute", 14f, _capsule.transform.position + Vector3.up * 15f);
+            FxJolt();
             _chute.transform.SetParent(_capsule.transform, true);
             _craft = new DescentCraft
             {
@@ -123,6 +125,7 @@ namespace Navigator.Worlds
             {
                 _smallChute = true;
                 _craft.ChuteCdA = 16f;
+                FxJolt(0.4f);
                 if (_chute != null) _chute.transform.localScale *= 0.55f;
                 if (PhaseT <= 12f) Score(200, "w.titan.log.swap"); else Result.Lines.Add(T("w.titan.log.slow"));
                 H.SetButton(H.BtnB, null, BtnState.Hidden);
@@ -143,6 +146,7 @@ namespace Navigator.Worlds
             _capsule.transform.rotation = Quaternion.identity;
             if (_chute != null) { _chute.transform.SetParent(Root, true); Object.Destroy(_chute, 2f); }
             Result.Landed = true;
+            FxTouchdown(p);
             Score(1000, "w.titan.log.landed", -_craft.VerticalSpeed);
             Haptics.Buzz();
             StartDrone();
@@ -159,6 +163,10 @@ namespace Navigator.Worlds
                 FlyDrain = 0.011f, Recharge = Mathf.Max(0.004f, ChargeRate(0.01f) * 5f),
             };
             if (Design != null && Design.Power == PowerSystem.Solar) Result.Lines.Add(T("w.titan.log.solar"));
+            // Rotor wash: the thick air blows the sand around when flying low
+            var c = P.GroundA; c.a = 0.5f;
+            _wash = WorldFX.Emitter(Root, Vector3.zero, c, P.GroundB, new Vector2(0.6f, 1.8f), 2.5f, 6f, 0.02f, false, 85f);
+            if (_wash != null) _wash.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
 
             AddSite("w.titan.site.dunes", Ter.Surface(new Vector2(-150f, -100f)), 7f, A.TitanPebbles, 1.5f);
             AddSite("w.titan.site.selk", Ter.Surface(SelkAt), 7f, A.TitanPebbles, 1.5f).Special = true;
@@ -179,6 +187,12 @@ namespace Navigator.Worlds
             bool rain = _rainT >= 0f;
             _fly.Step(In.MoveV, Cam.Yaw, In.AHeld && !(rain && Random.value < 0.1f), dt);
             var p = _drone.transform.position;
+            if (_wash != null)
+            {
+                var g = p; g.y = _fly.Surface + 0.2f;
+                _wash.transform.position = g;
+                WorldFX.Rate(_wash, !_fly.Landed && In.AHeld ? 90f * Mathf.Clamp01((8f - _fly.Altitude) / 8f) : 0f);
+            }
             if (_fly.Landed && Ter.InWater(p)) { Fail("w.fail.lake"); return; }
             if (!_fly.Landed && _fly.Battery < 0.15f) _lowBattery = true;
             if (!_fly.Landed && _fly.Battery <= 0f && _fly.Altitude > 2f) { Fail("w.fail.battery.air"); return; }
@@ -193,10 +207,12 @@ namespace Navigator.Worlds
             if (here != null && _fly.Landed && In.BHeld && hasDrill)
             {
                 _sample += dt;
+                FxDrill(p, dt);
                 if (_sample >= 2.5f)
                 {
                     _sample = 0f; MarkDone(here); _samples++;
                     Score(600, "w.titan.log.sample", T(here.Key));
+                    FxSample(p);
                     if (here.Special && Has(ScienceInstrument.UVSpectrometer)) { _organics++; Score(400, "w.titan.log.selk"); }
                     H.ShowBanner(F("w.sample.got", _samples, 3), UIStyle.Good);
                 }

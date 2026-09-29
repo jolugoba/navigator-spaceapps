@@ -100,6 +100,80 @@ namespace Navigator.Worlds
         protected float ShownAltitude(float real) =>
             Has(ScienceInstrument.RadarAltimeter) ? real : real * (1f + 0.2f * Mathf.Sin(Time.time * 0.7f));
 
+        // ── Effects of the big moments ───────────────────────────────────────
+        protected void FxTouchdown(Vector3 pos, bool slowMo = true)
+        {
+            WorldFX.Touchdown(Root, pos, P.GroundB, P.Gravity / 9.81f);
+            Cam.Shake(0.45f);
+            Cam.Punch(8f);
+            H.Flash(Color.white, 0.35f);
+            H.SetCinematic(false);
+            if (slowMo) WorldFX.SlowMo(D, 0.35f, 0.7f);
+            Haptics.Buzz();
+        }
+
+        protected void FxSample(Vector3 pos)
+        {
+            WorldFX.Sample(Root, pos);
+            Cam.Punch(5f);
+            H.Flash(new Color(1f, 0.85f, 0.35f), 0.4f);
+            Haptics.Buzz();
+        }
+
+        // Parachute opening, stage separation: a hard jolt
+        protected void FxJolt(float amount = 0.7f)
+        {
+            Cam.Shake(amount);
+            Cam.Punch(10f * amount);
+            H.Flash(Color.white, 0.3f * amount);
+            Haptics.Buzz();
+            AudioFX.Play(Sfx.Hit, 0.5f);
+        }
+
+        float _sparkT;
+        protected void FxDrill(Vector3 pos, float dt)
+        {
+            _sparkT += dt;
+            if (_sparkT < 0.08f) return;
+            _sparkT = 0f;
+            WorldFX.Sparks(Root, pos + Vector3.up * 0.3f);
+        }
+
+        // Dust blown off the ground by a rocket close to it
+        ParticleSystem _groundDust;
+        protected void FxRocketDust(Vector3 craftPos, float altitude, float throttle)
+        {
+            if (Ter == null) return;
+            if (_groundDust == null)
+            {
+                var c = P.GroundB; c.a = 0.7f;
+                _groundDust = WorldFX.Emitter(Root, Vector3.zero, c, Color.Lerp(P.GroundA, Color.white, 0.2f),
+                                              new Vector2(0.8f, 2.4f), 2.2f, 14f, 0.02f, false, 85f);
+                if (_groundDust == null) return;
+                _groundDust.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);   // the cone opens upward and outward
+            }
+            var g = craftPos; g.y = Ter.Height(g) + 0.2f;
+            _groundDust.transform.position = g;
+            float k = throttle * Mathf.Clamp01((35f - altitude) / 35f);
+            WorldFX.Rate(_groundDust, P.AirDensity <= 0f && P.Gravity < 1f ? k * 60f : k * 160f);
+        }
+
+        protected void FxRocketDustOff() => WorldFX.Rate(_groundDust, 0f);
+
+        // Dust thrown up behind the wheels: in low gravity it flies higher and hangs longer
+        protected ParticleSystem WheelDust(Transform vehicle)
+        {
+            float g = P.Gravity / 9.81f;
+            var c = P.GroundB; c.a = 0.6f;
+            var ps = WorldFX.Emitter(vehicle, new Vector3(0f, 0.3f, -1.4f), c, Color.Lerp(P.GroundA, Color.white, 0.25f),
+                                     new Vector2(0.25f, 0.8f), 1.6f / Mathf.Sqrt(Mathf.Max(0.1f, g)), 2.5f, g * 0.35f, false, 30f);
+            if (ps != null) ps.transform.localRotation = Quaternion.Euler(-25f, 180f, 0f);
+            return ps;
+        }
+
+        protected static void WheelDustRate(ParticleSystem ps, float speed, bool airborne) =>
+            WorldFX.Rate(ps, airborne ? 0f : Mathf.Abs(speed) * 14f);
+
         // ── Result ───────────────────────────────────────────────────────────
         protected void Fail(string key)
         {
@@ -108,6 +182,8 @@ namespace Navigator.Worlds
             Result.FailKey = key;
             Result.Lines.Add(Loc.T(key));
             Finished = true;
+            H.SetEntry(false, Vector2.zero, 0f);
+            H.SetWindow(false, 0, 0, 0, "");
             AudioFX.Play(Sfx.Explosion);
             Haptics.Buzz();
         }
@@ -157,7 +233,12 @@ namespace Navigator.Worlds
         Vector2 _entryDot;
         float _entrySeed;
 
-        protected void EntryStart() { EntryHeat = 0f; _entryDot = Vector2.zero; _entrySeed = Random.value * 100f; }
+        protected void EntryStart()
+        {
+            EntryHeat = 0f; _entryDot = Vector2.zero; _entrySeed = Random.value * 100f;
+            H.SetCinematic(true);   // letterbox for the plunge through the atmosphere
+            Cam.Punch(14f);
+        }
 
         // Returns true when the entry is over (duration s); fails the mission if the shield burns
         protected bool EntryTick(float dt, float duration, float turbulence, float heatRate)
@@ -170,8 +251,9 @@ namespace Navigator.Worlds
             EntryHeat = Mathf.Clamp01(EntryHeat + off * heatRate * dt);
             H.SetEntry(true, _entryDot, EntryHeat);
             if (EntryHeat >= 1f) { H.SetEntry(false, Vector2.zero, 0f); Fail("w.fail.burned"); return true; }
-            Cam.Shake(0.05f + off * 0.2f);
-            if (PhaseT >= duration) { H.SetEntry(false, Vector2.zero, 0f); return true; }
+            Cam.Shake(0.08f + off * 0.25f);
+            if (off > 0.05f) H.Flash(new Color(1f, 0.45f, 0.1f), off * 0.6f);   // the shield glows
+            if (PhaseT >= duration) { H.SetEntry(false, Vector2.zero, 0f); H.SetCinematic(false); return true; }
             return false;
         }
 

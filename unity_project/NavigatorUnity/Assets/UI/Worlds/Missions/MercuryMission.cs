@@ -23,6 +23,7 @@ namespace Navigator.Worlds
         float _tempC = 20f, _drill;
         int _ice;
         Site _home;
+        ParticleSystem _wheelDust;
 
         public override void Shape(WorldTerrain t)
         {
@@ -64,6 +65,7 @@ namespace Navigator.Worlds
             _car = new GroundVehicle { T = _rover.transform, Terrain = Ter, Gravity = P.Gravity, MaxSpeed = 5f, TurnRate = 65f };
             var toCrater = Ter.Surface(CraterAt) - at;
             _car.Place(at, Quaternion.LookRotation(new Vector3(toCrater.x, 0f, toCrater.z)).eulerAngles.y);
+            _wheelDust = WheelDust(_rover.transform);
 
             var lg = new GameObject("Headlights");
             lg.transform.SetParent(_rover.transform, false);
@@ -112,10 +114,12 @@ namespace Navigator.Worlds
             if (drilling)
             {
                 _drill += dt;
+                FxDrill(here.Pos, dt);
                 if (_drill >= 3f)
                 {
                     _drill = 0f; MarkDone(here); _ice++;
                     Score(700, "w.merc.log.ice", _ice);
+                    FxSample(here.Pos);
                     H.ShowBanner(F("w.sample.got", _ice, 3), UIStyle.Good);
                 }
             }
@@ -137,6 +141,7 @@ namespace Navigator.Worlds
             }
 
             _car.Step(In.MoveV, dt);
+            WheelDustRate(_wheelDust, _car.Speed, _car.Airborne);
 
             // Thermometer: the Sun cooks, the shadow freezes; the parasol and the RTG change the maths
             var sunDir = Quaternion.Euler(0f, P.SunAzimuth + 180f, 0f) * Vector3.back;   // toward the Sun, horizontal

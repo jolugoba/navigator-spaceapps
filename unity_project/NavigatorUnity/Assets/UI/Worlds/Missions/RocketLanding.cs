@@ -60,6 +60,7 @@ namespace Navigator.Worlds
             Craft.Control(In.MoveV, Cam.Yaw, AHeld, dt);
             Craft.Step(dt);
             SetFlame(_flame, Craft.Throttle);
+            FxRocketDust(Lander.transform.position, Craft.Altitude, Craft.Throttle);
             DescentMeters(Craft);
             H.SetFill(H.BtnA, Craft.Fuel / Craft.FuelMax);
             H.SetArrow(Ter.Surface(PadLocal), T("w.pad"));
@@ -81,6 +82,8 @@ namespace Navigator.Worlds
             Lander.transform.position = p;
             Lander.transform.rotation = Quaternion.Euler(0f, Craft.Yaw, 0f);
             SetFlame(_flame, 0f);
+            FxRocketDustOff();
+            FxTouchdown(p);
             Result.Landed = true;
             Score(1000, "w.log.landed", Craft.TouchdownQuality() * 100f);
             float d = new Vector2(p.x - Ter.Center.x - PadLocal.x, p.z - Ter.Center.z - PadLocal.y).magnitude;

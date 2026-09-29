@@ -88,8 +88,38 @@ namespace Navigator.Worlds
             ResetAll();
         }
 
+        // Letterbox bars for the cinematic moments (entry, touchdown); created on first use
+        RectTransform _barTop, _barBottom;
+        float _cine, _cineTarget;
+
+        public void SetCinematic(bool on) => _cineTarget = on ? 1f : 0f;
+
+        void EnsureBars()
+        {
+            if (_barTop != null || Panel == null) return;
+            _barTop = Bar("CineTop", 1f);
+            _barBottom = Bar("CineBottom", 0f);
+        }
+
+        RectTransform Bar(string name, float y)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(Panel.transform, false);
+            rt.SetSiblingIndex(1);   // behind the controls
+            rt.anchorMin = new Vector2(0f, y); rt.anchorMax = new Vector2(1f, y);
+            rt.pivot = new Vector2(0.5f, y);
+            rt.sizeDelta = new Vector2(0f, 0f);
+            var img = go.GetComponent<Image>();
+            img.color = Color.black;
+            img.raycastTarget = false;
+            return rt;
+        }
+
         public void ResetAll()
         {
+            EnsureBars();
+            _cine = _cineTarget = 0f;
             SetTitle("", "");
             SetChecklist("");
             for (int i = 0; i < Meters.Length; i++) HideMeter(i);
@@ -261,12 +291,44 @@ namespace Navigator.Worlds
             ResultPanel.SetActive(true);
             if (ResultTitle != null) { ResultTitle.text = title; ResultTitle.color = success ? UIStyle.Good : UIStyle.Bad; }
             if (ResultBody != null) ResultBody.text = body;
-            if (ResultStars != null) ResultStars.text = new string('★', stars) + new string('☆', 3 - stars);
+            if (ResultStars != null)
+            {
+                ResultStars.text = new string('☆', 3);
+                StopAllCoroutines();
+                StartCoroutine(RevealStars(stars));
+            }
             if (RetryButton != null) RetryButton.gameObject.SetActive(canRetry);
+        }
+
+        // The stars light up one by one, each with a pop and a chime
+        System.Collections.IEnumerator RevealStars(int stars)
+        {
+            yield return new WaitForSecondsRealtime(0.4f);
+            for (int i = 1; i <= stars; i++)
+            {
+                ResultStars.text = new string('★', i) + new string('☆', 3 - i);
+                ResultStars.transform.localScale = Vector3.one * 1.35f;
+                Navigator.Game.AudioFX.Play(Navigator.Game.Sfx.Pickup, 0.7f + 0.15f * i);
+                float t = 0f;
+                while (t < 0.3f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    ResultStars.transform.localScale = Vector3.one * Mathf.Lerp(1.35f, 1f, t / 0.3f);
+                    yield return null;
+                }
+                yield return new WaitForSecondsRealtime(0.15f);
+            }
         }
 
         void Update()
         {
+            _cine = Mathf.MoveTowards(_cine, _cineTarget, Time.unscaledDeltaTime * 2.5f);
+            if (_barTop != null)
+            {
+                float h = Mathf.SmoothStep(0f, 1f, _cine) * 90f;
+                _barTop.sizeDelta = new Vector2(0f, h);
+                _barBottom.sizeDelta = new Vector2(0f, h);
+            }
             if (BannerBox != null && BannerBox.activeSelf && Time.time > _bannerUntil) BannerBox.SetActive(false);
             if (Prompt != null && _promptUntil > 0f && Time.time >= _promptUntil) { _promptUntil = 0f; Prompt.text = _promptSticky; }
 

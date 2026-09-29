@@ -25,6 +25,7 @@ namespace Navigator.Worlds
         int _samples;
         float _t;
         Site _home;
+        bool _wasAirborne;
 
         public override void Shape(WorldTerrain t)
         {
@@ -141,7 +142,17 @@ namespace Navigator.Worlds
             // A: hold to charge, release to jump
             H.SetButton(H.BtnA, T("w.btn.jump"), _hopper.Airborne ? BtnState.Off : BtnState.On, _hopper.Charge, T("w.jump.air"));
             if (!_hopper.Airborne && In.AHeld) _hopper.Hold(dt);
-            else if (!_hopper.Airborne && _hopper.Charge > 0f && !In.AHeld) { _hopper.Release(dir); AudioFX.Play(Sfx.Go, 0.4f); }
+            else if (!_hopper.Airborne && _hopper.Charge > 0f && !In.AHeld)
+            {
+                float c = _hopper.Charge;
+                _hopper.Release(dir);
+                AudioFX.Play(Sfx.Go, 0.4f);
+                if (_hopper.Airborne)
+                {
+                    WorldFX.Touchdown(Root, _hop.transform.position, P.GroundA, 0.3f);   // frost blown off by the jump
+                    Cam.Punch(4f + 6f * c);
+                }
+            }
 
             // B: nitrogen jets in the air
             H.SetButton(H.BtnB, T("w.btn.jets"), _hopper.Airborne && _hopper.Nitrogen > 0f ? BtnState.On : BtnState.Off, _hopper.Nitrogen, T("w.jets.ground"));
@@ -164,10 +175,14 @@ namespace Navigator.Worlds
                 MarkDone(Sites[inPlume]);
                 _samples++;
                 Score(800, "w.triton.log.sample", _samples);
+                FxSample(_hop.transform.position);
                 H.ShowBanner(F("w.sample.got", _samples, 3), UIStyle.Good);
             }
 
             _hopper.Step(dt);
+            if (_wasAirborne && !_hopper.Airborne) { WorldFX.Touchdown(Root, _hop.transform.position, P.GroundA, 0.2f); Cam.Shake(0.15f); Haptics.Buzz(); }
+            _wasAirborne = _hopper.Airborne;
+            if (_hopper.Airborne && BHeld && _hopper.Nitrogen > 0f) WorldFX.Sparks(Root, _hop.transform.position);   // jet puffs
             DrawArc(dir);
 
             H.SetMeter(0, T("w.m.nitrogen"), $"{_hopper.Nitrogen * 100f:F0}%", _hopper.Nitrogen, _hopper.Nitrogen < 0.25f ? UIStyle.Bad : UIStyle.Accent);

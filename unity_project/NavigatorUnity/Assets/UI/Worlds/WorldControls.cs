@@ -105,6 +105,10 @@ namespace Navigator.Worlds
 
         public void Shake(float amount) => _shake = Mathf.Max(_shake, amount);
 
+        // A quick widening of the view: impacts, jumps, the big moments
+        public void Punch(float degrees) => _punch = Mathf.Max(_punch, degrees);
+        float _punch;
+
         public void SnapBehind()
         {
             if (Target == null) return;
@@ -124,7 +128,8 @@ namespace Navigator.Worlds
         void Place(float t)
         {
             if (_cam == null) _cam = GetComponent<Camera>();
-            if (_cam != null) _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, Fov, 0.1f);
+            _punch = Mathf.MoveTowards(_punch, 0f, Time.unscaledDeltaTime * 25f);
+            if (_cam != null) _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, Fov + _punch, 0.2f);
             var rot = Quaternion.Euler(Pitch, Yaw, 0f);
             Vector3 focus = Target.position + Vector3.up * LookAtHeight;
             Vector3 want = focus + Vector3.up * (Height - LookAtHeight) - rot * Vector3.forward * Distance;

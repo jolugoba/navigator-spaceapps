@@ -56,6 +56,7 @@ namespace Navigator.Worlds
                 if (!float.IsNegativeInfinity(Terrain.WaterLevel)) BuildWater();
             }
             BuildSky(p);
+            BuildSunGlow(p);
             BuildWeather(p.Weather);
             if (!string.IsNullOrEmpty(p.SkyBody)) BuildSkyBody(p);
             Navigator.Game.CosmicSkyFX.SetVisible(p.StarsVisible);
@@ -170,6 +171,18 @@ namespace Navigator.Worlds
             if (_weather != null && _cam != null) _weather.transform.position = _cam.transform.position + Vector3.up * 6f;
             if (SkyBody != null && _cam != null)
                 SkyBody.position = _cam.transform.position + _skyDir * SkyDistance;
+            if (_sunGlow != null && _cam != null)
+            {
+                _sunGlow.position = _cam.transform.position + _sunDir * SkyDistance;
+                _sunGlow.rotation = Quaternion.LookRotation(_sunGlow.position - _cam.transform.position);
+                float flicker = 1f + 0.03f * Mathf.Sin(Time.time * 7f);
+                _sunGlow.localScale = _sunGlowScale * flicker;
+            }
+            if (_lightning > 0f)
+            {
+                _lightning = Mathf.MoveTowards(_lightning, 0f, Time.deltaTime * 4f);
+                RenderSettings.ambientLight = Color.Lerp(_p.Ambient, Color.white, _lightning);
+            }
         }
 
         // ── Ground ───────────────────────────────────────────────────────────
@@ -324,6 +337,40 @@ namespace Navigator.Worlds
             SkyBody = go.transform;
             foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
+
+        // ── The Sun's glare: a soft glowing disc where the Sun really is ──────
+        Transform _sunGlow; Vector3 _sunDir, _sunGlowScale;
+
+        void BuildSunGlow(WorldProfile p)
+        {
+            if (p.SunGlowDeg <= 0f || _assets.GlowMaterial == null) return;
+            var go = new GameObject("SunGlow", typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(Root.transform, false);
+            var m = WorldAssets.QuadMesh(1f);
+            _owned.Add(m);
+            // The quad lies on XZ: stand it up so it faces the camera along its forward axis
+            var verts = m.vertices;
+            for (int i = 0; i < verts.Length; i++) verts[i] = new Vector3(verts[i].x, verts[i].z, 0f);
+            m.vertices = verts;
+            m.RecalculateBounds();
+            go.GetComponent<MeshFilter>().sharedMesh = m;
+            var mat = new Material(_assets.GlowMaterial);
+            var c = p.SunColor; c.a = 1f;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+            mat.color = c;
+            _owned.Add(mat);
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _sunDir = -(Quaternion.Euler(p.SunElevation, p.SunAzimuth + 180f, 0f) * Vector3.forward);
+            float size = 2f * SkyDistance * Mathf.Tan(p.SunGlowDeg * 0.5f * Mathf.Deg2Rad) * 3f;   // glare, not just the disc
+            _sunGlowScale = Vector3.one * size;
+            _sunGlow = go.transform;
+        }
+
+        // Lightning: the whole scene lights up for a moment (Jupiter's water clouds, Venus)
+        float _lightning;
+        public void Lightning() => _lightning = 1f;
 
         // ── Cloud layers for the giants (no ground) ─────────────────────────
         public Transform AddCloudLayer(float y, Color color, float alpha)

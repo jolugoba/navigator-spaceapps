@@ -105,6 +105,7 @@ namespace Navigator.Worlds
             H.ShowBanner(T(ChuteOpen ? "w.chute.ok" : "w.chute.torn"), ChuteOpen ? UIStyle.Good : UIStyle.Bad);
             FallSpeed = ChuteOpen ? 14f : 24f;
             Chute = Spawn(A.Parachute, "parachute", ChuteOpen ? 8f : 4f, Probe.transform.position + Vector3.up * 10f);
+            FxJolt();
             Chute.transform.SetParent(Probe.transform, true);
             Probe.transform.position = new Vector3(Top.x, Top.y, Top.z);
             Result.Landed = true;   // survived entry: the probe is "in"
@@ -147,6 +148,7 @@ namespace Navigator.Worlds
                     float v = MeasureValue(layer);
                     Buffer += v;
                     Score(Mathf.RoundToInt(500 * v), "w.probe.log.measured", T(layer.Key), p);
+                    FxSample(Probe.transform.position);
                     H.ShowBanner(F("w.probe.measured", T(layer.Key)), UIStyle.Good);
                     AudioFX.Play(Sfx.Pickup);
                 }
@@ -180,6 +182,8 @@ namespace Navigator.Worlds
         protected virtual void EndFall()
         {
             H.Flash(Color.black, 1f);
+            WorldFX.Explosion(Root, Probe.transform.position);   // the pressure wins
+            Cam.Shake(0.8f);
             H.ShowBanner(F("w.probe.crushed", EndBarLabel), UIStyle.Bad, 4f);
             Score(Mathf.RoundToInt(Sent * 700f), "w.probe.log.sent", Sent, Sent + Buffer);
             if (Buffer > 0.05f) Result.Lines.Add(F("w.probe.log.lost", Buffer));
@@ -274,6 +278,7 @@ namespace Navigator.Worlds
                 _nextBolt = Time.time + Random.Range(3f, 6f);
                 _lightning = Time.time + 1.5f;
                 H.Flash(Color.white, 0.9f);
+                Env.Lightning();
                 AudioFX.Play(Sfx.Hit, 0.4f);
             }
             if (!_winds && Depth > 600f && Has(ScienceInstrument.RadioScience)) { _winds = true; Score(300, "w.jup.log.winds"); }
@@ -349,6 +354,7 @@ namespace Navigator.Worlds
                     if (r > 0.6f) { _entryHeatRate = 0.4f; Result.Lines.Add(T("w.uranus.log.early")); H.ShowBanner(T("w.uranus.early"), UIStyle.Warn); }
                     else if (r < 0.42f) { _entryHeatRate = 1f; Result.Lines.Add(T("w.uranus.log.late")); H.ShowBanner(T("w.uranus.late"), UIStyle.Warn); }
                     else { Score(400, "w.uranus.log.release"); H.ShowBanner(T("w.uranus.released"), UIStyle.Good); }
+                    FxJolt(0.4f);
                     if (_planet != null) Object.Destroy(_planet, 1f);
                     base.Begin();   // the probe starts its own entry
                     H.SetTitle(T("w.uranus.title"), T("w.uranus.goal.entry"));

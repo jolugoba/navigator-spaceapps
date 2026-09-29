@@ -109,6 +109,7 @@ namespace Navigator.Worlds
             bool ok = r >= 0.3f && r <= 0.7f;
             if (ok) Score(250, "w.log.chute.ok"); else Result.Lines.Add(T("w.venus.log.chutebad"));
             H.ShowBanner(T(ok ? "w.chute.ok" : "w.chute.late"), ok ? UIStyle.Good : UIStyle.Warn);
+            FxJolt();
 
             // The Venera lander inside the capsule takes over
             var at = _probe.transform.position;
@@ -141,7 +142,11 @@ namespace Navigator.Worlds
             _craft.Step(dt);
             float alt = _craft.Altitude;
             bool inClouds = alt < CloudTop && alt > CloudBottom;
-            if (inClouds) _corrosion = Mathf.Min(1f, _corrosion + 0.03f * dt);
+            if (inClouds)
+            {
+                _corrosion = Mathf.Min(1f, _corrosion + 0.03f * dt);
+                if (Random.value < dt * 0.5f) { Env.Lightning(); AudioFX.Play(Sfx.Hit, 0.3f); }   // lightning in the clouds
+            }
 
             // Below the clouds: dim orange light and thick haze
             float k = Mathf.InverseLerp(CloudBottom, CloudBottom - 300f, alt);
@@ -171,6 +176,7 @@ namespace Navigator.Worlds
                     _chuteOff = true;
                     if (_chute != null) { _chute.transform.SetParent(Root, true); Object.Destroy(_chute, 3f); }
                     _craft.ChuteCdA = 0f;
+                    FxJolt(0.4f);
                     if (alt < 320f) Result.Lines.Add(T("w.venus.log.chuteauto"));
                     else if (alt < CloudBottom) Score(250, "w.venus.log.chutegood");
                     H.SetButton(H.BtnB, null, BtnState.Hidden);
@@ -190,6 +196,7 @@ namespace Navigator.Worlds
             _probe.transform.position = pos;
             _probe.transform.rotation = Quaternion.identity;
             Result.Landed = true;
+            FxTouchdown(pos);
             Score(1000, "w.venus.log.landed");
             if (new Vector2(pos.x - Ter.Center.x - PlainsAt.x, pos.z - Ter.Center.z - PlainsAt.y).magnitude < PlainsR) Score(300, "w.log.pad");
             Haptics.Buzz();
@@ -262,7 +269,8 @@ namespace Navigator.Worlds
             if (drilling)
             {
                 _drill += dt;
-                if (_drill >= 3f) { _drill = 0f; _drilled[spot] = true; _samples++; _buffered += 2f; Score(400, "w.venus.log.sample", _samples); AudioFX.Play(Sfx.Pickup); }
+                FxDrill(_drillSpots[spot], dt);
+                if (_drill >= 3f) { _drill = 0f; _drilled[spot] = true; _samples++; _buffered += 2f; Score(400, "w.venus.log.sample", _samples); AudioFX.Play(Sfx.Pickup); FxSample(_drillSpots[spot]); }
             }
             else if (!AHeld) _drill = 0f;
 
