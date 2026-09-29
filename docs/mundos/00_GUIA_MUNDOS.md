@@ -49,6 +49,26 @@ Los controles son los de la nave: dos joysticks y los botones redondos en los mi
 
 Cada ficha trae su tabla de controles por fase. **Nunca hay más de 3 botones a la vez**: si una fase necesita otro, reemplaza a uno que ya no sirve (por ejemplo, PARACAÍDAS desaparece cuando ya se abrió).
 
+## 2.1 Cómo se interactúa con el mundo (reglas comunes)
+
+Estas reglas valen para los 7 mundos. Así el jugador aprende una vez y lo usa en todos.
+
+| Situación | Qué ve y qué hace el jugador |
+|---|---|
+| **Objetivo lejos** | Una **flecha** en el borde de la pantalla apunta al objetivo, con la distancia ("Roca del delta · 120 m"). Los objetivos son balizas de luz (`OB-03_Beacon`) visibles de lejos |
+| **Objetivo cerca** | Al entrar al **círculo de acción** (unos 4 m), el objetivo brilla y el botón que sirve **se ilumina y late**: "TALADRAR", "FOTO", "MUESTREAR" |
+| **Acciones de mantener** (taladrar, medir, empuje) | Mantener el botón llena un **anillo alrededor del botón** (como la recarga de DISPARAR). Si sueltas antes, se pausa y no se pierde |
+| **Botón que no sirve ahora** | Se ve gris. Si **falta el instrumento** en el diseño, al tocarlo dice por qué: "No llevas taladro: sin él no hay muestras" (lección de diseño) |
+| **Ventanas de tiempo** (paracaídas, soltar sonda, géiser) | Una **barra con una zona verde** que se mueve; se aprieta cuando la aguja está en lo verde. Si falla, la sonda sigue con consecuencias, no se reinicia |
+| **Escanear** | C sobre lo que está en la mira: aparece la tarjeta con el **dato real** (igual que en el vuelo). Algunas cosas solo se ven con el instrumento correcto (el hielo con infrarrojo) |
+| **Medidores del mundo** | Arriba a la izquierda, donde están velocidad y combustible: **batería** siempre, y el medidor propio del mundo: **altura y velocidad vertical** al bajar, **temperatura** (Mercurio), **calor** (Venus), **presión** (Júpiter y Urano), **nitrógeno** (Tritón) |
+| **Aterrizaje** | Indicador de contacto: velocidad vertical, horizontal e inclinación en verde, amarillo o rojo. Todo verde = aterrizaje suave |
+| **Cambio de vista** | Al soltar el vehículo: corte con un destello, la cámara pasa detrás del vehículo y se muestra un **cartel de 3 segundos** con la misión: "MARTE · Lleva 3 muestras al depósito" |
+| **Datos que se envían** | Una barra de "datos enviados" en la parte de arriba. Lo que no se envía se pierde si el vehículo muere (Júpiter, Urano y Venus) |
+| **Fallar** | Explosión, derrumbe o congelamiento con un texto claro de la causa real. Luego pasas al informe, que dice qué hubiera cambiado. Siempre se puede **REINTENTAR** el mundo sin repetir el viaje |
+| **Salir** | Botón SALIR arriba a la izquierda (como en el vuelo libre): termina la misión con lo logrado hasta ahí |
+| **Sensación** | Vibración al tocar suelo, taladrar y recibir un golpe; sonido del viento según la densidad del aire (en Mercurio y Tritón, **silencio**: no hay aire que lleve el sonido) |
+
 ## 3. Física: lo que cambia de un mundo a otro
 
 Todo se calcula con valores reales. Solo se acelera el tiempo para que se pueda jugar: un aterrizaje de 7 minutos dura unos 60-90 segundos.
