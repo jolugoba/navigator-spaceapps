@@ -34,7 +34,7 @@ namespace Navigator.Worlds
         public Vector2 TiltDir;             // world XZ, magnitude 0..1
         public float   Yaw;                 // heading of the craft (degrees)
 
-        public float GroundY => Terrain != null ? Mathf.Max(Terrain.Height(T.position), Terrain.WaterLevel) : float.NegativeInfinity;
+        public float GroundY => Terrain != null ? Terrain.SurfaceY(T.position) : float.NegativeInfinity;
         public float Altitude => Terrain != null ? T.position.y - GroundY : 99999f;
         public float VerticalSpeed => Vel.y;
         public float SideSpeed => new Vector2(Vel.x, Vel.z).magnitude;
@@ -283,7 +283,7 @@ namespace Navigator.Worlds
         public float FlyDrain = 0.012f, Recharge = 0.03f;
         public bool Landed { get; private set; } = true;
 
-        public float Surface => Mathf.Max(Terrain.Height(T.position), Terrain.WaterLevel);
+        public float Surface => Terrain.SurfaceY(T.position);
         public float Altitude => T.position.y - Surface;
 
         public void Step(Vector2 stick, float cameraYaw, bool lift, float dt)
@@ -302,7 +302,7 @@ namespace Navigator.Worlds
                 Vel *= Mathf.Exp(-0.25f * AirDensity * 0.2f * dt);   // thick air damps everything
                 Vel.y = Mathf.Clamp(Vel.y, -3f, 4f);
                 var pos = Terrain.Clamp(T.position + Vel * dt);
-                float s = Mathf.Max(Terrain.Height(pos), Terrain.WaterLevel);
+                float s = Terrain.SurfaceY(pos);
                 if (pos.y <= s + 0.05f && Vel.y <= 0f) { pos.y = s; Landed = true; Vel = Vector3.zero; }
                 pos.y = Mathf.Min(pos.y, s + 60f);   // stay near the ground (it's a science flight)
                 T.position = pos;

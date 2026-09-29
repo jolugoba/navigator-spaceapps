@@ -86,7 +86,7 @@ Al final, llevas las 3 muestras al **depósito**. Es real: Perseverance dejó 10
 | Combustible sobrante | Combustible del descenso con cohetes |
 | **Solar** | La batería baja más rápido; en la tormenta de polvo carga 60 % menos (Opportunity murió así en 2018) |
 | **RTG** | Batería constante, como Curiosity y Perseverance |
-| Taladro | Sin él: ★ como máximo (no hay muestras) |
+| Taladro | Sin él el brazo solo **recoge** polvo suelto: más lento, un tercio de los puntos, ★★ como máximo |
 | Espectrómetro UV | Sin él no sabes cuál roca tiene orgánicos |
 | Altímetro radar | Sin él, la altura se ve con ±20 % de error |
 | Cámara teleobjetivo | Marca los sitios de muestra desde lejos |

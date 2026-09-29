@@ -233,9 +233,23 @@ namespace Navigator.Worlds
         {
             var go = new GameObject("Lake", typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(Root.transform, false);
-            var mesh = WorldAssets.QuadMesh(WorldTerrain.Size);
+            // A disc over the basin only: craters elsewhere stay dry even if they're lower
+            const int seg = 48;
+            float rad = Terrain.LakeRadius;
+            var v = new Vector3[seg + 1]; var uv = new Vector2[seg + 1]; var tr = new int[seg * 3];
+            v[0] = Vector3.zero; uv[0] = new Vector2(0.5f, 0.5f);
+            for (int i = 0; i < seg; i++)
+            {
+                float ang = i * Mathf.PI * 2f / seg;
+                v[i + 1] = new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * rad;
+                uv[i + 1] = new Vector2(0.5f + Mathf.Cos(ang) * 0.5f, 0.5f + Mathf.Sin(ang) * 0.5f);
+                tr[i * 3] = 0; tr[i * 3 + 1] = (i + 1) % seg + 1; tr[i * 3 + 2] = i + 1;
+            }
+            var mesh = new Mesh { name = "LakeDisc", vertices = v, uv = uv, triangles = tr };
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            _owned.Add(mesh);
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
-            go.transform.position = new Vector3(Terrain.Center.x, Terrain.WaterLevel, Terrain.Center.z);
+            go.transform.position = Terrain.LakeCenter;
             var mat = _assets.NewMaterial(_assets.PropMaterial, _p.Accent, 0.97f);
             _owned.Add(mat);
             go.GetComponent<MeshRenderer>().sharedMaterial = mat;

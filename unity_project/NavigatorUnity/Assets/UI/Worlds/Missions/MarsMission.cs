@@ -35,18 +35,29 @@ namespace Navigator.Worlds
             foreach (var p in PadAt) t.AddFlat(p, PadR);
             t.AddCrater(new Vector2(-150f, 90f), 42f, 7f);           // crater floor site
             t.AddFlat(new Vector2(25f, 30f), 8f);                   // depot
+            foreach (var s in SiteAt) t.AddClear(s, 9f);            // no boulder sits on a sample
             // Soft sand patches (Spirit got stuck in one in 2009)
             var rnd = new System.Random(7);
             for (int i = 0; i < 7; i++)
             {
                 var c = new Vector2((float)rnd.NextDouble() - 0.5f, (float)rnd.NextDouble() - 0.5f) * 360f;
-                if (c.magnitude < 40f) continue;
                 float r = 8f + (float)rnd.NextDouble() * 8f;
+                if (c.magnitude < 40f || NearKeySpot(c, r + 18f)) continue;   // never on a pad, the depot or a site
                 _sand.Add((c, r));
                 t.AddPaint(c, r, new Color(0.93f, 0.72f, 0.5f), 0.8f);
             }
             t.AddPaint(new Vector2(120f, 150f), 20f, new Color(0.78f, 0.62f, 0.45f), 0.6f);   // delta layers
             t.AddPaint(new Vector2(60f, -170f), 18f, new Color(0.85f, 0.8f, 0.7f), 0.6f);     // carbonate shore
+        }
+
+        static readonly Vector2[] SiteAt = { new(120f, 150f), new(-150f, 90f), new(60f, -170f) };
+        static readonly Vector2 DepotAt = new(25f, 30f);
+
+        static bool NearKeySpot(Vector2 c, float r)
+        {
+            foreach (var p in PadAt) if ((c - p).magnitude < r + PadR) return true;
+            foreach (var s in SiteAt) if ((c - s).magnitude < r) return true;
+            return (c - DepotAt).magnitude < r;
         }
 
         public override void Begin()
@@ -381,21 +392,20 @@ namespace Navigator.Worlds
             bool atDepot = new Vector2(_depot.Pos.x - _rover.transform.position.x, _depot.Pos.z - _rover.transform.position.z).magnitude < _depot.Radius;
 
             // A: drill (needs the drill instrument)
-            bool hasDrill = Has(ScienceInstrument.SampleDrill);
-            BtnState a = !hasDrill ? BtnState.Off : here != null ? BtnState.Pulse : BtnState.Off;
-            H.SetButton(H.BtnA, T("w.btn.drill"), a, _drill / 3f, hasDrill ? T("w.drill.go") : T("w.need.drill"));
+            BtnState a = here != null ? BtnState.Pulse : BtnState.Off;
+            H.SetButton(H.BtnA, SampleBtn, a, _drill / SampleTime, SampleHint);
             if (here != null && AHeld && _car.Battery > 0.02f)
             {
                 drilling = true;
                 _drill += dt;
                 Cam.Shake(0.02f);
                 FxDrill(here.Pos, dt);
-                if (_drill >= 3f)
+                if (_drill >= SampleTime)
                 {
                     _drill = 0f;
                     MarkDone(here);
                     _samples++;
-                    Score(500, "w.mars.log.sample", T(here.Key));
+                    Score(SamplePts(500), "w.mars.log.sample", T(here.Key));
                     FxSample(here.Pos);
                     if (here.Special && Has(ScienceInstrument.UVSpectrometer)) { _organics++; Score(400, "w.mars.log.organics"); }
                     H.ShowBanner(F("w.sample.got", _samples, 3), UIStyle.Good);
@@ -460,7 +470,7 @@ namespace Navigator.Worlds
 
             H.SetMeter(0, T("w.m.battery"), $"{_car.Battery * 100f:F0}%", _car.Battery, _car.Battery < 0.2f ? UIStyle.Bad : UIStyle.Good);
             H.SetMeter(1, T("w.m.speed"), $"{Mathf.Abs(_car.Speed):F1} m/s", Mathf.Abs(_car.Speed) / _car.MaxSpeed, UIStyle.Accent);
-            H.SetMeter(2, T("w.m.samples"), $"{_samples}/3 · {_deposited} ✓", _samples / 3f, UIStyle.Gold);
+            H.SetMeter(2, T("w.m.samples"), $"{_samples}/3 · {_deposited} ●", _samples / 3f, UIStyle.Gold);
             var next = _samples < 3 ? NextSite() : null;
             if (next != null) PointTo(next);
             else if (_samples > _deposited) PointTo(_depot);

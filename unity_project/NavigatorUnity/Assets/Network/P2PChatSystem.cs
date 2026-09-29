@@ -70,7 +70,7 @@ namespace Navigator.Network
         // ── Eventos del sistema (siempre visibles) ────────────────────────────
 
         public void BroadcastTakedown(string attacker, string victim)   => BroadcastSystem($"🔥 TAKEDOWN! {attacker} destruyó a {victim}");
-        public void BroadcastBurnout(string player)                     => BroadcastSystem($"⚡ {player} activó BURNOUT MODE");
+        public void BroadcastBurnout(string player)                     => BroadcastSystem($"» {player} activó BURNOUT MODE");
         public void BroadcastArrival(string player, string planet, int pos)
         {
             string medal = pos == 1 ? "🏆" : pos == 2 ? "🥈" : "🥉";

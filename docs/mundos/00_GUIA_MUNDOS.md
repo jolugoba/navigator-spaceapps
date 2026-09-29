@@ -114,7 +114,7 @@ Esta es la parte más importante para el reto: las decisiones del diseño **se v
 | Radio ciencia | Mide los vientos con la señal, como la sonda Galileo (Júpiter y Urano) |
 | **Altímetro radar** | **Aterrizaje**: muestra la altura real y el terreno. Sin él, la altura es una estimación (±20 %) y aterrizar es más difícil, como antes de que existiera el radar |
 
-**Instrumento nuevo que hay que agregar:** **Taladro y brazo de muestras**, unos 30 kg y 60 W, basado en el sistema de muestras de Perseverance. Sin él no hay muestras en Mercurio, Venus, Marte, Titán ni Tritón.
+**Instrumento nuevo que hay que agregar:** **Taladro y brazo de muestras**, unos 30 kg y 60 W, basado en el sistema de muestras de Perseverance. Sin él, en Mercurio, Marte y Titán el brazo solo puede **RECOGER** polvo suelto: tarda más del doble, vale un tercio de los puntos y la misión queda en ★★ como máximo. En Venus no hay muestras sin taladro. (Tritón no lo necesita: las muestras se toman dentro del géiser).
 
 ## 5. Sistemas que se construyen una vez y usan todos
 

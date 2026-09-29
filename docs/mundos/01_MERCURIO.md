@@ -64,7 +64,7 @@
 | Arrastre | **Cero**: el paracaídas no existe (si el jugador lo busca, el juego le explica por qué) |
 | Descenso | Solo empuje contra la gravedad: el combustible del diseño decide |
 | Rover | Hasta 5 m/s (acelerado para jugar); saltos 2,7× |
-| Térmico | Al sol +8 °C/s; en la sombra −6 °C/s (acelerado) |
+| Térmico | Al sol +1,4 °C/s (+0,6 con el parasol de cara al Sol); en la sombra −2,2 °C/s; RTG +0,8 °C/s (acelerado). Rango seguro del juego: −60 °C a +90 °C |
 
 ## 6. La misión y las estrellas
 
@@ -86,7 +86,7 @@
 | **Solar** | Carga **muchísimo** al sol (luz hasta 10 veces más fuerte) y **nada** en la sombra: hay que salir a cargar |
 | **RTG** | Carga siempre y **da calor**: ayuda en la sombra, pero al sol te calienta más rápido. Una decisión con dos caras |
 | Mapeador infrarrojo | Sin él no ves dónde está el hielo: taladras a ciegas y gastas batería |
-| Taladro | Sin él no hay núcleos (★ como máximo) |
+| Taladro | Sin él el brazo solo **recoge** escarcha suelta: más lento, un tercio de los puntos, ★★ como máximo |
 | Altímetro radar | Sin él, la altura se ve con ±20 % de error |
 | Combustible sobrante | Todo el aterrizaje depende de él: sin aire no hay otra forma de frenar |
 

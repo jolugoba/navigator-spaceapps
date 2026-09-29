@@ -16,6 +16,7 @@ namespace Navigator.Worlds
         static readonly Vector2 LakeAt = new(90f, -70f);
         const float LakeR = 75f;
         static readonly Vector2 SelkAt = new(-120f, 130f);
+        static readonly Vector2 ShoreAt = LakeAt + (new Vector2(-40f, -20f) - LakeAt).normalized * (LakeR * 0.95f);
 
         GameObject _capsule, _chute, _drone;
         DescentCraft _craft;
@@ -32,6 +33,9 @@ namespace Navigator.Worlds
             t.AddCrater(SelkAt, 45f, 8f);
             t.AddFlat(new Vector2(-40f, -20f), 14f);
             t.AddPaint(new Vector2(-150f, -100f), 45f, P.GroundB, 0.6f);   // dark organic dunes
+            t.AddClear(new Vector2(-150f, -100f), 10f);
+            t.AddClear(SelkAt, 10f);
+            t.AddClear(ShoreAt, 10f);
         }
 
         public override void Begin()
@@ -170,8 +174,7 @@ namespace Navigator.Worlds
 
             AddSite("w.titan.site.dunes", Ter.Surface(new Vector2(-150f, -100f)), 7f, A.TitanPebbles, 1.5f);
             AddSite("w.titan.site.selk", Ter.Surface(SelkAt), 7f, A.TitanPebbles, 1.5f).Special = true;
-            var shore = LakeAt + (new Vector2(-40f, -20f) - LakeAt).normalized * (LakeR * 0.95f);
-            AddSite("w.titan.site.shore", Ter.Surface(shore), 7f, A.TitanPebbles, 1.5f);
+            AddSite("w.titan.site.shore", Ter.Surface(ShoreAt), 7f, A.TitanPebbles, 1.5f);
 
             D.Focus = _drone.transform;
             Cam.Target = _drone.transform; Cam.Distance = 11f; Cam.Height = 4f; Cam.Pitch = 16f; Cam.AutoFollow = false;
@@ -201,23 +204,23 @@ namespace Navigator.Worlds
             foreach (var s in Sites) if (!s.Done && Near(s, p)) here = s;
 
             H.SetButton(H.BtnA, T("w.btn.lift"), _fly.Battery > 0f ? BtnState.On : BtnState.Off, _fly.Battery, T("w.battery.dead"));
-            bool hasDrill = Has(ScienceInstrument.SampleDrill);
-            BtnState b = !hasDrill ? BtnState.Off : here != null && _fly.Landed ? BtnState.Pulse : BtnState.Off;
-            H.SetButton(H.BtnB, T("w.btn.sample"), b, _sample / 2.5f, !hasDrill ? T("w.need.drill") : T("w.titan.land.first"));
-            if (here != null && _fly.Landed && In.BHeld && hasDrill)
+            BtnState b = here != null && _fly.Landed ? BtnState.Pulse : BtnState.Off;
+            float need = SampleTime * 0.85f;
+            H.SetButton(H.BtnB, SampleBtn, b, _sample / need, T("w.titan.land.first"));
+            if (here != null && _fly.Landed && BHeld)
             {
                 _sample += dt;
                 FxDrill(p, dt);
-                if (_sample >= 2.5f)
+                if (_sample >= need)
                 {
                     _sample = 0f; MarkDone(here); _samples++;
-                    Score(600, "w.titan.log.sample", T(here.Key));
+                    Score(SamplePts(600), "w.titan.log.sample", T(here.Key));
                     FxSample(p);
                     if (here.Special && Has(ScienceInstrument.UVSpectrometer)) { _organics++; Score(400, "w.titan.log.selk"); }
                     H.ShowBanner(F("w.sample.got", _samples, 3), UIStyle.Good);
                 }
             }
-            else if (!In.BHeld) _sample = 0f;
+            else if (!BHeld) _sample = 0f;
 
             H.SetButton(H.BtnC, T("w.btn.scan"), Has(ScienceInstrument.UVSpectrometer) ? BtnState.On : BtnState.Off, 0f, T("w.need.uv"));
             if (CPressed)
@@ -230,7 +233,7 @@ namespace Navigator.Worlds
             if (_rainT < 0f && PhaseT > 40f && PhaseT < 41f) { _rainT = 0f; Env.SetWeatherAmount(1f); Env.SetFog(P.Fog * 0.9f, P.FogDensity * 1.8f); H.ShowBanner(T("w.titan.rain"), UIStyle.Accent, 3.5f); }
             if (_rainT >= 0f) { _rainT += dt; if (_rainT > 25f) { _rainT = -2f; Env.SetWeatherAmount(0f); Env.SetFog(P.Fog, P.FogDensity); } }
 
-            H.SetMeter(0, T("w.m.battery"), $"{_fly.Battery * 100f:F0}%{(_fly.Landed ? " ⚡" : "")}", _fly.Battery, _fly.Battery < 0.2f ? UIStyle.Bad : UIStyle.Good);
+            H.SetMeter(0, T("w.m.battery"), $"{_fly.Battery * 100f:F0}%{(_fly.Landed ? " ▲" : "")}", _fly.Battery, _fly.Battery < 0.2f ? UIStyle.Bad : UIStyle.Good);
             H.SetMeter(1, T("w.m.alt"), $"{Mathf.Max(0f, _fly.Altitude):F1} m", Mathf.Clamp01(_fly.Altitude / 30f), UIStyle.Accent);
             H.SetMeter(2, T("w.m.samples"), $"{_samples}/3", _samples / 3f, UIStyle.Gold);
             PointTo(NextSite());

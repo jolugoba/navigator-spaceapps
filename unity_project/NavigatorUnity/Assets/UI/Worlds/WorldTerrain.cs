@@ -17,7 +17,10 @@ namespace Navigator.Worlds
         const int MapRes = 256;             // colour texture
 
         public Vector3 Center { get; private set; }
-        public float   WaterLevel = float.NegativeInfinity;   // Titan's lakes (world y)
+        public float   WaterLevel = float.NegativeInfinity;   // Titan's lake surface (world y) — only inside the lake
+        public bool    HasLake => _hasLake;
+        public Vector3 LakeCenter => new(Center.x + _lake.x, WaterLevel, Center.z + _lake.y);
+        public float   LakeRadius => _lakeR * 1.3f;              // the basin reaches this far
 
         readonly float[,] _h = new float[N, N];
         float Step => Size / (N - 1);
@@ -44,9 +47,13 @@ namespace Navigator.Worlds
         public void AddLake(Vector2 at, float radius, float depth)
         {
             AddBasin(at, radius, depth);
-            _lake = at; _lakeDepth = depth; _hasLake = true;
+            _lake = at; _lakeR = radius; _lakeDepth = depth; _hasLake = true;
         }
-        Vector2 _lake; float _lakeDepth; bool _hasLake;
+        Vector2 _lake; float _lakeR, _lakeDepth; bool _hasLake;
+
+        // Keep rocks off this circle (landing sites, samples, geysers…)
+        public void AddClear(Vector2 at, float radius) => _clear.Add(new Flat { C = at, R = radius });
+        readonly List<Flat> _clear = new();
 
         public void Generate(WorldProfile p, Vector3 center)
         {
@@ -76,7 +83,7 @@ namespace Navigator.Worlds
             for (int k = 0; k < rocks; k++)
             {
                 var c = new Vector2((float)rnd.NextDouble() - 0.5f, (float)rnd.NextDouble() - 0.5f) * Size * 0.9f;
-                if (NearFlat(c, 6f)) continue;
+                if (NearFlat(c, 6f) || InLakeArea(c.x, c.y)) continue;
                 float r = Mathf.Lerp(0.4f, 2.2f, Mathf.Pow((float)rnd.NextDouble(), 3f));
                 Rocks.Add(new Vector3(c.x + center.x, c.y + center.z, r));
             }
@@ -85,8 +92,12 @@ namespace Navigator.Worlds
         bool NearFlat(Vector2 c, float extra)
         {
             foreach (var f in _flats) if ((c - f.C).magnitude < f.R + extra) return true;
+            foreach (var f in _clear) if ((c - f.C).magnitude < f.R + extra) return true;
             return false;
         }
+
+        // Local coords: is this spot inside the lake's basin?
+        bool InLakeArea(float x, float z) => _hasLake && (new Vector2(x, z) - _lake).magnitude < _lakeR * 1.3f;
 
         // Natural ground (relief + dunes + plates + craters), local coords
         float RawHeight(float x, float z, bool craters = true)
@@ -184,7 +195,13 @@ namespace Navigator.Worlds
 
         public Vector3 Surface(Vector2 local) => new(Center.x + local.x, Height(Center.x + local.x, Center.z + local.y), Center.z + local.y);
 
-        public bool InWater(Vector3 w) => Height(w) < WaterLevel - 0.05f;
+        // Liquid surface under w (only the lake has one; everywhere else it's -infinity)
+        public float WaterY(Vector3 w) => InLakeArea(w.x - Center.x, w.z - Center.z) ? WaterLevel : float.NegativeInfinity;
+
+        // What a vehicle rests on: the ground, or the lake's surface over it
+        public float SurfaceY(Vector3 w) => Mathf.Max(Height(w), WaterY(w));
+
+        public bool InWater(Vector3 w) => Height(w) < WaterY(w) - 0.05f;
 
         // Nearest rock the circle (w, radius) overlaps; returns the push-out vector (xz)
         public bool HitsRock(Vector3 w, float radius, out Vector3 push)
@@ -265,7 +282,7 @@ namespace Navigator.Worlds
                     float d = (new Vector2(x, z) - pa.C).magnitude / pa.R;
                     if (d < 1f) c = Color.Lerp(c, pa.Col, pa.Strength * Mathf.SmoothStep(1f, 0f, d));
                 }
-                if (Center.y + Height01(i, j) < WaterLevel) c = _p.Accent;   // lake
+                if (InLakeArea(x, z) && Center.y + Height01(i, j) < WaterLevel) c = _p.Accent;   // lake
                 float grain = 0.92f + 0.16f * Mathf.PerlinNoise(x * 0.9f, z * 0.9f);
                 c.r *= grain; c.g *= grain; c.b *= grain; c.a = 1f;
                 px[j * MapRes + i] = c;

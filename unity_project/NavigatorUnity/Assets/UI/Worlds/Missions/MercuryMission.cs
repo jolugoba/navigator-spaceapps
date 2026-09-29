@@ -33,7 +33,11 @@ namespace Navigator.Worlds
             PadLocal = CraterAt + new Vector2(-1f, -1f).normalized * (CraterR + 28f);
             t.AddFlat(PadLocal, PadRadius);
             // Ice patches inside (only seen with lights or the infrared mapper)
-            foreach (var o in IceOffsets) t.AddPaint(CraterAt + o, 5f, new Color(0.35f, 0.42f, 0.5f), 0.7f);
+            foreach (var o in IceOffsets)
+            {
+                t.AddPaint(CraterAt + o, 5f, new Color(0.35f, 0.42f, 0.5f), 0.7f);
+                t.AddClear(CraterAt + o, 8f);
+            }
         }
 
         static readonly Vector2[] IceOffsets = { new(-25f, 10f), new(15f, 30f), new(20f, -22f) };
@@ -107,18 +111,16 @@ namespace Navigator.Worlds
             foreach (var s in Sites) if (!s.Done && s.Marker.activeSelf && Near(s, pos)) here = s;
 
             // A: drill ice
-            bool hasDrill = Has(ScienceInstrument.SampleDrill);
-            H.SetButton(H.BtnA, T("w.btn.drill"), hasDrill && here != null ? BtnState.Pulse : BtnState.Off, _drill / 3f,
-                        hasDrill ? T("w.drill.go") : T("w.need.drill"));
+            H.SetButton(H.BtnA, SampleBtn, here != null ? BtnState.Pulse : BtnState.Off, _drill / SampleTime, SampleHint);
             bool drilling = here != null && AHeld && _car.Battery > 0.02f;
             if (drilling)
             {
                 _drill += dt;
                 FxDrill(here.Pos, dt);
-                if (_drill >= 3f)
+                if (_drill >= SampleTime)
                 {
                     _drill = 0f; MarkDone(here); _ice++;
-                    Score(700, "w.merc.log.ice", _ice);
+                    Score(SamplePts(700), "w.merc.log.ice", _ice);
                     FxSample(here.Pos);
                     H.ShowBanner(F("w.sample.got", _ice, 3), UIStyle.Good);
                 }
@@ -146,8 +148,8 @@ namespace Navigator.Worlds
             // Thermometer: the Sun cooks, the shadow freezes; the parasol and the RTG change the maths
             var sunDir = Quaternion.Euler(0f, P.SunAzimuth + 180f, 0f) * Vector3.back;   // toward the Sun, horizontal
             bool facingSun = Vector3.Dot(_rover.transform.forward, sunDir) > 0.4f;
-            float rate = shadow ? -3f : (facingSun ? 1.2f : 2.6f);
-            if (Design != null && Design.Power != PowerSystem.Solar) rate += 1f;   // RTG / reactor heat
+            float rate = shadow ? -2.2f : (facingSun ? 0.6f : 1.4f);
+            if (Design != null && Design.Power != PowerSystem.Solar) rate += 0.8f;   // RTG / reactor heat
             if (_lightsOn) rate += 0.3f;
             if (drilling) rate += 1f;
             _tempC += rate * dt;

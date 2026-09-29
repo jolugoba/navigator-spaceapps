@@ -111,7 +111,7 @@ namespace Navigator.UI
             var p = Navigator.Worlds.WorldProfile.Get(d.TargetPlanetId);
             string body = p != null ? Loc.T("w.body." + p.Body) : Loc.Planet(d.TargetPlanetId);
             Line(sb, o.WorldSuccess ? Good : o.WorldLanded ? Warn : Bad,
-                 Loc.F("rep.world", body, new string('★', o.WorldStars) + new string('☆', 3 - o.WorldStars), o.WorldPoints));
+                 Loc.F("rep.world", body, new string('●', o.WorldStars) + new string('○', 3 - o.WorldStars), o.WorldPoints));
             int shown = 0;
             foreach (var l in o.WorldLines)
             {

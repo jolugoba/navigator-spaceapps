@@ -67,6 +67,19 @@ namespace Navigator.Worlds
         // ── Design links ─────────────────────────────────────────────────────
         protected bool Has(ScienceInstrument i) => Design != null && Design.Instruments.Contains(i);
 
+        // Without the drill the arm can still scoop loose soil: slower, worth a third, and 3 stars are lost
+        protected bool   HasDrill   => Has(ScienceInstrument.SampleDrill);
+        protected float  SampleTime => HasDrill ? 3f : 7f;
+        protected string SampleBtn  => T(HasDrill ? "w.btn.drill" : "w.btn.scoop");
+        protected string SampleHint => T(HasDrill ? "w.drill.go" : "w.scoop.go");
+        protected int    SamplePts(int pts)
+        {
+            if (HasDrill) return pts;
+            if (!_scooped) { _scooped = true; Result.Lines.Add(T("w.log.nodrill")); }
+            return pts / 3;
+        }
+        bool _scooped;
+
         // Battery charge per second (0..1 scale) for this world's light and the chosen power source
         protected float ChargeRate(float sunlight = 1f)
         {
@@ -192,6 +205,7 @@ namespace Navigator.Worlds
         {
             if (Finished) return;
             Result.Success = true;
+            if (_scooped) stars = Mathf.Min(stars, 2);
             Result.Stars = Mathf.Clamp(stars, 1, 3);
             Finished = true;
             AudioFX.Play(Sfx.Go);
@@ -413,7 +427,7 @@ namespace Navigator.Worlds
         {
             var sb = new System.Text.StringBuilder();
             foreach (var (key, done) in items)
-                sb.Append(done ? "<color=#52EB8C>✓ " : "<color=#8FA3C7>○ ").Append(T(key)).Append("</color>\n");
+                sb.Append(done ? "<color=#52EB8C>● " : "<color=#8FA3C7>○ ").Append(T(key)).Append("</color>\n");
             return sb.ToString();
         }
     }

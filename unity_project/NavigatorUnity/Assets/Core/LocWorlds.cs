@@ -50,7 +50,7 @@ namespace Navigator.Core
             { "w.data",       ("Data sent home: {0:F1} of {1:F1}", "Datos enviados a casa: {0:F1} de {1:F1}") },
             { "w.land.v",     ("↓ {0:F1} m/s", "↓ {0:F1} m/s") },
             { "w.land.h",     ("↔ {0:F1} m/s", "↔ {0:F1} m/s") },
-            { "w.land.tilt",  ("∠ {0:F0}°", "∠ {0:F0}°") },
+            { "w.land.tilt",  ("tilt {0:F0}°", "incl. {0:F0}°") },
 
             // Buttons
             { "w.btn.thrust",     ("THRUST", "EMPUJE") },
@@ -76,6 +76,7 @@ namespace Navigator.Core
             { "w.btn.jets",       ("JETS", "PROPULSOR") },
             { "w.btn.sample",     ("SAMPLE", "MUESTREAR") },
             { "w.btn.lift",       ("LIFT", "SUBIR") },
+            { "w.btn.scoop",      ("SCOOP", "RECOGER") },
 
             // Why a button is off (design lessons)
             { "w.need.drill",  ("You didn't bring the sample drill: no samples on this mission.", "No trajiste el taladro de muestras: en esta misión no hay muestras.") },
@@ -83,6 +84,8 @@ namespace Navigator.Core
             { "w.need.uv",     ("No UV spectrometer on board: you can't tell what it is made of.", "No llevas espectrómetro UV: no puedes saber de qué está hecho.") },
             { "w.need.camera", ("No camera on board: no photos.", "No llevas cámara: no hay fotos.") },
             { "w.drill.go",    ("Drive up to a marked rock and hold DRILL.", "Acércate a una roca marcada y mantén TALADRAR.") },
+            { "w.scoop.go",    ("No drill on board: the arm can only scoop loose soil. Get close to a marker and hold SCOOP (slow).", "No llevas taladro: el brazo solo puede recoger suelo suelto. Acércate a un marcador y mantén RECOGER (es lento).") },
+            { "w.log.nodrill", ("Without the drill you only scooped surface dust: less science (the best samples are inside the rock).", "Sin taladro solo recogiste polvo de la superficie: menos ciencia (las mejores muestras están dentro de la roca).") },
             { "w.scan.near",   ("Get close to something to scan it.", "Acércate a algo para escanearlo.") },
             { "w.nodata",      ("Nothing to send yet.", "Todavía no hay datos para enviar.") },
             { "w.nofuel",      ("Out of fuel!", "¡Sin combustible!") },
@@ -275,6 +278,7 @@ namespace Navigator.Core
             { "w.uranus.early",    ("Released early: shallow entry", "Soltada temprano: entrada rasante") },
             { "w.uranus.late",     ("Released late: steep entry, more heat", "Soltada tarde: entrada empinada, más calor") },
             { "w.uranus.cold",     ("−224 °C outside: turn the HEATER on!", "Afuera hace −224 °C: ¡enciende el CALEFACTOR!") },
+            { "w.uranus.warm",     ("Warmer down here: turn the HEATER off to save battery.", "Aquí abajo hace menos frío: apaga el CALEFACTOR para ahorrar batería.") },
             { "w.uranus.noorbiter",("The orbiter is below the horizon: wait for it.", "El orbitador está bajo el horizonte: espéralo.") },
             { "w.uranus.orbiter.up",   ("Orbiter in view · TRANSMIT", "Orbitador a la vista · TRANSMITE") },
             { "w.uranus.orbiter.down", ("Orbiter out of view", "Orbitador fuera de vista") },

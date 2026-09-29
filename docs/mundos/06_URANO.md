@@ -49,7 +49,7 @@
 
 ### El calefactor
 
-El frío de −224 °C congela la batería. Con el calefactor **encendido** la batería se mantiene, pero gasta energía. **Apagado** ahorra, pero si la temperatura baja demasiado, la sonda se apaga. Se juega en los dos sentidos.
+El frío de −224 °C congela la batería. Con el calefactor **encendido** la batería se mantiene, pero gasta energía. **Apagado** ahorra, pero si la temperatura baja demasiado, la sonda se apaga. Se juega en los dos sentidos. Más abajo (desde unos 1.200 m) hace menos frío: ahí se puede apagar sin peligro y el juego te avisa.
 
 ## 5. Física de este mundo
 

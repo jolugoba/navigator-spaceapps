@@ -382,9 +382,10 @@ namespace Navigator.Worlds
             float outside = Mathf.Lerp(TempTop, TempBottom, Depth / EndDepth);
             float target = _heater ? 15f : outside * 0.35f;
             _heaterTemp = Mathf.MoveTowards(_heaterTemp, target, (_heater ? 3f : 2.2f) * dt);
-            if (_heater) Battery -= 0.006f * dt;
+            if (_heater) Battery -= 0.0035f * dt;
             if (_heaterTemp < -40f) { Fail("w.fail.frozen"); return; }
             if (_heaterTemp < -20f) H.SetPrompt(T("w.uranus.cold"), 0.3f);
+            else if (_heater && outside * 0.35f > -30f) H.SetPrompt(T("w.uranus.warm"), 0.3f);   // deep enough: save battery
 
             // The orbiter crosses the sky: an arrow shows it, transmission only while visible
             bool vis = CanTransmit;

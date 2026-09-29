@@ -33,6 +33,7 @@ namespace Navigator.Worlds
             t.AddFlat(PadLocal, PadRadius);
             foreach (var g in GeyserAt)
             {
+                t.AddClear(g, PlumeR + 4f);
                 // Dark fan-shaped streak blown by the thin wind
                 for (int k = 0; k < 5; k++) t.AddPaint(g + new Vector2(k * 5f, k * 2f), 6f - k * 0.7f, P.Accent, 0.8f);
             }

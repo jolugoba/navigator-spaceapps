@@ -80,7 +80,7 @@ Hay 3 sitios, como la misión real:
 | **Solar** | Casi no funciona (neblina y mucha distancia al Sol): vuelos muy cortos |
 | **RTG** | Lo correcto (Dragonfly usa uno): recarga constante al posarse |
 | Espectrómetro UV | Encuentra los orgánicos; sin él, las muestras valen la mitad |
-| Taladro | Sin él no hay muestras |
+| Taladro | Sin él el dron solo **recoge** arena suelta: más lento, un tercio de los puntos, ★★ como máximo |
 | Cámara gran angular | Ve los sitios desde el aire (sin ella, los marcadores aparecen más cerca) |
 | Antena | Velocidad para enviar a casa; a esta distancia las antenas bajas casi no llegan |
 

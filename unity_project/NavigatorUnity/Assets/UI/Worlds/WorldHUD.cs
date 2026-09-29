@@ -293,7 +293,7 @@ namespace Navigator.Worlds
             if (ResultBody != null) ResultBody.text = body;
             if (ResultStars != null)
             {
-                ResultStars.text = new string('☆', 3);
+                ResultStars.text = new string('○', 3);
                 StopAllCoroutines();
                 StartCoroutine(RevealStars(stars));
             }
@@ -306,7 +306,7 @@ namespace Navigator.Worlds
             yield return new WaitForSecondsRealtime(0.4f);
             for (int i = 1; i <= stars; i++)
             {
-                ResultStars.text = new string('★', i) + new string('☆', 3 - i);
+                ResultStars.text = new string('●', i) + new string('○', 3 - i);
                 ResultStars.transform.localScale = Vector3.one * 1.35f;
                 Navigator.Game.AudioFX.Play(Navigator.Game.Sfx.Pickup, 0.7f + 0.15f * i);
                 float t = 0f;
