@@ -47,6 +47,9 @@ namespace Navigator.UI
             else
                 Line(sb, Muted, Loc.F("rep.obj.flyby",
                                       MissionDesign.OrbitInsertionDV.GetValueOrDefault(d.TargetPlanetId, 1000f)));
+            // The worlds only open with LANDING: say so, or players never find them
+            if (!d.IsLanding && d.CanLandOnTarget && Navigator.Worlds.WorldProfile.Get(d.TargetPlanetId) is { } wp)
+                Line(sb, Accent, Loc.F("rep.obj.world", Loc.T("w.body." + wp.Body)));
 
             if (!o.Arrived)
             {
