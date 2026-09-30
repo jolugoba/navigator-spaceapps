@@ -246,6 +246,7 @@ namespace Navigator.Worlds
             mesh.uv = uvs;
             mesh.triangles = tris;
             mesh.RecalculateNormals();
+            mesh.RecalculateTangents();   // the ground's detail normal map needs them
             mesh.RecalculateBounds();
             return mesh;
         }

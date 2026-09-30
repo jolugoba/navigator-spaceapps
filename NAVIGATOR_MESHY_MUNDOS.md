@@ -4,6 +4,8 @@
 
 **Son 20 modelos nuevos**, de un máximo de 30. Todo lo demás **se reutiliza** de lo que ya tenemos (lista al final).
 
+**Ya están (CC0, de Poly Haven):** PR-02, PR-04, PR-06 y PR-10, y las texturas de suelo de los 5 mundos con superficie. Detalles y más modelos CC0 para descargar en [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md). Si generas o descargas otro con el mismo código y le pones `_FINAL`, borra el de Poly Haven para que no haya dos.
+
 **Dos formas de conseguirlos:** generarlos con los prompts de las tablas A y B, o **descargarlos de la biblioteca de Meshy** (sección C), que ahorra créditos. Al juego le da igual de dónde venga el `.glb`.
 
 **Si falta alguno, el juego no se rompe:** el código usa una forma simple (caja, cilindro o esfera) con el color correcto hasta que llegue el modelo.
@@ -44,16 +46,16 @@ Carpetas (dentro de `unity_project/NavigatorUnity/Assets/`), créalas si no exis
 
 | # | Archivo | Prompt | Mundo |
 |---|---|---|---|
-| 11 | `Models/Props/PR-04_MarsLayeredRock_FINAL.glb` | `Mars sedimentary rock outcrop with visible horizontal layers, reddish brown and tan, dusty, realistic, PBR` | Marte (sitio del delta) |
-| 12 | `Models/Props/PR-06_MarsBoulder_FINAL.glb` | `dark grey volcanic basalt boulder with red dust in the cracks, Mars, realistic, PBR` | Marte (sitios y obstáculos) |
+| 11 | `Models/Props/PR-04_MarsLayeredRock_FINAL.glb` ✅ ya está (CC0) | `Mars sedimentary rock outcrop with visible horizontal layers, reddish brown and tan, dusty, realistic, PBR` | Marte (sitio del delta) |
+| 12 | `Models/Props/PR-06_MarsBoulder_FINAL.glb` ✅ ya está (CC0) | `dark grey volcanic basalt boulder with red dust in the cracks, Mars, realistic, PBR` | Marte (sitios y obstáculos) |
 | 13 | `Models/Props/PR-05_SampleTube_FINAL.glb` | `NASA Perseverance sample tube, slim titanium cylinder with white cap and serial markings, realistic, PBR` | Marte (depósito) |
 | 14 | `Models/Props/PR-08_HeatShield_FINAL.glb` | `discarded spacecraft heat shield, wide shallow cone, scorched and cracked brown ablative tiles, realistic, PBR` | Marte, Venus y Titán (cae al soltarlo) |
 | 15 | `Models/Props/PR-01_IceChunk_FINAL.glb` | `chunk of dirty water ice mixed with dark regolith, translucent bluish white, frosty, realistic, PBR` | Mercurio (y Tritón) |
-| 16 | `Models/Props/PR-02_MercuryBoulder_FINAL.glb` | `grey cratered rocky boulder, dusty dark grey regolith, sharp edges, airless surface, realistic, PBR` | Mercurio |
+| 16 | `Models/Props/PR-02_MercuryBoulder_FINAL.glb` ✅ ya está (CC0) | `grey cratered rocky boulder, dusty dark grey regolith, sharp edges, airless surface, realistic, PBR` | Mercurio |
 | 17 | `Models/Props/PR-03_VenusSlab_FINAL.glb` | `flat broken slabs of dark basalt lava rock, orange tinted, cracked plates, Venus surface, realistic, PBR` | Venus (placas a taladrar) |
 | 18 | `Models/Props/PR-07_TitanPebbles_FINAL.glb` | `cluster of rounded water ice pebbles on dark brown organic sand, Titan surface, realistic, PBR` | Titán |
 | 19 | `Models/Props/PR-09_GeyserVent_FINAL.glb` | `dark vent crater on pinkish nitrogen ice, black fan-shaped dust streak around the opening, icy moon Triton, realistic, PBR` | Tritón |
-| 20 | `Models/Props/PR-10_TritonFrostRock_FINAL.glb` | `icy rock covered in pinkish white nitrogen frost with small dimples, bluish grey underneath, realistic, PBR` | Tritón |
+| 20 | `Models/Props/PR-10_TritonFrostRock_FINAL.glb` ✅ ya está (CC0) | `icy rock covered in pinkish white nitrogen frost with small dimples, bluish grey underneath, realistic, PBR` | Tritón |
 
 ---
 
@@ -136,17 +138,7 @@ Los modelos de la biblioteca **son de otros autores**. Por cada uno que uses:
 ## Terreno, cielo y texturas: sin Meshy
 
 - El **terreno** (relieve, cráteres, dunas, placas), el **cielo** (degradado de color y niebla) y las **partículas** (polvo, lluvia de metano, géiseres, relámpagos) los genera el código con los colores de cada ficha. **No hay que descargar nada.**
-- **Opcional, para que el suelo se vea más real:** una textura de suelo por mundo de **ambientCG.com** (gratis, licencia CC0, sin atribución obligatoria). Descarga la versión **1K-JPG** y ponla en `Assets/Art/Ground/` con este nombre:
-
-| Archivo | Qué buscar en ambientCG |
-|---|---|
-| `ground_mercury.jpg` | "Ground" o "Rock", gris oscuro, sin plantas |
-| `ground_venus.jpg` | "Rock" o "Lava", roca volcánica oscura y plana |
-| `ground_mars.jpg` | "Ground" o "Sand", rojizo o café claro |
-| `ground_titan.jpg` | "Sand" o "Ground", café oscuro |
-| `ground_triton.jpg` | "Snow" o "Ice", blanco con algo de textura |
-
-Si no están, el código genera la textura. **No son necesarias para que funcione.**
+- **Textura de suelo de cada mundo: ya incluida** (CC0, de Poly Haven) en `Assets/Art/Ground/`: `ground_<mundo>.jpg` (gris neutro que da el grano de cerca) y `ground_<mundo>_normal.jpg` (relieve). El color lo sigue poniendo el código. Para cambiar una, reemplaza el archivo con otra textura en gris (media 50 %) y ejecuta **Setup Scene**. Si se borran, el suelo se ve liso como antes.
 
 ## Orden recomendado
 

@@ -194,11 +194,21 @@ namespace Navigator.Worlds
             _owned.Add(mesh);
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.GetComponent<MeshRenderer>();
-            var mat = _assets.NewMaterial(_assets.TerrainMaterial, Color.white, 0.08f);
+            var detail = _assets.TerrainDetailMaterial != null ? _assets.GroundFor(_p.Body) : null;
+            var mat = _assets.NewMaterial(detail != null ? _assets.TerrainDetailMaterial : _assets.TerrainMaterial, Color.white, 0.08f);
             var tex = Terrain.BuildColorMap();
             _owned.Add(tex); _owned.Add(mat);
             if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
             mat.mainTexture = tex;
+            if (detail != null)   // close-up grain from a real photo texture, tiled at its real size
+            {
+                float tiles = WorldTerrain.Size / Mathf.Max(0.5f, detail.TileMetres);
+                mat.SetTexture("_DetailAlbedoMap", detail.Albedo);
+                mat.SetTextureScale("_DetailAlbedoMap", new Vector2(tiles, tiles));
+                if (detail.Normal != null) mat.SetTexture("_DetailNormalMap", detail.Normal);
+                mat.EnableKeyword("_DETAIL_MULX2");
+                mat.EnableKeyword("_NORMALMAP");
+            }
             mr.sharedMaterial = mat;
             mr.receiveShadows = true;
         }

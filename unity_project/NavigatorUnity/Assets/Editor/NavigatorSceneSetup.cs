@@ -204,6 +204,9 @@ namespace Navigator.Editor
             worlds.Assets.PropMaterial    = LitMaterial("WorldProp", Color.white, 0.3f);
             worlds.Assets.DustMaterial    = DustMaterial();
             worlds.Assets.GlowMaterial    = ParticleMaterial();
+            worlds.Assets.Grounds         = GroundDetails();
+            worlds.Assets.TerrainDetailMaterial = worlds.Assets.Grounds.Length > 0
+                ? TerrainDetailMaterial(worlds.Assets.Grounds[0]) : null;
             models += NavigatorAssignModels.AssignWorlds(worlds.Assets);
             gm.Worlds = worlds;
             KeepFogShaders();
@@ -533,6 +536,67 @@ namespace Navigator.Editor
             mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        // Ground photo textures in Assets/Art/Ground (CC0, from Poly Haven — CREDITS.md):
+        // ground_<body>.jpg is a neutral grey detail map, ground_<body>_normal.jpg its normal map.
+        const string GroundDir = "Assets/Art/Ground";
+        static readonly (string body, float tile)[] GroundBodies =
+            { ("mercury", 3.1f), ("venus", 2.4f), ("mars", 2.5f), ("titan", 3.9f), ("triton", 2f) };
+
+        static WorldAssets.GroundDetail[] GroundDetails()
+        {
+            var list = new System.Collections.Generic.List<WorldAssets.GroundDetail>();
+            foreach (var (body, tile) in GroundBodies)
+            {
+                var albedo = GroundTexture($"{GroundDir}/ground_{body}.jpg", false);
+                if (albedo == null) continue;
+                list.Add(new WorldAssets.GroundDetail
+                {
+                    Body = body, Albedo = albedo, TileMetres = tile,
+                    Normal = GroundTexture($"{GroundDir}/ground_{body}_normal.jpg", true),
+                });
+            }
+            return list.ToArray();
+        }
+
+        static Texture2D GroundTexture(string path, bool normal)
+        {
+            if (AssetImporter.GetAtPath(path) is not TextureImporter imp) return null;
+            var type = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            // URP multiplies by detail × 2 without gamma correction: the grey map is read as linear
+            if (imp.textureType != type || imp.wrapMode != TextureWrapMode.Repeat || imp.maxTextureSize != 1024
+                || (!normal && imp.sRGBTexture))
+            {
+                imp.textureType = type;
+                if (!normal) imp.sRGBTexture = false;
+                imp.wrapMode = TextureWrapMode.Repeat;
+                imp.maxTextureSize = 1024;
+                imp.mipmapEnabled = true;
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        // URP Lit with the detail maps switched on; the worlds copy it and swap the textures
+        static Material TerrainDetailMaterial(WorldAssets.GroundDetail sample)
+        {
+            string path = $"{MatDir}/WorldTerrainDetail.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                Directory.CreateDirectory(MatDir);
+                mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.08f);
+            if (mat.HasProperty("_DetailAlbedoMap")) mat.SetTexture("_DetailAlbedoMap", sample.Albedo);
+            if (mat.HasProperty("_DetailNormalMap") && sample.Normal != null) mat.SetTexture("_DetailNormalMap", sample.Normal);
+            mat.EnableKeyword("_DETAIL_MULX2");
+            mat.EnableKeyword("_NORMALMAP");
+            EditorUtility.SetDirty(mat);
             return mat;
         }
 

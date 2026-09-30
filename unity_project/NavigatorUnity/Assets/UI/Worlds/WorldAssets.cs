@@ -18,6 +18,10 @@ namespace Navigator.Worlds
         public Material PropMaterial;      // URP Lit, tinted per use
         public Material DustMaterial;      // particles, alpha blended
         public Material GlowMaterial;      // particles, additive (flames, beacons)
+        public Material TerrainDetailMaterial;   // URP Lit with detail maps on (keeps that variant in builds)
+
+        [Header("Ground detail (Art/Ground/ground_<body>.jpg, CC0 — see CREDITS.md)")]
+        public GroundDetail[] Grounds;
 
         [Header("Vehicles (Models/Vehicles, prefix VH-)")]
         public GameObject Lander;          // VH-01 Mercury, Triton
@@ -47,6 +51,22 @@ namespace Navigator.Worlds
 
         // Planet and moon models for the sky (from ARSpaceManager, set at runtime)
         [NonSerialized] public Func<string, GameObject> SkyBodyPrefab;
+
+        [Serializable]
+        public class GroundDetail
+        {
+            public string    Body;
+            public Texture2D Albedo;      // neutral grey: multiplies the painted colour (mean 0.5 keeps it)
+            public Texture2D Normal;      // OpenGL normal map, optional
+            public float     TileMetres = 3f;
+        }
+
+        public GroundDetail GroundFor(string body)
+        {
+            if (Grounds == null) return null;
+            foreach (var g in Grounds) if (g != null && g.Albedo != null && g.Body == body) return g;
+            return null;
+        }
 
         public GameObject RockFor(string body) => body switch
         {

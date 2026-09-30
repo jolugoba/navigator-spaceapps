@@ -33,6 +33,24 @@ The same list appears in the app (lobby → **CREDITS**).
 
 Ships, planets, moons, probes and objects in `Assets/Models`: generated with **Meshy AI** (meshy.ai) by the team, except the ones listed below.
 
+### CC0 assets from Poly Haven (already in the project)
+
+Ground textures for the worlds and some world rocks come from **Poly Haven** (polyhaven.com). All Poly Haven assets are **CC0 (public domain)**: free to use, no attribution required — we credit the authors anyway. License: https://polyhaven.com/license
+
+The ground `.jpg` files were converted to neutral grey detail maps; the rocks were converted from glTF to `.glb` unchanged. Full list of CC0 assets and more to download: [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md).
+
+| File (`unity_project/NavigatorUnity/Assets/`) | Asset | Authors | License |
+|---|---|---|---|
+| `Art/Ground/ground_mercury.jpg (+ _normal)` | [Moon 01](https://polyhaven.com/a/moon_01) | Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi | CC0 |
+| `Art/Ground/ground_venus.jpg (+ _normal)` | [Dark Rock](https://polyhaven.com/a/dark_rock) | Amal Kumar | CC0 |
+| `Art/Ground/ground_mars.jpg (+ _normal)` | [Gravelly Sand](https://polyhaven.com/a/gravelly_sand) | Dario Barresi | CC0 |
+| `Art/Ground/ground_titan.jpg (+ _normal)` | [Coast Sand 04](https://polyhaven.com/a/coast_sand_04) | Rob Tuytel, Dario Barresi | CC0 |
+| `Art/Ground/ground_triton.jpg (+ _normal)` | [Snow 03](https://polyhaven.com/a/snow_03) | Rob Tuytel | CC0 |
+| `Models/Props/PR-02_MercuryBoulder_FINAL.glb` | [Moon Rock 03](https://polyhaven.com/a/moon_rock_03) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | CC0 |
+| `Models/Props/PR-04_MarsLayeredRock_FINAL.glb` | [Rock 07](https://polyhaven.com/a/rock_07) | Jenelle van Heerden | CC0 |
+| `Models/Props/PR-06_MarsBoulder_FINAL.glb` | [Rock 09](https://polyhaven.com/a/rock_09) | Jenelle van Heerden | CC0 |
+| `Models/Props/PR-10_TritonFrostRock_FINAL.glb` | [Moon Rock 01](https://polyhaven.com/a/moon_rock_01) | Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi | CC0 |
+
 ### Third-party models (Meshy library)
 
 Models downloaded from the Meshy community library were made by other authors. **Before submitting, check each license on the model's page** and fill in this table. If a license doesn't allow the use (or can't be confirmed), delete the file: the game falls back to a simple shape.
