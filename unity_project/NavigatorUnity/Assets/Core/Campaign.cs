@@ -1,6 +1,6 @@
 // Navigator 2.0 — Campaign.cs
 // "NASA Program": a map of eight worlds of rising difficulty, each with a fixed target and
-// objective, its own budget and a science goal for 1-3 stars. One star lights the world up and
+// objective (all landings, so every mission ends in its world — docs/mundos/), its own budget and a science goal for 1-3 stars. One star lights the world up and
 // unlocks the next. In a classroom (teacher mode) the teacher decides who moves on instead.
 // Guacalita Inc. — SAL / Claude
 
@@ -29,14 +29,14 @@ namespace Navigator.Core
 
         public static readonly CampaignMission[] Missions =
         {
-            new() { Index = 0, Key = "firstlight", Planet = "mars",    Objective = "flyby",   BudgetM = 600f,  StarGoals = new[] { 2000, 3500, 5000 } },
-            new() { Index = 1, Key = "venus",      Planet = "venus",   Objective = "orbit",   BudgetM = 800f,  StarGoals = new[] { 4000, 7000, 10000 } },
-            new() { Index = 2, Key = "mercury",    Planet = "mercury", Objective = "orbit",   BudgetM = 900f,  StarGoals = new[] { 3500, 6500, 9500 } },
+            new() { Index = 0, Key = "firstlight", Planet = "mars",    Objective = "landing", BudgetM = 750f,  StarGoals = new[] { 2250, 5250, 8250 } },
+            new() { Index = 1, Key = "venus",      Planet = "venus",   Objective = "landing", BudgetM = 950f,  StarGoals = new[] { 4750, 8750, 12750 } },
+            new() { Index = 2, Key = "mercury",    Planet = "mercury", Objective = "landing", BudgetM = 1050f, StarGoals = new[] { 4000, 8000, 12000 } },
             new() { Index = 3, Key = "rover",      Planet = "mars",    Objective = "landing", BudgetM = 1000f, StarGoals = new[] { 5000, 9000, 13000 } },
-            new() { Index = 4, Key = "jupiter",    Planet = "jupiter", Objective = "orbit",   BudgetM = 1000f, StarGoals = new[] { 4000, 8000, 12000 } },
-            new() { Index = 5, Key = "saturn",     Planet = "saturn",  Objective = "orbit",   BudgetM = 1100f, StarGoals = new[] { 4000, 8000, 12000 } },
-            new() { Index = 6, Key = "uranus",     Planet = "uranus",  Objective = "flyby",   BudgetM = 1100f, StarGoals = new[] { 3000, 6000, 9000 } },
-            new() { Index = 7, Key = "neptune",    Planet = "neptune", Objective = "flyby",   BudgetM = 1200f, StarGoals = new[] { 3000, 6000, 9000 } },
+            new() { Index = 4, Key = "jupiter",    Planet = "jupiter", Objective = "landing", BudgetM = 1150f, StarGoals = new[] { 4750, 10000, 15500 } },
+            new() { Index = 5, Key = "saturn",     Planet = "saturn",  Objective = "landing", BudgetM = 1250f, StarGoals = new[] { 4750, 10000, 15500 } },
+            new() { Index = 6, Key = "uranus",     Planet = "uranus",  Objective = "landing", BudgetM = 1250f, StarGoals = new[] { 4250, 10250, 16250 } },
+            new() { Index = 7, Key = "neptune",    Planet = "neptune", Objective = "landing", BudgetM = 1350f, StarGoals = new[] { 4250, 10250, 16250 } },
         };
 
         // Teacher mode replaces "one star unlocks the next" with the teacher's decision

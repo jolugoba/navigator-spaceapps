@@ -531,20 +531,25 @@ hasta Neptuno.
 - La primera vez que completas un mundo (1 estrella), se enciende con un rebote, un destello y una lluvia de estrellas, y abre el siguiente.
 - El progreso se guarda por clave de misión, así que agregar mundos no borra el avance de nadie.
 
+**Todas las misiones son de aterrizaje**, así que cada una termina bajando a su mundo (`docs/mundos/`).
+
 | # | Mundo | Destino · objetivo | Presupuesto | Metas ●/●●/●●● |
 |---|---|---|---|---|
-| 1 | First Light / Primera luz | Marte · sobrevuelo | $600M | 2,000 / 3,500 / 5,000 |
-| 2 | Beneath the Clouds / Bajo las nubes | Venus · órbita | $800M | 4,000 / 7,000 / 10,000 |
-| 3 | Closest to the Sun / El más cercano al Sol | Mercurio · órbita (como MESSENGER) | $900M | 3,500 / 6,500 / 9,500 |
+| 1 | First Light / Primera luz | Marte · aterrizaje | $750M | 2,250 / 5,250 / 8,250 |
+| 2 | Beneath the Clouds / Bajo las nubes | Venus · aterrizaje (como Venera 13) | $950M | 4,750 / 8,750 / 12,750 |
+| 3 | Closest to the Sun / El más cercano al Sol | Mercurio · aterrizaje en el polo norte | $1,050M | 4,000 / 8,000 / 12,000 |
 | 4 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,000M | 5,000 / 9,000 / 13,000 |
-| 5 | King of Planets / El rey de los planetas | Júpiter · órbita | $1,000M | 4,000 / 8,000 / 12,000 |
-| 6 | Lord of the Rings / El señor de los anillos | Saturno · órbita | $1,100M | 4,000 / 8,000 / 12,000 |
-| 7 | The Sideways Planet / El planeta acostado | Urano · sobrevuelo (como Voyager 2) | $1,100M | 3,000 / 6,000 / 9,000 |
-| 8 | The Last Giant / El último gigante | Neptuno · sobrevuelo | $1,200M | 3,000 / 6,000 / 9,000 |
+| 5 | King of Planets / El rey de los planetas | Júpiter · sonda atmosférica (como Galileo) | $1,150M | 4,750 / 10,000 / 15,500 |
+| 6 | Lord of the Rings / El señor de los anillos | Saturno → Titán (como Huygens) | $1,250M | 4,750 / 10,000 / 15,500 |
+| 7 | The Sideways Planet / El planeta acostado | Urano · orbitador + sonda | $1,250M | 4,250 / 10,250 / 16,250 |
+| 8 | The Last Giant / El último gigante | Neptuno → Tritón | $1,350M | 4,250 / 10,250 / 16,250 |
 
-Cada meta se verificó con un diseño válido posible. Mercurio en órbita (11,800 m/s) y Urano (15,900 m/s) se
-comprobaron buscando entre todas las combinaciones del diseño: el mejor diseño dentro del presupuesto da
-20,610 y 12,940 puntos de ciencia, por encima de la meta de 3 estrellas.
+Cómo se ajustó: el módulo de aterrizaje cuesta $150M más el combustible extra, así que cada presupuesto subió $150M
+(la misión 4 ya aterrizaba y no cambió). Las metas suben porque aterrizar da ciencia ×2 en vez de ×1 (sobrevuelo) o ×1.5
+(órbita): la parte de ciencia de cada meta se escaló por esa razón. Se comprobó buscando entre todas las combinaciones del
+diseño con las mismas fórmulas del juego: el diseño válido más barato con aterrizaje cuesta entre $414M (Marte) y $503M
+(Urano, Neptuno), y el mejor diseño dentro de cada presupuesto da entre 26,780 y 34,520 puntos de ciencia, por encima de la
+meta de 3 estrellas.
 
 ## 10f. Escáner y láser — `Game/ShipTools.cs`, `Game/Scannable.cs`
 Una **mira** sigue lo que la nave apunta: se engancha (dorada, con nombre) a asteroides, pods, planetas,
