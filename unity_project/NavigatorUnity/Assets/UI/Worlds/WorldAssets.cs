@@ -68,6 +68,38 @@ namespace Navigator.Worlds
             return null;
         }
 
+        [Header("Rock variants: every *_FINAL.glb with the world's rock code (filled by Setup Scene)")]
+        public GameObject[] MercuryRocks;   // PR-02
+        public GameObject[] VenusRocks;     // PR-03
+        public GameObject[] MarsRocks;      // PR-06 + PR-04
+        public GameObject[] TitanRocks;     // PR-07
+        public GameObject[] TritonRocks;    // PR-10
+
+        // The rocks scattered over a world. A world with no rock of its own yet (Venus, Titan)
+        // borrows the grey lunar ones; `borrowed` tells the caller to tint them with its colour.
+        public GameObject[] RocksFor(string body, out bool borrowed)
+        {
+            borrowed = false;
+            var own = body switch
+            {
+                "mercury" => MercuryRocks,
+                "venus"   => VenusRocks,
+                "mars"    => MarsRocks,
+                "titan"   => TitanRocks,
+                "triton"  => TritonRocks,
+                _         => null,
+            };
+            if (own != null && own.Length > 0) return own;
+            var single = RockFor(body);
+            if (single != null) return new[] { single };
+            if ((body == "venus" || body == "titan") && MercuryRocks != null && MercuryRocks.Length > 0)
+            {
+                borrowed = true;
+                return MercuryRocks;
+            }
+            return null;
+        }
+
         public GameObject RockFor(string body) => body switch
         {
             "mercury" => MercuryBoulder,

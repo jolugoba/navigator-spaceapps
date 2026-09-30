@@ -4,7 +4,7 @@
 
 **Son 20 modelos nuevos**, de un máximo de 30. Todo lo demás **se reutiliza** de lo que ya tenemos (lista al final).
 
-**Ya están (CC0, de Poly Haven):** PR-02, PR-04, PR-06 y PR-10, y las texturas de suelo de los 5 mundos con superficie. Detalles y más modelos CC0 para descargar en [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md). Si generas o descargas otro con el mismo código y le pones `_FINAL`, borra el de Poly Haven para que no haya dos.
+**Ya están (CC0, de Poly Haven):** PR-02, PR-04, PR-06 y PR-10 (con variantes), y las texturas de suelo de los 5 mundos con superficie. Detalles y más modelos CC0 para descargar en [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md). Si generas o descargas otro con el mismo código y le pones `_FINAL`, borra el de Poly Haven para que no haya dos.
 
 **Dos formas de conseguirlos:** generarlos con los prompts de las tablas A y B, o **descargarlos de la biblioteca de Meshy** (sección C), que ahorra créditos. Al juego le da igual de dónde venga el `.glb`.
 
@@ -97,7 +97,7 @@ Busca en **inglés** (da más resultados). Si la primera búsqueda no sirve, pru
 
 1. Descarga en formato **GLB**.
 2. Si bajas varios del mismo, ponles un sufijo: `VH-07_Dragonfly_a.glb`, `VH-07_Dragonfly_b.glb`…
-3. Al que más te guste ponle **`_FINAL` al final**: `VH-07_Dragonfly_FINAL.glb`. El juego usa ese; si ninguno lo lleva, toma cualquiera. Borra los que no uses para no inflar el repositorio.
+3. Al que más te guste ponle **`_FINAL` al final**: `VH-07_Dragonfly_FINAL.glb`. El juego usa ese; si ninguno lo lleva, toma cualquiera. Borra los que no uses para no inflar el repositorio. **Excepción, las rocas (PR-02, 03, 04, 06, 07, 10):** ahí el juego usa **todos** los `_FINAL` del mismo código y los mezcla. Ejemplo: `PR-06_MarsBoulder_FINAL.glb` y `PR-06_MarsBoulder_b_FINAL.glb` salen los dos.
 4. **Peso:** menos de ~10 MB por archivo. Si pesa más, ejecuta `cd tools && npm install && node optimize_models.mjs` (solo toca los `_FINAL`; guarda el original en `unity_project/models_original/`).
 5. **Orientación:** los vehículos deben mirar hacia adelante con las ruedas o patas abajo. Si una nave sale al revés, **Navigator → Flip Ship Nose 180°**.
 6. En Unity: **Navigator → Assign Models** y luego **Navigator → Setup Scene**.

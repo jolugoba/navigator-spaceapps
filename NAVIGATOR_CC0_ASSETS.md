@@ -36,8 +36,19 @@ Júpiter y Urano no tienen suelo, así que no llevan textura.
 | `PR-04_MarsLayeredRock_FINAL.glb` | [Rock 07](https://polyhaven.com/a/rock_07) | Jenelle van Heerden | Sitios del delta y la orilla (Marte) |
 | `PR-06_MarsBoulder_FINAL.glb` | [Rock 09](https://polyhaven.com/a/rock_09) | Jenelle van Heerden | Rocas de Marte y sitio del fondo del cráter |
 | `PR-10_TritonFrostRock_FINAL.glb` | [Moon Rock 01](https://polyhaven.com/a/moon_rock_01) | Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi | Rocas de Tritón |
+| `PR-02_MercuryBoulder_b_FINAL.glb` | [Moon Rock 02](https://polyhaven.com/a/moon_rock_02) | Rico Cilliers, Greg Zaal, Jenelle van Heerden | Variante, Mercurio |
+| `PR-02_MercuryBoulder_c_FINAL.glb` | [Moon Rock 04](https://polyhaven.com/a/moon_rock_04) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | Variante, Mercurio |
+| `PR-02_MercuryBoulder_d_FINAL.glb` | [Moon Rock 06](https://polyhaven.com/a/moon_rock_06) | Greg Zaal, Jenelle van Heerden, Rico Cilliers | Variante, Mercurio |
+| `PR-06_MarsBoulder_b_FINAL.glb` | [Namaqualand Boulder 04](https://polyhaven.com/a/namaqualand_boulder_04) | Jenelle van Heerden | Variante oxidada, Marte (simplificada a 32.000 triángulos) |
+| `PR-06_MarsBoulder_c_FINAL.glb` | [Namaqualand Boulder 06](https://polyhaven.com/a/namaqualand_boulder_06) | Greg Zaal, Jenelle van Heerden | Variante, Marte (simplificada a 30.000 triángulos) |
+| `PR-10_TritonFrostRock_b_FINAL.glb` | [Moon Rock 05](https://polyhaven.com/a/moon_rock_05) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | Variante, Tritón |
+| `PR-10_TritonFrostRock_c_FINAL.glb` | [Moon Rock 07](https://polyhaven.com/a/moon_rock_07) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | Variante, Tritón |
 
-Son livianos (5.600 a 18.700 triángulos, texturas 1K, de 1,5 a 2,2 MB cada uno).
+Son livianos (5.600 a 32.000 triángulos, texturas 1K, de 1,4 a 3,5 MB cada uno).
+
+**Variantes:** en las rocas, el juego usa **todos** los `_FINAL` que empiezan con el mismo código y los mezcla, para que el suelo no se vea con la misma roca copiada. Marte mezcla además PR-06 y PR-04.
+
+**Venus y Titán** todavía no tienen rocas propias (PR-03 y PR-07 no existen en CC0). Mientras tanto, el juego usa las rocas lunares de Mercurio **teñidas con el color de cada mundo**. En Venus, además, las aplana para que parezcan las placas de lava. Cuando llegue un PR-03 o PR-07 de Meshy, el juego usa ese.
 
 ### Para repetirlo
 
@@ -53,6 +64,8 @@ Para bajar solo uno, pon su nombre de Poly Haven:
 ```
 python3 tools/cc0_fetch.py rock_09
 ```
+
+Las dos rocas de Namaqualand (Marte) bajan pesadas: después del script ejecuta `cd tools && npm install && node optimize_models.mjs` para dejarlas en ~30.000 triángulos, como las del proyecto.
 
 Para agregar otro, añade una línea en `MODELS` (roca o modelo) o en `GROUNDS` (suelo) dentro del script, con el nombre de Poly Haven y el archivo de destino. Luego agrega su fila aquí y en `CREDITS.md`.
 
@@ -71,12 +84,12 @@ Todos estos están marcados **CC0 Public Domain** en Sketchfab. Revisa que la p�
 | Guardar como | Modelo | Autor | Enlace | Para qué |
 |---|---|---|---|---|
 | `Models/Vehicles/VH-03_EntryCapsule_FINAL.glb` | Apollo 11 Command Module Exterior | The Smithsonian Institution | https://sketchfab.com/3d-models/bf46ddbfb76b42d2af57d20625b1b603 | La cápsula de entrada (Marte, Venus, Titán). Es un escaneo de la cápsula real |
-| `Models/Props/PR-06_MarsBoulder_FINAL.glb` *(opcional, reemplaza la de Poly Haven)* | Antarctic Meteorite Sample ALH 84001,55 | NASA Astromaterials 3D | https://sketchfab.com/3d-models/fed05a58c22949568ba3648f64052f03 | **Una roca de Marte de verdad**: el meteorito marciano ALH 84001 |
-| `Models/Props/PR-02_MercuryBoulder_FINAL.glb` *(opcional, reemplaza la de Poly Haven)* | Apollo Lunar Sample 14316,0 | NASA Astromaterials 3D | https://sketchfab.com/3d-models/4efb5f99eaf94398a6ef9fa65b91c59d | Roca traída de la Luna por el Apolo 14, parecida a las de Mercurio |
+| `Models/Props/PR-06_MarsBoulder_e_FINAL.glb` *(opcional, se suma a las variantes)* | Antarctic Meteorite Sample ALH 84001,55 | NASA Astromaterials 3D | https://sketchfab.com/3d-models/fed05a58c22949568ba3648f64052f03 | **Una roca de Marte de verdad**: el meteorito marciano ALH 84001 |
+| `Models/Props/PR-02_MercuryBoulder_e_FINAL.glb` *(opcional, se suma a las variantes)* | Apollo Lunar Sample 14316,0 | NASA Astromaterials 3D | https://sketchfab.com/3d-models/4efb5f99eaf94398a6ef9fa65b91c59d | Roca traída de la Luna por el Apolo 14, parecida a las de Mercurio |
 
 **Importante después de bajarlos:**
 1. Pesan mucho (90.000 a 240.000 caras). Ejecuta `cd tools && npm install && node optimize_models.mjs` para aligerarlos.
-2. Si reemplazas una roca, **borra la de Poly Haven** con el mismo código y cambia su fila en `CREDITS.md`.
+2. Una roca nueva con el mismo código **se suma a las variantes** (no reemplaza). Si quieres que salga solo la nueva, borra las de Poly Haven con ese código y sus filas en `CREDITS.md`.
 3. Agrega una fila en `CREDITS.md`, en la tabla **"Third-party models"**, con el archivo, el nombre del modelo, el autor, el enlace y "CC0".
 4. En Unity: **Navigator → Assign Models** y luego **Navigator → Setup Scene**.
 

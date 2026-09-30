@@ -17,6 +17,14 @@ MODELS = [
     ("rock_07",      "Models/Props/PR-04_MarsLayeredRock_FINAL.glb"),
     ("rock_09",      "Models/Props/PR-06_MarsBoulder_FINAL.glb"),
     ("moon_rock_01", "Models/Props/PR-10_TritonFrostRock_FINAL.glb"),
+    # Variants: every _FINAL with the same code is scattered over the world
+    ("moon_rock_02", "Models/Props/PR-02_MercuryBoulder_b_FINAL.glb"),
+    ("moon_rock_04", "Models/Props/PR-02_MercuryBoulder_c_FINAL.glb"),
+    ("moon_rock_06", "Models/Props/PR-02_MercuryBoulder_d_FINAL.glb"),
+    ("namaqualand_boulder_04", "Models/Props/PR-06_MarsBoulder_b_FINAL.glb"),   # heavy: run optimize_models.mjs
+    ("namaqualand_boulder_06", "Models/Props/PR-06_MarsBoulder_c_FINAL.glb"),   # heavy: run optimize_models.mjs
+    ("moon_rock_05", "Models/Props/PR-10_TritonFrostRock_b_FINAL.glb"),
+    ("moon_rock_07", "Models/Props/PR-10_TritonFrostRock_c_FINAL.glb"),
 ]
 
 # (Poly Haven id, world) → Art/Ground/ground_<world>.jpg + ground_<world>_normal.jpg

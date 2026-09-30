@@ -217,15 +217,22 @@ namespace Navigator.Worlds
         {
             var rockMat = _assets.NewMaterial(_assets.PropMaterial, _p.Rock, 0.15f);
             _owned.Add(rockMat);
-            var prefab = _assets.RockFor(_p.Body);
+            var models = _assets.RocksFor(_p.Body, out bool borrowed);
+            var tinted = new Dictionary<Material, Material>();
+            int i = 0;
             foreach (var r in Terrain.Rocks)
             {
                 var pos = new Vector3(r.x, Terrain.Height(r.x, r.y) - r.z * 0.25f, r.y);
                 GameObject go;
-                if (prefab != null)
+                if (models != null && models.Length > 0)
                 {
+                    // Mix the variants so no two neighbours look like copies
+                    var prefab = models[(i++ * 7 + (int)Mathf.Abs(r.x + r.y)) % models.Length];
                     go = Object.Instantiate(prefab, Root.transform);
+                    if (borrowed) Tint(go, tinted);
                     Navigator.Core.ModelFit.FitToSize(go, r.z * 2.2f);
+                    if (borrowed && _p.Slabs > 0f)   // Venus: flat broken plates, not boulders
+                        go.transform.localScale = Vector3.Scale(go.transform.localScale, new Vector3(1.3f, 0.45f, 1.3f));
                     go.transform.position = pos;
                 }
                 else
@@ -236,6 +243,32 @@ namespace Navigator.Worlds
                 }
                 go.transform.rotation = Quaternion.Euler(0f, (r.x * 37f + r.y * 11f) % 360f, 0f);
                 go.name = "Rock";
+            }
+        }
+
+        // Borrowed grey rocks take this world's rock colour (one tinted copy per source material)
+        void Tint(GameObject go, Dictionary<Material, Material> cache)
+        {
+            // The lunar rocks are light grey (~0.6): scale up so the result lands near _p.Rock
+            var tint = _p.Rock * 1.6f; tint.a = 1f;
+            foreach (var rend in go.GetComponentsInChildren<Renderer>())
+            {
+                var mats = rend.sharedMaterials;
+                for (int m = 0; m < mats.Length; m++)
+                {
+                    var src = mats[m];
+                    if (src == null) continue;
+                    if (!cache.TryGetValue(src, out var copy))
+                    {
+                        copy = new Material(src);
+                        if (copy.HasProperty("baseColorFactor")) copy.SetColor("baseColorFactor", tint);   // glTFast
+                        if (copy.HasProperty("_BaseColor")) copy.SetColor("_BaseColor", tint);              // URP Lit
+                        cache[src] = copy;
+                        _owned.Add(copy);
+                    }
+                    mats[m] = copy;
+                }
+                rend.sharedMaterials = mats;
             }
         }
 

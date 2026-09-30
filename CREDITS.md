@@ -37,7 +37,7 @@ Ships, planets, moons, probes and objects in `Assets/Models`: generated with **M
 
 Ground textures for the worlds and some world rocks come from **Poly Haven** (polyhaven.com). All Poly Haven assets are **CC0 (public domain)**: free to use, no attribution required — we credit the authors anyway. License: https://polyhaven.com/license
 
-The ground `.jpg` files were converted to neutral grey detail maps; the rocks were converted from glTF to `.glb` unchanged. Full list of CC0 assets and more to download: [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md).
+The ground `.jpg` files were converted to neutral grey detail maps; the rocks were converted from glTF to `.glb` (the two Namaqualand boulders also simplified to ~30,000 triangles). Full list of CC0 assets and more to download: [`NAVIGATOR_CC0_ASSETS.md`](NAVIGATOR_CC0_ASSETS.md).
 
 | File (`unity_project/NavigatorUnity/Assets/`) | Asset | Authors | License |
 |---|---|---|---|
@@ -50,6 +50,13 @@ The ground `.jpg` files were converted to neutral grey detail maps; the rocks we
 | `Models/Props/PR-04_MarsLayeredRock_FINAL.glb` | [Rock 07](https://polyhaven.com/a/rock_07) | Jenelle van Heerden | CC0 |
 | `Models/Props/PR-06_MarsBoulder_FINAL.glb` | [Rock 09](https://polyhaven.com/a/rock_09) | Jenelle van Heerden | CC0 |
 | `Models/Props/PR-10_TritonFrostRock_FINAL.glb` | [Moon Rock 01](https://polyhaven.com/a/moon_rock_01) | Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi | CC0 |
+| `Models/Props/PR-02_MercuryBoulder_b_FINAL.glb` | [Moon Rock 02](https://polyhaven.com/a/moon_rock_02) | Rico Cilliers, Greg Zaal, Jenelle van Heerden | CC0 |
+| `Models/Props/PR-02_MercuryBoulder_c_FINAL.glb` | [Moon Rock 04](https://polyhaven.com/a/moon_rock_04) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | CC0 |
+| `Models/Props/PR-02_MercuryBoulder_d_FINAL.glb` | [Moon Rock 06](https://polyhaven.com/a/moon_rock_06) | Greg Zaal, Jenelle van Heerden, Rico Cilliers | CC0 |
+| `Models/Props/PR-06_MarsBoulder_b_FINAL.glb` | [Namaqualand Boulder 04](https://polyhaven.com/a/namaqualand_boulder_04) | Jenelle van Heerden | CC0 |
+| `Models/Props/PR-06_MarsBoulder_c_FINAL.glb` | [Namaqualand Boulder 06](https://polyhaven.com/a/namaqualand_boulder_06) | Greg Zaal, Jenelle van Heerden | CC0 |
+| `Models/Props/PR-10_TritonFrostRock_b_FINAL.glb` | [Moon Rock 05](https://polyhaven.com/a/moon_rock_05) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | CC0 |
+| `Models/Props/PR-10_TritonFrostRock_c_FINAL.glb` | [Moon Rock 07](https://polyhaven.com/a/moon_rock_07) | Greg Zaal, Rico Cilliers, Jenelle van Heerden | CC0 |
 
 ### Third-party models (Meshy library)
 

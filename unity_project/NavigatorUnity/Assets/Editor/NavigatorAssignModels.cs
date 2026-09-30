@@ -166,6 +166,11 @@ namespace Navigator.Editor
             n += Opt(ref a.GeyserVent,      "PR-09");
             n += Opt(ref a.TritonRock,      "PR-10");
             n += Opt(ref a.Beacon,          "OB-03");
+            a.MercuryRocks = LoadAllGLB("PR-02");
+            a.VenusRocks   = LoadAllGLB("PR-03");
+            a.MarsRocks    = LoadAllGLB("PR-06", "PR-04");
+            a.TitanRocks   = LoadAllGLB("PR-07");
+            a.TritonRocks  = LoadAllGLB("PR-10");
             return n;
         }
 
@@ -214,6 +219,39 @@ namespace Navigator.Editor
         // Optional models: null (and no warning) when nothing with that prefix was dropped in
         public static GameObject LoadOptionalGLB(string namePrefix) =>
             AssetDatabase.FindAssets(namePrefix, new[] { "Assets/Models" }).Length > 0 ? LoadGLB(namePrefix) : null;
+
+        // Every "_FINAL" variant of these codes (e.g. PR-02_MercuryBoulder_FINAL, PR-02_..._b_FINAL);
+        // a code with no _FINAL contributes its one fallback model, if any
+        public static GameObject[] LoadAllGLB(params string[] prefixes)
+        {
+            var list = new System.Collections.Generic.List<GameObject>();
+            foreach (var prefix in prefixes)
+            {
+                var paths = new System.Collections.Generic.List<string>();
+                foreach (var guid in AssetDatabase.FindAssets(prefix, new[] { "Assets/Models" }))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    string file = System.IO.Path.GetFileNameWithoutExtension(path);
+                    if (!path.EndsWith(".glb", System.StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!file.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!file.EndsWith("_FINAL", System.StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!paths.Contains(path)) paths.Add(path);
+                }
+                paths.Sort(System.StringComparer.OrdinalIgnoreCase);
+                int before = list.Count;
+                foreach (var path in paths)
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (go != null) list.Add(go);
+                }
+                if (list.Count == before)
+                {
+                    var one = LoadOptionalGLB(prefix);
+                    if (one != null) list.Add(one);
+                }
+            }
+            return list.ToArray();
+        }
 
         // Prefers the "_FINAL" (PBR-textured) export when both exist
         static GameObject LoadGLB(string namePrefix)
