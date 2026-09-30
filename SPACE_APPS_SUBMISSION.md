@@ -78,7 +78,8 @@ profile.
 ## 5. Use of Artificial Intelligence (Space Apps requires disclosing it)
 
 - 3D models (ships, planets, probes, objects) were generated with **Meshy AI** from the team's
-  prompts.
+  prompts. Models downloaded from the Meshy community library (if any) are by other authors;
+  their names and licenses are listed in `CREDITS.md` ("Third-party models").
 - Code and documentation were developed with the help of an **AI coding assistant (Claude Code)**.
 - All physics was validated by the team against published values.
 - **[Add or adjust anything else the team used.]**
@@ -108,6 +109,7 @@ Tips:
 - [ ] Multiplayer test with 2 phones (QR).
 - [ ] `node tools/optimize_models.mjs` run and build size checked.
 - [ ] Image licenses marked ⚠️ in `CREDITS.md` confirmed or replaced.
+- [ ] Every model downloaded from the Meshy library listed in `CREDITS.md` with author and license.
 - [ ] Meshy API key rotated (it appeared in chats).
 - [ ] Repository public (or judges' access) and link on the project page.
 - [ ] APK / build link on the page **[link]**.

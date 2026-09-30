@@ -15,7 +15,7 @@ Del repositorio clonado a jugar en dos celulares. El diseño completo del juego 
 
 1. Unity Hub → **Add** → `unity_project/NavigatorUnity`
 2. Al abrir, Package Manager descarga los paquetes de `Packages/manifest.json`, entre ellos
-   **glTFast** (importa los `.glb` de Meshy). La primera importación de los 51 modelos tarda unos minutos.
+   **glTFast** (importa los `.glb` de Meshy). La primera importación de los modelos (unos 90 `.glb`) tarda unos minutos.
 3. **Window → TextMeshPro → Import TMP Essential Resources** → *Import TMP Essentials*.
 
 ### Player Settings (ya vienen configurados; verificar si algo falla)

@@ -31,7 +31,15 @@ The same list appears in the app (lobby → **CREDITS**).
 
 ## 3D models
 
-Ships, planets, moons, probes and objects in `Assets/Models`: generated with **Meshy AI** (meshy.ai) by the team.
+Ships, planets, moons, probes and objects in `Assets/Models`: generated with **Meshy AI** (meshy.ai) by the team, except the ones listed below.
+
+### Third-party models (Meshy library)
+
+Models downloaded from the Meshy community library were made by other authors. **Before submitting, check each license on the model's page** and fill in this table. If a license doesn't allow the use (or can't be confirmed), delete the file: the game falls back to a simple shape.
+
+| File | Model name on Meshy | Author | Link | License |
+|---|---|---|---|---|
+| *(none yet)* | | | | |
 
 ## Software and libraries
 

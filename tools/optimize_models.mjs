@@ -33,6 +33,7 @@ function cfg(n) {
   if (/^MN-/.test(n))          return { tris: 50000,  tex: 1024 };   // moons
   if (/^OB-10|^OB-01/.test(n)) return { tris: 50000,  tex: 1024 };   // asteroids
   if (/^PL-/.test(n))          return { tris: 80000,  tex: 2048 };   // planets fill the screen on arrival
+  if (/^PR-/.test(n))          return { tris: 30000,  tex: 1024 };   // world rocks: small, many on screen
   return                              { tris: 150000, tex: 1024 };   // ships, probes, launcher, the rest
 }
 

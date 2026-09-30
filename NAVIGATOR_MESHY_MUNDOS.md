@@ -4,14 +4,16 @@
 
 **Son 20 modelos nuevos**, de un máximo de 30. Todo lo demás **se reutiliza** de lo que ya tenemos (lista al final).
 
+**Dos formas de conseguirlos:** generarlos con los prompts de las tablas A y B, o **descargarlos de la biblioteca de Meshy** (sección C), que ahorra créditos. Al juego le da igual de dónde venga el `.glb`.
+
 **Si falta alguno, el juego no se rompe:** el código usa una forma simple (caja, cilindro o esfera) con el color correcto hasta que llegue el modelo.
 
 ## Reglas (las mismas del pedido v3)
 
 | Regla | Por qué |
 |---|---|
-| Formato **.glb** texturizado (PBR); el nombre termina en `_FINAL` | El código busca `_FINAL` |
-| **Nombre exacto** de la tabla | El prefijo (`VH-03`…) es lo que busca el código |
+| Formato **.glb** texturizado (PBR); el nombre termina en `_FINAL` | Si hay varios con el mismo código, el juego usa el `_FINAL`; y `tools/optimize_models.mjs` solo aligera los `_FINAL` |
+| El nombre **empieza con el código** de la tabla (`VH-03_`…) | El código es lo que busca el juego; lo que va después da igual. Sin tildes ni espacios |
 | **~20.000 caras** (`target_polycount: 20000`) | Tiene que ir fluido en el celular y en la web |
 | Un solo objeto, **centrado, sin base ni suelo ni fondo** | Se coloca solo en el mundo |
 | **Vehículos: de frente y con las ruedas o patas hacia abajo** | Para que avancen hacia donde miran |
@@ -55,6 +57,64 @@ Carpetas (dentro de `unity_project/NavigatorUnity/Assets/`), créalas si no exis
 
 ---
 
+## C. Descargar de la biblioteca de Meshy (en vez de generar)
+
+Busca en **inglés** (da más resultados). Si la primera búsqueda no sirve, prueba las otras.
+
+### Vehículos → `Models/Vehicles/`
+
+| Código | Qué es | Buscar | Si no aparece, probar |
+|---|---|---|---|
+| `VH-01_Lander` | Módulo de aterrizaje con patas (Mercurio, Tritón) | `lunar lander` | apollo lander, moon lander, space lander legs |
+| `VH-02_ThermalRover` | Rover con parasol encima (Mercurio) | `rover solar panel` | planetary rover, moon rover, lunar rover |
+| `VH-03_EntryCapsule` | Cápsula con escudo de calor | `space capsule` | reentry capsule, orion capsule, apollo capsule, heat shield capsule |
+| `VH-04_VenusLander` | Sonda redonda sobre un anillo (Venus) | `venera lander` | spherical probe, soviet space probe, space probe sphere |
+| `VH-05_SkyCrane` | Grúa con cohetes que baja el rover (Marte) | `sky crane` | descent stage, rocket platform, hover platform thrusters |
+| `VH-06_AtmoProbe` | Sonda cónica que cae en los gigantes gaseosos | `galileo probe` | atmospheric probe, entry probe cone, space probe cone |
+| `VH-07_Dragonfly` | Dron de 8 hélices (Titán) | `dragonfly nasa` | octocopter, quadcopter drone, drone rotor |
+| `VH-08_UranusOrbiter` | Nave con antena grande (Urano) | `space orbiter` | spacecraft antenna dish, space probe satellite, cassini |
+| `VH-09_Parachute` | Paracaídas abierto | `parachute` | parachute canopy, round parachute |
+| `VH-10_Hopper` | Robot que salta (Tritón) | `hopper robot` | jumping robot, space robot legs, small lander robot |
+
+### Rocas y objetos → `Models/Props/`
+
+| Código | Qué es | Buscar | Si no aparece, probar |
+|---|---|---|---|
+| `PR-01_IceChunk` | Trozo de hielo (Mercurio) | `ice chunk` | ice rock, ice crystal rock, frozen rock |
+| `PR-02_MercuryBoulder` | Roca gris con cráteres | `grey boulder` | moon rock, lunar rock, asteroid rock |
+| `PR-03_VenusSlab` | Losa de lava plana y oscura | `lava rock slab` | basalt rock, flat stone, volcanic rock |
+| `PR-04_MarsLayeredRock` | Roca con capas (delta de Marte) | `layered rock` | sedimentary rock, rock strata, sandstone |
+| `PR-05_SampleTube` | Tubo de muestra metálico | `sample tube` | test tube metal, canister, cylinder capsule |
+| `PR-06_MarsBoulder` | Roca rojiza | `mars rock` | red rock, desert boulder, red boulder |
+| `PR-07_TitanPebbles` | Grupo de guijarros redondos | `pebbles` | river stones, smooth stones, rounded rocks |
+| `PR-08_HeatShield` | Escudo de calor (el disco que se suelta) | `heat shield` | capsule heat shield, saucer disc, dish shield |
+| `PR-09_GeyserVent` | Grieta de géiser | `geyser` | volcanic vent, crater vent, fumarole |
+| `PR-10_TritonFrostRock` | Roca helada rosada | `frozen rock` | ice boulder, snow rock, icy rock |
+
+### Cómo guardarlos
+
+1. Descarga en formato **GLB**.
+2. Si bajas varios del mismo, ponles un sufijo: `VH-07_Dragonfly_a.glb`, `VH-07_Dragonfly_b.glb`…
+3. Al que más te guste ponle **`_FINAL` al final**: `VH-07_Dragonfly_FINAL.glb`. El juego usa ese; si ninguno lo lleva, toma cualquiera. Borra los que no uses para no inflar el repositorio.
+4. **Peso:** menos de ~10 MB por archivo. Si pesa más, ejecuta `cd tools && npm install && node optimize_models.mjs` (solo toca los `_FINAL`; guarda el original en `unity_project/models_original/`).
+5. **Orientación:** los vehículos deben mirar hacia adelante con las ruedas o patas abajo. Si una nave sale al revés, **Navigator → Flip Ship Nose 180°**.
+6. En Unity: **Navigator → Assign Models** y luego **Navigator → Setup Scene**.
+
+### Licencia y créditos (obligatorio)
+
+Los modelos de la biblioteca **son de otros autores**. Por cada uno que uses:
+- Abre su página en Meshy y revisa que la licencia **permita usarlo** en un proyecto público (y si pide dar crédito).
+- Anota **nombre del modelo, autor, enlace y licencia** en la tabla "Modelos de terceros" de [`CREDITS.md`](CREDITS.md).
+- Space Apps pide declarar el contenido de terceros: ya está en [`SPACE_APPS_SUBMISSION.md`](SPACE_APPS_SUBMISSION.md), sección 5.
+
+### Prioridad si no hay tiempo para todos
+
+1. **VH-01, VH-03, VH-05, VH-06, VH-07, VH-09**: son lo que más se ve en pantalla.
+2. El resto de vehículos.
+3. Las rocas (PR-): son lo menos importante; si falta alguna, el juego pone una roca simple.
+
+---
+
 ## Lo que YA tenemos y se reutiliza (no pedir)
 
 | Modelo existente | Uso en los mundos |
@@ -95,4 +155,4 @@ Si no están, el código genera la textura. **No son necesarias para que funcion
 3. **Venus, Júpiter y Urano**: 6, 7, 9, 17.
 4. **Titán**: 8, 18.
 
-Después de copiar los archivos: **Navigator → Setup Scene** los conecta solos (la Console dice cuántos encontró).
+Después de copiar los archivos: **Navigator → Setup Scene** los conecta solos (la Console dice cuántos encontró). También vale en cualquier subcarpeta de `Assets/Models/`: el juego los busca por el código.
