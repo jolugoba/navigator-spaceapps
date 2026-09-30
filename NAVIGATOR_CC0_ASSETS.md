@@ -39,6 +39,27 @@ Júpiter y Urano no tienen suelo, así que no llevan textura.
 
 Son livianos (5.600 a 18.700 triángulos, texturas 1K, de 1,5 a 2,2 MB cada uno).
 
+### Para repetirlo
+
+Todo lo de esta sección lo baja el script `tools/cc0_fetch.py`. Cualquiera lo repite con:
+
+```
+pip install pillow
+python3 tools/cc0_fetch.py
+```
+
+Para bajar solo uno, pon su nombre de Poly Haven:
+
+```
+python3 tools/cc0_fetch.py rock_09
+```
+
+Para agregar otro, añade una línea en `MODELS` (roca o modelo) o en `GROUNDS` (suelo) dentro del script, con el nombre de Poly Haven y el archivo de destino. Luego agrega su fila aquí y en `CREDITS.md`.
+
+**A mano, sin programar:** entra al enlace de la tabla, pulsa **Download**, elige **glTF** y **1K**. Luego ponle el nombre con su código (`PR-xx_..._FINAL`) y cópialo en `Assets/Models/Props/`. Así baja como `.gltf` con una carpeta de texturas; para tenerlo en un solo `.glb` como los del proyecto, usa el script. Las texturas de suelo hechas a mano no sirven tal cual: el script las pasa a gris neutro para que el mundo conserve su color.
+
+Después de bajar: **Navigator → Assign Models** y luego **Navigator → Setup Scene**.
+
 ---
 
 ## 2. Para que descargues tú (Sketchfab, CC0)
