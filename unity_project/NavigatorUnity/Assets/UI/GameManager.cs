@@ -162,6 +162,8 @@ namespace Navigator.UI
         {
             if (Senda != null && !Senda.Initialized) Senda.Init();
             Senda?.OnMessage.AddListener(OnNetMessage);
+            // Someone who left will never send a final score: the scoreboard stops waiting for them
+            Senda?.OnPeerDisconnected.AddListener(_ => { if (State == GameState.Scoreboard) ScoreboardUI?.RivalLeft(); });
 
             if (SyncService != null)
             {
@@ -807,8 +809,10 @@ namespace Navigator.UI
         public void ExitToLobby()
         {
             // In a class, reloading would drop the connection to the teacher: go back in place
+            // The same goes for a team: reloading would make everyone scan the QR codes again
             var cls = ClassroomSession.Instance;
-            if (cls != null && cls.Mode != ClassroomSession.Role.None)
+            bool team = Senda != null && Senda.ConnectedPeers.Count > 0;
+            if (team || (cls != null && cls.Mode != ClassroomSession.Role.None))
             {
                 Events?.Cancel();
                 SetControls(false);

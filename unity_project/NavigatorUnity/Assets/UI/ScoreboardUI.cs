@@ -123,6 +123,12 @@ namespace Navigator.UI
             }
         }
 
+        // A player disconnected before finishing: one score less to wait for
+        public void RivalLeft()
+        {
+            if (_expectedRivals > _rivals.Count) _expectedRivals--;
+        }
+
         // Team play: my role(s) and how many of the team reached the planet so far
         public void SetTeam(string localRole, int arrived, bool localArrived)
         {
