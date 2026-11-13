@@ -34,6 +34,11 @@ profile.
   storm, component failure, blackout, navigation error) are resolved with the resources the
   design left. At the planet, instruments need power and data must be downlinked before the pass
   ends, with the real light-time delay.
+- **Land & explore:** a landing mission ends on the surface, and each of the 7 worlds plays by its
+  own physics: sky crane and sample rover on Mars, rockets only on airless Mercury and Triton, a
+  short-lived Venera-style lander on Venus, a Dragonfly drone on Titan, and probes falling through
+  the clouds of Jupiter and Uranus. What you packed decides what you can do there: no drill means
+  only surface dust; solar panels barely charge on Titan.
 - **Debrief:** cause → effect for propulsion, objective, power, communications and budget. It
   includes "what if…" lines (launching in the window, exact propellant missing or spare, ion
   engine, RTG vs solar, high-gain antenna) and a card comparing you with Mariner, MESSENGER,
