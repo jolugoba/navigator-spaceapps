@@ -67,6 +67,7 @@ namespace Navigator.Worlds
         public ActionButton BtnA, BtnB, BtnC;
         public VirtualJoystick MoveStick, LookStick;
         public Button ExitButton;
+        public Button CheckpointButton;   // back to the last safe point if something went wrong
         public Image  FlashImage;
 
         public GameObject ResultPanel;

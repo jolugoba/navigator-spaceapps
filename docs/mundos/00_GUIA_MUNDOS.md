@@ -67,6 +67,7 @@ Estas reglas valen para los 7 mundos. Así el jugador aprende una vez y lo usa e
 | **Datos que se envían** | Una barra de "datos enviados" en la parte de arriba. Lo que no se envía se pierde si el vehículo muere (Júpiter, Urano y Venus) |
 | **Fallar** | Explosión, derrumbe o congelamiento con un texto claro de la causa real. Luego pasas al informe, que dice qué hubiera cambiado. Siempre se puede **REINTENTAR** el mundo sin repetir el viaje |
 | **Salir** | Botón SALIR arriba a la izquierda (como en el vuelo libre): termina la misión con lo logrado hasta ahí |
+| **Punto de control** | Botón PUNTO DE CONTROL junto a SALIR, por si el vehículo queda atrapado o algo falla. En la superficie devuelve el vehículo al sitio donde se desplegó, quieto y sin perder muestras ni puntos. Durante el descenso reinicia el descenso. En el vuelo espacial, el mismo botón devuelve la nave a donde estaba unos segundos antes, detenida y apuntando al planeta |
 | **Sensación** | Vibración al tocar suelo, taladrar y recibir un golpe; sonido del viento según la densidad del aire (en Mercurio y Tritón, **silencio**: no hay aire que lleve el sonido) |
 
 ## 3. Física: lo que cambia de un mundo a otro

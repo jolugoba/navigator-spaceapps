@@ -60,6 +60,16 @@ namespace Navigator.Worlds
             return (c - DepotAt).magnitude < r;
         }
 
+        Vector3 _roverStart; float _roverYaw;
+
+        public override bool Recover()
+        {
+            if (Phase != "rover" || _car == null) return false;
+            _car.Place(_roverStart, _roverYaw);
+            Cam.SnapBehind();
+            return true;
+        }
+
         public override void Begin()
         {
             H.SetTitle(T("w.mars.title"), T("w.mars.goal.entry"));
@@ -346,6 +356,7 @@ namespace Navigator.Worlds
                 IsSoftSand = pos => { foreach (var s in _sand) if (new Vector2(pos.x - Ter.Center.x - s.c.x, pos.z - Ter.Center.z - s.c.y).magnitude < s.r) return true; return false; },
             };
             _car.Place(_rover.transform.position, _stack != null ? _stack.transform.eulerAngles.y : 0f);
+            _roverStart = _rover.transform.position; _roverYaw = _car.Heading;
             _wheelDust = WheelDust(_rover.transform);
             if (_stack != null) Object.Destroy(_stack, 6f);
 

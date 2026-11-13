@@ -59,6 +59,14 @@ namespace Navigator.Game
             _lowFuelWarned = false;
         }
 
+        // Checkpoint: the tank as it was, with the warnings ready to fire again
+        public void Restore(float fraction)
+        {
+            FuelFraction   = Mathf.Clamp01(fraction);
+            _empty         = FuelFraction <= 0f;
+            _lowFuelWarned = IsLow;
+        }
+
         // ── Drain (call from PhysicsEngine or ShipController each FixedUpdate)
 
         // Free flight: the tank never empties (no mission, nothing to budget)

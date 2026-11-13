@@ -47,6 +47,7 @@ namespace Navigator.Worlds
             {
                 Input = new WorldInput { Move = Hud.MoveStick, Look = Hud.LookStick, A = Hud.BtnA?.Hold, B = Hud.BtnB?.Hold, C = Hud.BtnC?.Hold };
                 Hud.ExitButton?.onClick.AddListener(OnExit);
+                Hud.CheckpointButton?.onClick.AddListener(OnCheckpoint);
                 Hud.RetryButton?.onClick.AddListener(Retry);
                 Hud.ContinueButton?.onClick.AddListener(Close);
                 Hud.Show(false);
@@ -159,6 +160,25 @@ namespace Navigator.Worlds
             if (!IsOpen) return;
             if (_resultShown) { Close(); return; }
             _mission?.Abort(_mission.StarsSoFar);
+        }
+
+        // Safety net for a vehicle that ended up somewhere it can't leave: on the surface it goes
+        // back to where it was deployed (samples and points are kept); during the descent there
+        // is nothing to go back to, so the descent starts again
+        void OnCheckpoint()
+        {
+            if (!IsOpen || _resultShown || _mission == null || _mission.Finished) return;
+            Navigator.Game.AudioFX.Play(Navigator.Game.Sfx.Beep, 0.6f);
+            if (_mission.Recover())
+            {
+                Hud?.Flash(Color.white, 0.5f);
+                Hud?.ShowBanner(Loc.T("w.checkpoint.back"), UIStyle.Accent, 3f);
+                return;
+            }
+            StopAllCoroutines();
+            Env?.Teardown();
+            StartAttempt();
+            Hud?.ShowBanner(Loc.T("w.checkpoint.restart"), UIStyle.Accent, 3f);
         }
 
         void Retry()

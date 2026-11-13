@@ -64,6 +64,7 @@ namespace Navigator.UI
 
         [Header("Exploración libre")]
         public Button     ExitButton;        // only in free flight: back to the lobby
+        public Button     CheckpointButton;  // only in a mission: back to the last safe point
 
         [Header("Avisos de impacto")]
         public TMP_Text   ImpactLabel;       // "IMPACT · FUEL LEAK −10%" durante 2 s
@@ -231,6 +232,8 @@ namespace Navigator.UI
             if (ImpactBanner != null) ImpactBanner.SetActive(false);
             ExitButton?.onClick.AddListener(() => GameManager.Instance?.ExitFreeFlight());
             if (ExitButton != null) ExitButton.gameObject.SetActive(false);
+            CheckpointButton?.onClick.AddListener(() => GameManager.Instance?.RestoreCheckpoint());
+            if (CheckpointButton != null) CheckpointButton.gameObject.SetActive(false);
             if (InfoCard != null) InfoCard.SetActive(false);
         }
 
@@ -369,6 +372,7 @@ namespace Navigator.UI
             var free = gm.Free;
             if (free == null || _rb == null) return;
             if (ExitButton != null && !ExitButton.gameObject.activeSelf) ExitButton.gameObject.SetActive(true);
+            if (CheckpointButton != null && CheckpointButton.gameObject.activeSelf) CheckpointButton.gameObject.SetActive(false);
             if (RacePositionLabel != null) RacePositionLabel.text = "";
 
             _freeRefresh -= Time.deltaTime;
@@ -408,6 +412,7 @@ namespace Navigator.UI
             var gm = GameManager.Instance;
             if (gm != null && gm.FreeMode) { UpdateFree(gm); return; }
             if (ExitButton != null && ExitButton.gameObject.activeSelf) ExitButton.gameObject.SetActive(false);
+            if (CheckpointButton != null && !CheckpointButton.gameObject.activeSelf) CheckpointButton.gameObject.SetActive(true);
             if (_arSpace == null) return;
             if (DistanceLabel != null)
             {

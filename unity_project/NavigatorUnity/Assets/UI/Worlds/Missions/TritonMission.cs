@@ -48,6 +48,16 @@ namespace Navigator.Worlds
             }
         }
 
+        Vector3 _hopStart;
+
+        public override bool Recover()
+        {
+            if (Phase != "hop" || _hopper == null) return false;
+            _hopper.Place(_hopStart);
+            Cam.SnapBehind();
+            return true;
+        }
+
         public override void Begin()
         {
             H.SetTitle(T("w.triton.title"), T("w.triton.goal.land"));
@@ -127,6 +137,7 @@ namespace Navigator.Worlds
             for (int i = 0; i < GeyserAt.Length; i++) AddSite("w.triton.site.geyser", Ter.Surface(GeyserAt[i]), PlumeR + 1f);
             _home = new Site { Key = "w.merc.site.lander", Pos = Lander.transform.position, Radius = 10f };
 
+            _hopStart = at;
             D.Focus = _hop.transform;
             Cam.Target = _hop.transform; Cam.Distance = 10f; Cam.Height = 3.5f; Cam.Pitch = 16f; Cam.AutoFollow = false;
             Cam.SnapBehind();

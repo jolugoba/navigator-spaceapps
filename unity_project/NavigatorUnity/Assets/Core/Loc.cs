@@ -439,6 +439,9 @@ namespace Navigator.Core
             // ── Free flight ───────────────────────────────────────────────────
             { "free.button",   ("EXPLORE", "EXPLORAR") },
             { "free.exit",     ("EXIT", "SALIR") },
+            { "hud.checkpoint",      ("CHECKPOINT", "PUNTO DE CONTROL") },
+            { "hud.checkpoint.back", ("BACK AT THE CHECKPOINT · ship stopped, pointing at the planet", "DE VUELTA AL PUNTO DE CONTROL · nave detenida, apuntando al planeta") },
+            { "hud.checkpoint.log",  ("The ship was returned to a checkpoint during the cruise.", "La nave volvió a un punto de control durante el crucero.") },
             { "free.time",     ("FREE", "LIBRE") },
             { "free.near",     ("Near {0}", "Cerca de {0}") },
             { "free.logbook",  ("LOGBOOK {0}/{1} · scan everything you find", "BITÁCORA {0}/{1} · escanea todo lo que encuentres") },

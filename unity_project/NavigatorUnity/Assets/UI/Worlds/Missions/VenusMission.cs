@@ -204,6 +204,9 @@ namespace Navigator.Worlds
         }
 
         // ── On the ground: the clock of heat ─────────────────────────────────
+        // The lander never moves: on the surface there is nothing to put back, and nothing is lost
+        public override bool Recover() => Phase == "surface";
+
         void StartSurface()
         {
             var c = _probe.transform.position;

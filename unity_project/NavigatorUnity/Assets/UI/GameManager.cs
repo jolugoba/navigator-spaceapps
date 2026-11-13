@@ -499,6 +499,7 @@ namespace Navigator.UI
             }
 
             _flightTimer = 0f;
+            _cpOld = _cpNew = null; _cpTimer = 0f; _cpUsed = false;
             Events?.BeginFlight(Mission, Outcome, Ship);
             _rivalsAtStart = Senda != null ? Senda.ConnectedPeers.Count : 0;
             SetState(GameState.InFlight);
@@ -616,6 +617,7 @@ namespace Navigator.UI
                 return;
             }
 
+            SaveCheckpoint();
             if (SpaceManager != null)
             {
                 float dist = Vector3.Distance(Ship.transform.position, SpaceManager.TargetPosition);
@@ -639,6 +641,63 @@ namespace Navigator.UI
                 return;
             }
             if (_flightTimer >= MaxFlightTimeS) { FailMission("fail.timeout");  return; }
+        }
+
+        // ── Checkpoints ────────────────────────────────────────────────────────
+        // Safety net for a flight that ended up somewhere it can't recover from (spinning away,
+        // stuck against something, or a bug): the ship goes back to where it was a few seconds
+        // ago, stopped and pointing at the planet, with the fuel and hull it had then. Nothing is
+        // gained by it, so it costs nothing; the debrief says it was used.
+        class Checkpoint { public Vector3 Pos; public float Fuel; public int Lives; }
+        const float CheckpointEveryS = 8f;
+        Checkpoint _cpOld, _cpNew;
+        float _cpTimer;
+        bool  _cpUsed;
+
+        void SaveCheckpoint()
+        {
+            _cpTimer -= Time.deltaTime;
+            if (_cpTimer > 0f || Ship == null) return;
+            var col  = Ship.GetComponent<CollisionSystem>();
+            var fuel = Ship.GetComponent<FuelSystem>();
+            if (col != null && col.Lives <= 0) return;   // never keep a wreck
+            _cpTimer = CheckpointEveryS;
+            _cpOld = _cpNew ?? _cpOld;
+            _cpNew = new Checkpoint
+            {
+                Pos = Ship.transform.position,
+                Fuel = fuel != null ? fuel.FuelFraction : 1f,
+                Lives = col != null ? col.Lives : 3,
+            };
+            _cpOld ??= _cpNew;
+        }
+
+        // HUD → CHECKPOINT (missions only; free flight has nothing to lose)
+        public void RestoreCheckpoint()
+        {
+            if (State != GameState.InFlight || FreeMode || Ship == null) return;
+            var cp = _cpOld ?? _cpNew;   // the older one: the newest may already be the trouble
+            if (cp == null) return;
+
+            Vector3 target = SpaceManager != null ? SpaceManager.TargetPosition : cp.Pos + Vector3.forward;
+            Vector3 facing = target - cp.Pos;
+            if (facing.sqrMagnitude < 1e-6f) facing = Vector3.forward;
+            var rot = Quaternion.LookRotation(facing.normalized);
+            Ship.transform.SetPositionAndRotation(cp.Pos, rot);
+            var rb = Ship.GetComponent<Rigidbody>();
+            if (rb != null && !rb.isKinematic)
+            {
+                rb.position = cp.Pos; rb.rotation = rot;
+                rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero;
+            }
+            Ship.GetComponent<FuelSystem>()?.Restore(cp.Fuel);
+            var col = Ship.GetComponent<CollisionSystem>();
+            if (col != null) { col.Lives = cp.Lives; col.StartInvincibility(); }
+
+            _cpNew = null; _cpTimer = CheckpointEveryS;   // the next one is saved from here
+            AudioFX.Play(Sfx.Beep, 0.6f);
+            HUD?.Flash(null, UIStyle.Accent, 0.3f, Loc.T("hud.checkpoint.back"));
+            if (!_cpUsed) { _cpUsed = true; Outcome.EventLog.Add(Loc.T("hud.checkpoint.log")); }
         }
 
         // Cruise decisions (safe mode, waiting for a comm link) switch the engines off for a while;

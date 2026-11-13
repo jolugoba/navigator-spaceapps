@@ -245,6 +245,14 @@ namespace Navigator.Worlds
 
         public void Kick(Vector3 v) { Vel += v; Airborne = true; }
 
+        // Checkpoint: back on the ground at this spot, at rest
+        public void Place(Vector3 at)
+        {
+            at.y = Terrain.Height(at);
+            T.position = at;
+            Vel = Vector3.zero; _slide = Vector3.zero; Charge = 0f; Airborne = false;
+        }
+
         public void Step(float dt)
         {
             if (Airborne)
@@ -285,6 +293,14 @@ namespace Navigator.Worlds
 
         public float Surface => Terrain.SurfaceY(T.position);
         public float Altitude => T.position.y - Surface;
+
+        // Checkpoint: landed at this spot, rotors off
+        public void Place(Vector3 at)
+        {
+            at.y = Terrain.SurfaceY(at);
+            T.position = at;
+            Vel = Vector3.zero; Landed = true;
+        }
 
         public void Step(Vector2 stick, float cameraYaw, bool lift, float dt)
         {

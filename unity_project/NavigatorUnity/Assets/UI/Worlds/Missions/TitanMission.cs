@@ -38,6 +38,16 @@ namespace Navigator.Worlds
             t.AddClear(ShoreAt, 10f);
         }
 
+        Vector3 _droneStart;
+
+        public override bool Recover()
+        {
+            if (Phase != "drone" || _fly == null) return false;
+            _fly.Place(_droneStart);
+            Cam.SnapBehind();
+            return true;
+        }
+
         public override void Begin()
         {
             H.SetTitle(T("w.titan.title"), T("w.titan.goal.entry"));
@@ -176,6 +186,7 @@ namespace Navigator.Worlds
             AddSite("w.titan.site.selk", Ter.Surface(SelkAt), 7f, A.TitanPebbles, 1.5f).Special = true;
             AddSite("w.titan.site.shore", Ter.Surface(ShoreAt), 7f, A.TitanPebbles, 1.5f);
 
+            _droneStart = at;
             D.Focus = _drone.transform;
             Cam.Target = _drone.transform; Cam.Distance = 11f; Cam.Height = 4f; Cam.Pitch = 16f; Cam.AutoFollow = false;
             Cam.SnapBehind();

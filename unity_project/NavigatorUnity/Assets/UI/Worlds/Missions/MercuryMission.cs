@@ -45,6 +45,16 @@ namespace Navigator.Worlds
         bool InShadow(Vector3 w) =>
             new Vector2(w.x - Ter.Center.x - CraterAt.x, w.z - Ter.Center.z - CraterAt.y).magnitude < CraterR * 0.8f;
 
+        Vector3 _roverStart; float _roverYaw;
+
+        public override bool Recover()
+        {
+            if (Phase != "rover" || _car == null) return false;
+            _car.Place(_roverStart, _roverYaw);
+            Cam.SnapBehind();
+            return true;
+        }
+
         public override void Begin()
         {
             H.SetTitle(T("w.merc.title"), T("w.merc.goal.land"));
@@ -69,6 +79,7 @@ namespace Navigator.Worlds
             _car = new GroundVehicle { T = _rover.transform, Terrain = Ter, Gravity = P.Gravity, MaxSpeed = 5f, TurnRate = 65f };
             var toCrater = Ter.Surface(CraterAt) - at;
             _car.Place(at, Quaternion.LookRotation(new Vector3(toCrater.x, 0f, toCrater.z)).eulerAngles.y);
+            _roverStart = _rover.transform.position; _roverYaw = _car.Heading;
             _wheelDust = WheelDust(_rover.transform);
 
             var lg = new GameObject("Headlights");

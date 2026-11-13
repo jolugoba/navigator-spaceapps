@@ -13,6 +13,9 @@ namespace Navigator.Core
         {
             // ── Common ───────────────────────────────────────────────────────
             { "w.exit",      ("EXIT", "SALIR") },
+            { "w.checkpoint",         ("CHECKPOINT", "PUNTO DE CONTROL") },
+            { "w.checkpoint.back",    ("BACK AT THE CHECKPOINT · nothing collected was lost", "DE VUELTA AL PUNTO DE CONTROL · no perdiste lo recogido") },
+            { "w.checkpoint.restart", ("CHECKPOINT · the descent starts again", "PUNTO DE CONTROL · el descenso empieza de nuevo") },
             { "w.retry",     ("TRY AGAIN", "REINTENTAR") },
             { "w.continue",  ("CONTINUE", "CONTINUAR") },
             { "w.result.fail",   ("MISSION LOST", "MISIÓN PERDIDA") },

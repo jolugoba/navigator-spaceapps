@@ -966,6 +966,14 @@ namespace Navigator.Editor
             exitRt.sizeDelta = new Vector2(170f, 56f);
             exitRt.anchoredPosition = new Vector2(24f, -200f);
 
+            // Missions only (same corner; the two are never shown together): back to the last safe point
+            hud.CheckpointButton = UIKit.Button(p, "CheckpointButton", "@hud.checkpoint", new Vector4(0f, 1f, 0f, 1f),
+                                                new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Text, 20, FontStyles.Bold);
+            var cpRt = (RectTransform)hud.CheckpointButton.transform;
+            cpRt.pivot = new Vector2(0f, 1f);
+            cpRt.sizeDelta = new Vector2(230f, 56f);
+            cpRt.anchoredPosition = new Vector2(24f, -200f);
+
             hud.GyroButton = UIKit.Button(p, "GyroButton", "GYRO", new Vector4(1f, 1f, 1f, 1f),
                                           new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Accent, 20, FontStyles.Bold);
             var gyroRt = (RectTransform)hud.GyroButton.transform;
@@ -1111,6 +1119,13 @@ namespace Navigator.Editor
             exitRt.pivot = new Vector2(0f, 1f);
             exitRt.sizeDelta = new Vector2(170f, 56f);
             exitRt.anchoredPosition = new Vector2(24f, -206f);
+
+            w.CheckpointButton = UIKit.Button(p, "Checkpoint", "@w.checkpoint", new Vector4(0f, 1f, 0f, 1f),
+                                              new Color(0.12f, 0.16f, 0.27f, 0.8f), UIStyle.Text, 20, FontStyles.Bold);
+            var cpRt = (RectTransform)w.CheckpointButton.transform;
+            cpRt.pivot = new Vector2(0f, 1f);
+            cpRt.sizeDelta = new Vector2(230f, 56f);
+            cpRt.anchoredPosition = new Vector2(204f, -206f);
 
             // Result card
             var result = UIKit.Card(p, "Result", new Vector4(0.24f, 0.08f, 0.76f, 0.92f), UIStyle.Card);

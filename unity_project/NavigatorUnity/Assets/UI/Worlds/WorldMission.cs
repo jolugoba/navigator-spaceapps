@@ -64,6 +64,11 @@ namespace Navigator.Worlds
 
         protected void Go(string phase) { Phase = phase; PhaseT = 0f; }
 
+        // Checkpoint button. Surface vehicles go back to where they were deployed, at rest, keeping
+        // everything collected so far. False = nothing to go back to in this phase (the descent):
+        // the director restarts the attempt from the top instead.
+        public virtual bool Recover() => false;
+
         // ── Design links ─────────────────────────────────────────────────────
         protected bool Has(ScienceInstrument i) => Design != null && Design.Instruments.Contains(i);
 
