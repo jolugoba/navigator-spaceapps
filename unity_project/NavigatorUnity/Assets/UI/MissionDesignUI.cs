@@ -133,6 +133,15 @@ namespace Navigator.UI
         void OnEnable()  => Loc.Changed += Refresh;
         void OnDisable() => Loc.Changed -= Refresh;
 
+        // Free play: alone, the physics reminder; in a team, your role and what you answer for
+        static string FreeBrief()
+        {
+            var gm = GameManager.Instance;
+            var roles = gm != null ? gm.MyRoles() : null;
+            if (roles == null || roles.Count == 0) return Loc.T("design.subtitle");
+            return Loc.F("team.brief", gm.TeamSize, TeamRoles.Names(roles), TeamRoles.Duty(roles));
+        }
+
         // Pushes _design into sliders/toggles without firing their listeners
         void SyncControls()
         {
@@ -340,7 +349,7 @@ namespace Navigator.UI
             RefreshWindow();
             RefreshInstrumentLabels();
             if (BriefLabel != null)
-                BriefLabel.text = _campaign == null ? Loc.T("design.subtitle")
+                BriefLabel.text = _campaign == null ? FreeBrief()
                     : _campaign.IsChallenge
                     ? Loc.F("chal.brief", _campaign.Challenger, _campaign.TargetScore, Loc.Objective(_campaign.Objective),
                             Loc.Planet(_campaign.Planet), _campaign.BudgetM)

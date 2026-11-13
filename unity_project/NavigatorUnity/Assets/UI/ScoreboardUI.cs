@@ -64,6 +64,11 @@ namespace Navigator.UI
         private int    _localScore;
         private string _localName = "";
 
+        private string _localRole;      // team play: my job(s), shown next to my name
+        private int    _teamArrived;    // how many of the team reached the planet (me included)
+        private bool   _localArrived;   // I reached the planet
+        private bool   _revealed;       // the result is on screen: late scores update it in place
+
         private CampaignMission _campaign;
         private int  _stars;
         private bool _improved, _hasNext;
@@ -92,6 +97,7 @@ namespace Navigator.UI
             _localScore     = localScore;
             _expectedRivals = expectedRivals;
             _rivals.Clear();
+            _revealed = false;
             if (DebriefLabel != null) DebriefLabel.text = report ?? "";
             if (Panel != null) Panel.SetActive(true);
             StopAllCoroutines();
@@ -101,8 +107,28 @@ namespace Navigator.UI
         // Rival final scores, keyed by display name
         public void SetRivalScores(Dictionary<string, int> scores)
         {
+            // The caller always sends the full list; replacing it keeps one row per rival even when
+            // their label changes (a name that arrives late, a role that moves when someone leaves)
+            if (scores.Count > 0) _rivals.Clear();
             foreach (var kv in scores) _rivals[kv.Key] = kv.Value;
             if (_rivals.Count > 0) RefreshRanking();
+            // A teammate who finished after the wait ran out still changes who won
+            if (_revealed && _rivals.Count > 0 && _expectedRivals > 0)
+            {
+                if (RemoteBlock != null) RemoteBlock.SetActive(true);
+                int best = _rivals.Values.Max();
+                if (RemoteScoreLabel != null) RemoteScoreLabel.text = best.ToString("N0");
+                if (RemoteScoreBar   != null) RemoteScoreBar.fillAmount = Mathf.Clamp01((float)best / ScoreBarMax);
+                ShowResult(best);
+            }
+        }
+
+        // Team play: my role(s) and how many of the team reached the planet so far
+        public void SetTeam(string localRole, int arrived, bool localArrived)
+        {
+            _localRole = localRole;
+            _teamArrived = arrived;
+            _localArrived = localArrived;
         }
 
         IEnumerator RevealAnimation(MissionScore data, string failReason)
@@ -145,8 +171,8 @@ namespace Navigator.UI
             // Never name a winner while someone is still flying
             if (_rivals.Count < _expectedRivals)
             {
-                if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.T("sb.waiting");
-                if (WinnerSubLabel     != null) WinnerSubLabel.text     = Loc.T("sb.rivalflying");
+                if (RemoteArrivalLabel != null) RemoteArrivalLabel.text = Loc.T("team.waiting");
+                if (WinnerSubLabel     != null) WinnerSubLabel.text     = Loc.T("team.flying");
                 SetButtons(true);
                 float waited = 0f;
                 while (_rivals.Count < _expectedRivals && waited < MaxRivalWaitS)
@@ -157,6 +183,7 @@ namespace Navigator.UI
                 if (_rivals.Count == 0)
                 {
                     ShowSoloResult(failReason);
+                    _revealed = true;
                     yield break;
                 }
             }
@@ -168,6 +195,7 @@ namespace Navigator.UI
             yield return new WaitForSeconds(RevealDelayS);
 
             ShowResult(best);
+            _revealed = true;
             if (_campaign != null) ShowCampaignButtons();
             SetButtons(true);
         }
@@ -175,11 +203,12 @@ namespace Navigator.UI
         void RefreshRanking()
         {
             if (RemoteArrivalLabel == null || _campaign != null && _expectedRivals == 0) return;
-            if (RemotePlayerName != null) RemotePlayerName.text = Loc.T("sb.ranking");
+            if (RemotePlayerName != null) RemotePlayerName.text = Loc.T("team.title");
 
             var all = new List<(string name, int score, bool me)>();
             foreach (var kv in _rivals) all.Add((kv.Key, kv.Value, false));
-            all.Add((string.IsNullOrEmpty(_localName) ? Loc.T("you") : _localName, _localScore, true));
+            string myName = string.IsNullOrEmpty(_localName) ? Loc.T("you") : _localName;
+            all.Add((string.IsNullOrEmpty(_localRole) ? myName : $"{myName} · {_localRole}", _localScore, true));
             all.Sort((a, b) => b.score.CompareTo(a.score));
 
             // Big rooms: top rows, then "…" and your own place
@@ -193,7 +222,10 @@ namespace Navigator.UI
                 string line = $"{i + 1}. {name}  {score:N0}";
                 sb.AppendLine(me ? $"<color=#33CCFF><b>{line}</b></color>" : line);
             }
-            RemoteArrivalLabel.text = sb.ToString().TrimEnd();
+            // One result for the whole team: everyone's points together
+            int total = _localScore + _rivals.Values.Sum();
+            sb.Append("<color=#FFD24A><b>").Append(Loc.F("team.total", total, _teamArrived, all.Count)).Append("</b></color>");
+            RemoteArrivalLabel.text = sb.ToString();
         }
 
         IEnumerator AnimateScore(TMP_Text label, Image bar, int from, int to, float duration)
@@ -220,12 +252,14 @@ namespace Navigator.UI
             bool win  = _localScore > bestRival;
             bool draw = _localScore == bestRival;
 
-            WinnerLabel.text  = win ? Loc.T("sb.win") : draw ? Loc.T("sb.draw") : Loc.T("sb.lose");
-            WinnerLabel.color = win ? UIStyle.Gold : draw ? UIStyle.Text : UIStyle.Muted;
+            // A team: not having the top score is no defeat if your spacecraft got there
+            WinnerLabel.text  = win ? Loc.T("sb.win") : draw ? Loc.T("sb.draw")
+                              : _localArrived ? Loc.T("sb.success") : Loc.T("sb.failed");
+            WinnerLabel.color = win ? UIStyle.Gold : draw || _localArrived ? UIStyle.Text : UIStyle.Bad;
             if (WinnerSubLabel != null)
-                WinnerSubLabel.text = win  ? Loc.T("sb.win.sub")
-                                    : draw ? Loc.T("sb.draw.sub")
-                                    : Loc.F("sb.place", place, _rivals.Count + 1);
+                WinnerSubLabel.text = (win ? Loc.T("team.best") : draw ? Loc.T("sb.draw.sub")
+                                                        : Loc.F("sb.place", place, _rivals.Count + 1))
+                                    + (_teamArrived >= _rivals.Count + 1 ? "  " + Loc.T("team.all") : "");
             if (win && VictoryFX != null) VictoryFX.SetActive(true);
         }
 

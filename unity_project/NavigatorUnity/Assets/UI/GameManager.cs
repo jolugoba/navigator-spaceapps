@@ -889,6 +889,22 @@ namespace Navigator.UI
         {
             _rivalsArrived.Add(nodeId);
             if (State == GameState.InFlight) HUD?.SetRacePosition(_rivalsArrived.Count + 1);
+            if (State == GameState.Scoreboard) PushRivalScores();
+        }
+
+        // ── Team play: everyone connected is one mission team ────────────────
+        public int TeamSize => Senda != null ? Senda.ConnectedPeers.Count + 1 : 1;
+
+        // My jobs in the team (empty when playing alone)
+        public List<int> MyRoles() =>
+            Senda == null ? new List<int>() : TeamRoles.For(Senda.NodeId, Senda.ConnectedPeers);
+
+        List<int> RolesOf(string nodeId)
+        {
+            if (Senda == null) return new List<int>();
+            var others = new List<string>(Senda.ConnectedPeers) { Senda.NodeId };
+            others.Remove(nodeId);
+            return TeamRoles.For(nodeId, others);
         }
 
         void OnRemoteScore(Dictionary<string, int> scores)
@@ -899,9 +915,22 @@ namespace Navigator.UI
 
         void PushRivalScores()
         {
+            // Keyed by what the ranking shows: "Ana · SCIENCE". Two players with the same name
+            // must stay two rows, so a repeated label gets a number
             var named = new Dictionary<string, int>();
             foreach (var kv in _rivalScores)
-                named[RemoteShips != null ? RemoteShips.NameOf(kv.Key) : kv.Key] = kv.Value;
+            {
+                string label = RemoteShips != null ? RemoteShips.NameOf(kv.Key) : kv.Key;
+                var roles = RolesOf(kv.Key);
+                if (roles.Count > 0) label += " · " + TeamRoles.Names(roles, true);
+                string unique = label;
+                for (int n = 2; named.ContainsKey(unique); n++) unique = $"{label} ({n})";
+                named[unique] = kv.Value;
+            }
+            int arrived = (ArrivalPos > 0 ? 1 : 0);
+            foreach (var id in _rivalsArrived) if (_rivalScores.ContainsKey(id)) arrived++;
+            var mine = MyRoles();
+            ScoreboardUI?.SetTeam(mine.Count > 0 ? TeamRoles.Names(mine, true) : null, arrived, ArrivalPos > 0);
             ScoreboardUI?.SetRivalScores(named);
         }
 

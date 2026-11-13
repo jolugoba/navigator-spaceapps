@@ -38,6 +38,10 @@ profile.
   includes "what if…" lines (launching in the window, exact propellant missing or spare, ion
   engine, RTG vs solar, high-gain antenna) and a card comparing you with Mariner, MESSENGER,
   Magellan, MRO, Perseverance, Juno, Cassini or Voyager.
+- **Team play (2–4 players):** phones join by QR with no server. The four jobs of a real mission
+  team (propulsion & launch, science, power, comms & budget) are dealt out among the players, each
+  one sees their role and what they answer for on the design screen, and the final screen shows
+  one team result: everyone's points together and how many spacecraft reached the planet.
 - **Modes:** 8-mission campaign on a world map; serverless peer-to-peer multiplayer (join by QR);
   a free, shared Solar System with the planets where they really are today; teacher mode for
   classrooms; 10 selectable ships; English and Spanish.
@@ -106,7 +110,7 @@ Tips:
 ## 7. Final checklist before submitting
 
 - [ ] Full test on the phone: design → window → flight → science → debrief (EN and ES).
-- [ ] Multiplayer test with 2 phones (QR).
+- [ ] Multiplayer test with 2 phones (QR), and with 3–4 if possible: roles on the design screen, team result at the end.
 - [ ] `node tools/optimize_models.mjs` run and build size checked.
 - [ ] Image licenses marked ⚠️ in `CREDITS.md` confirmed or replaced.
 - [ ] Every model downloaded from the Meshy library listed in `CREDITS.md` with author and license.
