@@ -23,7 +23,7 @@ namespace Navigator.Core
     [Serializable]
     public class MissionDesign
     {
-        public const float BudgetLimitM      = 1000f;
+        public const float BudgetLimitM      = 1500f;
         public const float SpacecraftBusKg   = 500f;
         public const float BusPowerW         = 80f;
 

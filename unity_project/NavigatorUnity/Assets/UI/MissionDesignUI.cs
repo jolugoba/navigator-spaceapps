@@ -89,8 +89,8 @@ namespace Navigator.UI
         public TMP_Text BriefLabel;       // objetivo de la misión de campaña o subtítulo libre
 
         [Header("Errores / Launch")]
-        public TMP_Text ErrorLabel;       // primer error activo
-        public Button   LaunchButton;     // se habilita solo cuando IsValid
+        public TMP_Text ErrorLabel;       // primer aviso activo (qué costará esa decisión)
+        public Button   LaunchButton;     // siempre activo: los avisos informan, no bloquean
 
         // ── Objetivo ──────────────────────────────────────────────────────────
         [Header("Objetivo misión")]
@@ -474,7 +474,8 @@ namespace Navigator.UI
                 else                         ErrorLabel.text = "";
                 ErrorLabel.gameObject.SetActive(!valid);
             }
-            if (LaunchButton != null) LaunchButton.interactable = valid;
+            // Nothing blocks the launch: a warning says what the choice will cost, and the flight shows it
+            if (LaunchButton != null) LaunchButton.interactable = true;
 
             // Colores barra ΔV: verde=ok, rojo=insuficiente
             if (DeltaVBar != null)
@@ -498,7 +499,6 @@ namespace Navigator.UI
         // The ship itself is configured by GameManager.StartFlight from GetDesign()
         void OnLaunch()
         {
-            if (!_design.IsValid) return;
             Debug.Log($"[Mission] Lanzando a {_design.TargetPlanetId} — ΔV {_design.DeltaVms:N0} m/s");
             GameManager.Instance?.OnLaunchConfirmed();
         }

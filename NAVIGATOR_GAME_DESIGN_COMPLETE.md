@@ -26,9 +26,9 @@ al planeta, se chocan estilo Burnout y, al llegar, operan instrumentos científi
 | Diseño de nave | Motor, combustible, energía, antena, lanzador, instrumentos | `MissionDesign` |
 | Instrumentos científicos | 8 instrumentos; cada uno vale ×0.3 a ×2 según el planeta (radar en Venus, magnetómetro en Júpiter…) | `PlanetScienceMult` |
 | Vehículos de lanzamiento | Falcon 9 / Falcon Heavy / SLS / Starship limitan la masa | `LaunchCapacityKg` |
-| Presupuesto | Límite de $1,000M | `IsBudgetOk` |
+| Presupuesto | $1,500M en partida libre. Pasarse no bloquea: resta 4 puntos por cada $M de más | `IsBudgetOk` |
 | Energía | Solar (ley del cuadrado inverso) / RTG / reactor | `EffectivePowerW` |
-| Masa | Masa húmeda ≤ capacidad del lanzador | `IsMassOk` |
+| Masa | Si la masa húmeda supera la capacidad del lanzador, se deja combustible en tierra hasta que quepa | `IsMassOk` |
 | Comunicaciones | Los datos solo puntúan si la antena los envía a la Tierra antes de que cierre la ventana; la luz tarda según la distancia | `ScienceOpsUI` |
 | Restricciones orbitales | ΔV de Tsiolkovsky ≥ ΔV mínimo del planeta, o no despega | `HasDeltaV` |
 | Restricciones orbitales (ventanas) | **Órbitas reales NASA/JPL + problema de Lambert**: elegir la fecha de lanzamiento; fuera de ventana cuesta miles de m/s, esperar cuesta dinero | `Orbits.Scan`, `ApplyWindow` |
@@ -75,7 +75,7 @@ QR P2P o          MissionDesignUI   3·2·1·¡DESPEGUE!  HUD + AR          Scie
 
 ### Nave base
 - Bus de la nave: **500 kg**, consume **80 W**
-- Presupuesto máximo: **$1,000M**
+- Presupuesto: **$1,500M** (se puede lanzar pasándose; cuesta puntos)
 - Combustible: slider de 100 a 5,000 kg; cuesta $1M por cada 1,000 kg
 
 ### Planetas
@@ -535,14 +535,16 @@ hasta Neptuno.
 
 | # | Mundo | Destino · objetivo | Presupuesto | Metas ●/●●/●●● |
 |---|---|---|---|---|
-| 1 | First Light / Primera luz | Marte · aterrizaje | $750M | 2,250 / 5,250 / 8,250 |
-| 2 | Beneath the Clouds / Bajo las nubes | Venus · aterrizaje (como Venera 13) | $950M | 4,750 / 8,750 / 12,750 |
-| 3 | Closest to the Sun / El más cercano al Sol | Mercurio · aterrizaje en el polo norte | $1,050M | 4,000 / 8,000 / 12,000 |
-| 4 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,000M | 5,000 / 9,000 / 13,000 |
-| 5 | King of Planets / El rey de los planetas | Júpiter · sonda atmosférica (como Galileo) | $1,150M | 4,750 / 10,000 / 15,500 |
-| 6 | Lord of the Rings / El señor de los anillos | Saturno → Titán (como Huygens) | $1,250M | 4,750 / 10,000 / 15,500 |
-| 7 | The Sideways Planet / El planeta acostado | Urano · orbitador + sonda | $1,250M | 4,250 / 10,250 / 16,250 |
-| 8 | The Last Giant / El último gigante | Neptuno → Tritón | $1,350M | 4,250 / 10,250 / 16,250 |
+| 1 | First Light / Primera luz | Marte · aterrizaje | $1,000M | 2,250 / 5,250 / 8,250 |
+| 2 | Beneath the Clouds / Bajo las nubes | Venus · aterrizaje (como Venera 13) | $1,250M | 4,750 / 8,750 / 12,750 |
+| 3 | Closest to the Sun / El más cercano al Sol | Mercurio · aterrizaje en el polo norte | $1,350M | 4,000 / 8,000 / 12,000 |
+| 4 | Red Planet Touchdown / Aterrizaje en Marte | Marte · aterrizaje | $1,300M | 5,000 / 9,000 / 13,000 |
+| 5 | King of Planets / El rey de los planetas | Júpiter · sonda atmosférica (como Galileo) | $1,500M | 4,750 / 10,000 / 15,500 |
+| 6 | Lord of the Rings / El señor de los anillos | Saturno → Titán (como Huygens) | $1,600M | 4,750 / 10,000 / 15,500 |
+| 7 | The Sideways Planet / El planeta acostado | Urano · orbitador + sonda | $1,600M | 4,250 / 10,250 / 16,250 |
+| 8 | The Last Giant / El último gigante | Neptuno → Tritón | $1,750M | 4,250 / 10,250 / 16,250 |
+
+**El lanzamiento nunca se bloquea.** Los avisos rojos del diseño informan qué costará cada exceso (puntos, combustible que se queda en tierra, instrumentos apagados, quedarse sin combustible) y la misión lo muestra. Los presupuestos se ampliaron un 30 % aproximadamente para dejar probar todas las opciones.
 
 Cómo se ajustó: el módulo de aterrizaje cuesta $150M más el combustible extra, así que cada presupuesto subió $150M
 (la misión 4 ya aterrizaba y no cambió). Las metas suben porque aterrizar da ciencia ×2 en vez de ×1 (sobrevuelo) o ×1.5

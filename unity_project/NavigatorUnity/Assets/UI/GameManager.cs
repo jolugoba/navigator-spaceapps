@@ -425,7 +425,7 @@ namespace Navigator.UI
             if (State != GameState.MissionDesign) return;
 
             Mission = MissionDesignUI?.GetDesign();
-            if (Mission == null || !Mission.IsValid) return;
+            if (Mission == null) return;   // an imperfect design may fly: the mission shows what it costs
             _lastPlanet = Mission.TargetPlanetId;
 
             SetState(GameState.Countdown);
@@ -465,8 +465,11 @@ namespace Navigator.UI
             SetShipFrozen(false);
             ApplySelectedShip();
             ResetShip((target - launch).normalized);
+            var compromises = LaunchCompromises();   // before the tanks are filled from the design
             ConfigureShipFromDesign();
             Outcome.Clear();
+            Outcome.EventBonusPoints -= compromises.penalty;
+            Outcome.EventLog.AddRange(compromises.notes);
 
             // North-align the view only when the planet came from real sky data
             Rig?.Calibrate(Compass != null && Compass.GpsReady);
@@ -503,6 +506,35 @@ namespace Navigator.UI
             SetControls(true);
 
             Debug.Log($"[GM] Vuelo iniciado → {Mission.TargetPlanetId}");
+        }
+
+        // A design over its limits still launches, and pays for it the way a real mission would:
+        // a rocket that can't lift the mass leaves propellant behind, and money over budget costs
+        // points. (Too little ΔV or power need nothing here: the tank and the instruments show it.)
+        const int PointsPerOverBudgetM = 4;
+
+        (int penalty, List<string> notes) LaunchCompromises()
+        {
+            var notes = new List<string>();
+            int penalty = 0;
+            if (Mission == null) return (penalty, notes);
+
+            float capacity = MissionDesign.LaunchCapacityKg[Mission.LaunchVeh];
+            float excess = Mission.WetMassKg - capacity;
+            if (excess > 0f)
+            {
+                float left = Mathf.Min(excess, Mathf.Max(0f, Mission.FuelMassKg - 100f));
+                Mission.FuelMassKg -= left;
+                if (left > 0f) notes.Add(Loc.F("launch.offload", left));
+            }
+
+            float over = Mission.TotalCostM - Mission.BudgetM;
+            if (over > 0f)
+            {
+                penalty = Mathf.RoundToInt(over * PointsPerOverBudgetM);
+                notes.Add(Loc.F("launch.overbudget", over, penalty));
+            }
+            return (penalty, notes);
         }
 
         // Fly the hull picked in the hangar (only rebuilt when the choice changed)

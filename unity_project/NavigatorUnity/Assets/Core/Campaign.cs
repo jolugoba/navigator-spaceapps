@@ -29,14 +29,14 @@ namespace Navigator.Core
 
         public static readonly CampaignMission[] Missions =
         {
-            new() { Index = 0, Key = "firstlight", Planet = "mars",    Objective = "landing", BudgetM = 750f,  StarGoals = new[] { 2250, 5250, 8250 } },
-            new() { Index = 1, Key = "venus",      Planet = "venus",   Objective = "landing", BudgetM = 950f,  StarGoals = new[] { 4750, 8750, 12750 } },
-            new() { Index = 2, Key = "mercury",    Planet = "mercury", Objective = "landing", BudgetM = 1050f, StarGoals = new[] { 4000, 8000, 12000 } },
-            new() { Index = 3, Key = "rover",      Planet = "mars",    Objective = "landing", BudgetM = 1000f, StarGoals = new[] { 5000, 9000, 13000 } },
-            new() { Index = 4, Key = "jupiter",    Planet = "jupiter", Objective = "landing", BudgetM = 1150f, StarGoals = new[] { 4750, 10000, 15500 } },
-            new() { Index = 5, Key = "saturn",     Planet = "saturn",  Objective = "landing", BudgetM = 1250f, StarGoals = new[] { 4750, 10000, 15500 } },
-            new() { Index = 6, Key = "uranus",     Planet = "uranus",  Objective = "landing", BudgetM = 1250f, StarGoals = new[] { 4250, 10250, 16250 } },
-            new() { Index = 7, Key = "neptune",    Planet = "neptune", Objective = "landing", BudgetM = 1350f, StarGoals = new[] { 4250, 10250, 16250 } },
+            new() { Index = 0, Key = "firstlight", Planet = "mars",    Objective = "landing", BudgetM = 1000f, StarGoals = new[] { 2250, 5250, 8250 } },
+            new() { Index = 1, Key = "venus",      Planet = "venus",   Objective = "landing", BudgetM = 1250f, StarGoals = new[] { 4750, 8750, 12750 } },
+            new() { Index = 2, Key = "mercury",    Planet = "mercury", Objective = "landing", BudgetM = 1350f, StarGoals = new[] { 4000, 8000, 12000 } },
+            new() { Index = 3, Key = "rover",      Planet = "mars",    Objective = "landing", BudgetM = 1300f, StarGoals = new[] { 5000, 9000, 13000 } },
+            new() { Index = 4, Key = "jupiter",    Planet = "jupiter", Objective = "landing", BudgetM = 1500f, StarGoals = new[] { 4750, 10000, 15500 } },
+            new() { Index = 5, Key = "saturn",     Planet = "saturn",  Objective = "landing", BudgetM = 1600f, StarGoals = new[] { 4750, 10000, 15500 } },
+            new() { Index = 6, Key = "uranus",     Planet = "uranus",  Objective = "landing", BudgetM = 1600f, StarGoals = new[] { 4250, 10250, 16250 } },
+            new() { Index = 7, Key = "neptune",    Planet = "neptune", Objective = "landing", BudgetM = 1750f, StarGoals = new[] { 4250, 10250, 16250 } },
         };
 
         // Teacher mode replaces "one star unlocks the next" with the teacher's decision
