@@ -189,7 +189,12 @@ namespace Navigator.UI
             _burnout?.OnBurnoutStart.AddListener(OnBurnoutStart);
             _burnout?.OnBurnoutEnd.AddListener(OnBurnoutEnd);
             _burnout?.OnNearMiss.AddListener(OnNearMiss);
-            _fuel?.OnLowFuelWarning.AddListener(() => { if (LowFuelWarning != null) LowFuelWarning.SetActive(true); });
+            _fuel?.OnLowFuelWarning.AddListener(() =>
+            {
+                if (LowFuelWarning != null) LowFuelWarning.SetActive(true);
+                AudioFX.Play(Sfx.Alert, 0.6f);
+            });
+            _fuel?.OnFuelEmpty.AddListener(() => { AudioFX.Play(Sfx.Alert); Flash("hud.nofuel", UIStyle.Bad, 0.8f); });
             _burnout?.OnTakedown.AddListener(_ => Flash("hud.takedown", UIStyle.Gold, 0.6f));
             _collision?.OnBlocked.AddListener(() => Flash("hud.hit.shielded", UIStyle.Accent, 0.3f));
             _collision?.OnDamaged.AddListener(sev => Flash(
@@ -268,9 +273,12 @@ namespace Navigator.UI
                     : "") + info.Body;
         }
 
-        void OnFiredAt(string what) =>
-            Flash(null, what != null ? UIStyle.Burnout : UIStyle.Muted, what != null ? 0.15f : 0f,
-                  what != null ? Loc.F("laser.hit", what) : Loc.T("laser.miss"));
+        // A miss only has the reticle and the laser sound; it must not overwrite a banner that matters
+        void OnFiredAt(string what)
+        {
+            if (what == null) return;
+            Flash(null, UIStyle.Burnout, 0.15f, Loc.F("laser.hit", what));
+        }
 
         void UpdateTools()
         {
@@ -337,7 +345,9 @@ namespace Navigator.UI
         {
             if (_rb == null || SpeedLabel == null) return;
             float speed = _rb.linearVelocity.magnitude;
-            SpeedLabel.text = $"{speed:F0} m/s";
+            // The text only changes when the shown number does (no string rebuild and mesh update per frame)
+            int shown = Mathf.RoundToInt(speed);
+            if (shown != _lastSpeed) { _lastSpeed = shown; SpeedLabel.text = shown + " m/s"; }
             if (SpeedGaugeFill != null)
                 SpeedGaugeFill.fillAmount = Mathf.Clamp01(speed / 200f);
         }
@@ -347,7 +357,8 @@ namespace Navigator.UI
             if (_fuel == null) return;
             float f = _fuel.FuelFraction;
             if (FuelBar   != null) FuelBar.fillAmount = f;
-            if (FuelLabel != null) FuelLabel.text     = $"{f:P0}";
+            int pct = Mathf.RoundToInt(f * 100f);
+            if (FuelLabel != null && pct != _lastFuelPct) { _lastFuelPct = pct; FuelLabel.text = pct + " %"; }
         }
 
         float _freeRefresh;
@@ -448,8 +459,9 @@ namespace Navigator.UI
             if (DamageIndicatorDamaged != null) DamageIndicatorDamaged.SetActive(state == DamageState.Damaged);
             if (DamageIndicatorCritical != null) DamageIndicatorCritical.SetActive(state == DamageState.Critical);
 
-            if (LivesLabel != null)
+            if (LivesLabel != null && _collision.Lives != _lastLives)
             {
+                _lastLives = _collision.Lives;
                 LivesLabel.text  = Loc.F("hud.hull", _collision.Lives);
                 LivesLabel.color = _collision.Lives >= 3 ? UIStyle.Text
                                  : _collision.Lives == 2 ? UIStyle.Warn : UIStyle.Bad;
@@ -459,9 +471,15 @@ namespace Navigator.UI
         void UpdateLowFuelFlash()
         {
             if (_fuel == null || LowFuelWarning == null) return;
-            if (!_fuel.IsLow) return;
-            var label = LowFuelWarning.GetComponent<TMP_Text>();
-            if (label != null) label.text = Loc.T(_fuel.IsEmpty ? "hud.nofuel" : "hud.lowfuel");
+            // After a refuel the warning has to go away again
+            if (!_fuel.IsLow) { if (LowFuelWarning.activeSelf) LowFuelWarning.SetActive(false); return; }
+            if (_lowFuelLabel == null) _lowFuelLabel = LowFuelWarning.GetComponent<TMP_Text>();
+            // Set the warning text only when it changes between "low" and "empty"
+            if (_lowFuelLabel != null && _fuel.IsEmpty != _lowFuelEmpty)
+            {
+                _lowFuelEmpty = _fuel.IsEmpty;
+                _lowFuelLabel.text = Loc.T(_fuel.IsEmpty ? "hud.nofuel" : "hud.lowfuel");
+            }
             if (_fuel.IsEmpty) { LowFuelWarning.SetActive(true); return; }
             _lowFuelFlash += Time.deltaTime * 3.5f;
             LowFuelWarning.SetActive(Mathf.Sin(_lowFuelFlash) > 0f);
@@ -502,6 +520,12 @@ namespace Navigator.UI
         // ── Setters externos ──────────────────────────────────────────────────
 
         private string _signal;
+        // Last values shown, so the text is only rebuilt when they change (see the Update* methods)
+        int _lastSpeed = int.MinValue, _lastFuelPct = int.MinValue, _lastLives = int.MinValue;
+        int _calDays = int.MinValue;
+        string _calSignal;
+        TMP_Text _lowFuelLabel;
+        bool _lowFuelEmpty;
 
         public void SetCommDelay(string delay)
         {
@@ -514,13 +538,17 @@ namespace Navigator.UI
         void UpdateCalendar(GameManager gm, float progress)
         {
             var m = gm != null ? gm.Mission : null;
-            if (CommDelayLabel == null || m == null || m.TransferDays <= 0f ||
-                !System.DateTime.TryParse(m.LaunchDateIso, System.Globalization.CultureInfo.InvariantCulture,
+            if (CommDelayLabel == null || m == null || m.TransferDays <= 0f) return;
+            // The text only changes when the day shown changes (this runs every frame in flight)
+            int days = Mathf.RoundToInt(m.TransferDays * Mathf.Clamp01(progress));
+            if (days == _calDays && _signal == _calSignal) return;
+            if (!System.DateTime.TryParse(m.LaunchDateIso, System.Globalization.CultureInfo.InvariantCulture,
                                           System.Globalization.DateTimeStyles.None, out var launch)) return;
+            _calDays = days; _calSignal = _signal;
             var today = launch.AddDays(m.TransferDays * Mathf.Clamp01(progress));
             string date = today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             CommDelayLabel.text = (_signal != null ? Loc.F("hud.signal", _signal) + "   ·   " : "") +
-                                  Loc.F("hud.date", date, Mathf.RoundToInt(m.TransferDays * Mathf.Clamp01(progress)));
+                                  Loc.F("hud.date", date, days);
         }
 
         public void SetRacePosition(int pos)

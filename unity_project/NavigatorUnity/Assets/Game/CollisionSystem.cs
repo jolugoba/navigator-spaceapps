@@ -110,7 +110,8 @@ namespace Navigator.Game
 
             // Explosión VFX en el punto de impacto
             Vector3 impactPoint = (ShipRb.position + other.ShipRb.position) * 0.5f;
-            ExplosionVFX.Spawn(ExplosionPrefab, impactPoint, isTakedown);
+            // A light bump only plays the hit sound (the HUD); explosions are for real damage and takedowns
+            if (isTakedown || severity != CollisionSeverity.Light) ExplosionVFX.Spawn(ExplosionPrefab, impactPoint, isTakedown);
 
             StartInvincibility();
         }
@@ -141,8 +142,8 @@ namespace Navigator.Game
         public void ReceiveHit(CollisionSeverity severity, Vector3 newVelocity)
         {
             if (_rb.isKinematic) return;
-            ExplosionVFX.Spawn(ExplosionPrefab, _rb.position, false);
             if (IsInvincible || (_burnout != null && _burnout.BurnoutActive)) { OnBlocked.Invoke(); return; }
+            ExplosionVFX.Spawn(ExplosionPrefab, _rb.position, false);
             _rb.linearVelocity = newVelocity;
             ApplyDamage(severity);
             StartInvincibility();

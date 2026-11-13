@@ -266,6 +266,7 @@ namespace Navigator.Game
                     float quality = Mathf.Clamp01(1f - (b.Closest - b.Radius) / (ring - b.Radius));
                     float dv = MaxAssistDv * Mathf.Lerp(0.35f, 1f, quality);
                     _ctrl?.Slingshot(dv, 4f);
+                    AssistFX.Burst(_ship != null ? _ship.position : b.T.position, dv);
                     // ΔV you didn't burn is propellant you still have
                     float saved = 0.06f * Mathf.Lerp(0.35f, 1f, quality);
                     _fuel?.Refuel(saved);

@@ -19,10 +19,16 @@ namespace Navigator.Core
         }
 
         // Screen shake, HUD jolts, full-screen flashes and speed lines
+        // Read once and kept: effects ask every frame
+        static bool _motion, _motionRead;
         public static bool Motion
         {
-            get => PlayerPrefs.GetInt(MotionKey, 1) == 1;
-            set { PlayerPrefs.SetInt(MotionKey, value ? 1 : 0); PlayerPrefs.Save(); }
+            get
+            {
+                if (!_motionRead) { _motion = PlayerPrefs.GetInt(MotionKey, 1) == 1; _motionRead = true; }
+                return _motion;
+            }
+            set { _motion = value; _motionRead = true; PlayerPrefs.SetInt(MotionKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
         public static void Apply() => AudioListener.volume = Sound ? 1f : 0f;

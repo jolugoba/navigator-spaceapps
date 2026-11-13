@@ -61,6 +61,8 @@ namespace Navigator.AR
 
         private Quaternion _yawOffset = Quaternion.identity;
         private float _shake;
+        private Transform _lastTarget;     // to notice when the ship changes
+        private bool _placed;              // the camera already sits behind the target
 
         // Impact feedback: amount in game units, decays in ~0.4 s
         public void Shake(float amount) { if (Navigator.Core.FxPrefs.Motion) _shake = Mathf.Max(_shake, amount); }
@@ -114,9 +116,13 @@ namespace Navigator.AR
                 : MouseRotation();
             transform.rotation = LookRotation;
 
+            if (Target != _lastTarget) { _lastTarget = Target; _placed = false; }
             if (Target == null) return;
             UpdateFov();
             Vector3 desired = Target.position + LookRotation * new Vector3(0f, ChaseHeight, -ChaseDistance);
+            // First frame with a ship (game start, or a new target): place the camera behind it at once,
+            // so the player never starts looking at empty space while it glides in from the origin
+            if (!_placed) { transform.position = desired; _placed = true; }
             float t = 1f - Mathf.Exp(-FollowSharpness * Time.deltaTime);
             transform.position = Vector3.Lerp(transform.position, desired, t);
 

@@ -192,7 +192,8 @@ namespace Navigator.AR
             var kb = Keyboard.current;
             if (kb != null)
             {
-                thrust |= kb.wKey.isPressed || (Mouse.current != null && Mouse.current.leftButton.isPressed && !IsOverUI(-1));
+                // A touch on a phone can arrive as an emulated mouse press: only a real mouse thrusts this way
+                thrust |= kb.wKey.isPressed || (Mouse.current != null && Mouse.current.leftButton.isPressed && !IsOverUI(-1) && Touchscreen.current == null);
                 boost  |= kb.spaceKey.isPressed;
                 brake  |= kb.sKey.isPressed;
                 // Q/E turn left/right in every mode (hold); double-tap = barrel roll
@@ -214,7 +215,7 @@ namespace Navigator.AR
             move = Vector2.ClampMagnitude(move, 1f);
             if (move.y > 0.1f)   throttle    = Mathf.InverseLerp(0.1f, 0.9f, move.y);
             if (move.y < -0.25f) brakeAmount = Mathf.InverseLerp(-0.25f, -0.9f, move.y);
-            _strafe = Mathf.Abs(move.x) > 0.15f ? move.x : 0f;
+            _strafe = move.x;   // the stick already has its own dead zone: no second hard step here
 
             if (Rig != null && steer.sqrMagnitude > 0f) Rig.Steer(Vector2.ClampMagnitude(steer, 1f));
             if (Rig != null && look.sqrMagnitude > 0f)  Rig.Look(Vector2.ClampMagnitude(look, 1f));
@@ -230,7 +231,7 @@ namespace Navigator.AR
             // Brake: bleed off speed without spending fuel
             if (brake) brakeAmount = 1f;
             if (brakeAmount > 0f && _rb != null && !_rb.isKinematic)
-                _rb.linearVelocity *= Mathf.Clamp01(1f - 2.5f * brakeAmount * Time.deltaTime);
+                _rb.linearVelocity *= Mathf.Exp(-2.5f * brakeAmount * Time.deltaTime);   // same braking at 30 and 60 fps
         }
 
         void RollKey(int direction)

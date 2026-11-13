@@ -11,15 +11,17 @@ using UnityEngine.UI;
 
 namespace Navigator.AR
 {
+    // Runs before the ship reads it, so a stick value is never one frame old
+    [DefaultExecutionOrder(-50)]
     public class VirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
     {
         public RectTransform Base;   // the ring that follows the thumb (child of this zone)
         public RectTransform Knob;   // child of Base
         [Tooltip("Knob travel in UI units")]
         public float Range = 80f;
-        [Range(0f, 0.5f)] public float DeadZone  = 0.12f;
-        [Range(1f, 3f)]   public float Exponent  = 1.5f;
-        [Range(0f, 0.2f)] public float Smoothing = 0.05f;   // seconds
+        [Range(0f, 0.5f)] public float DeadZone  = 0.08f;
+        [Range(1f, 3f)]   public float Exponent  = 1.2f;    // lower = small pushes already move the ship
+        [Range(0f, 0.2f)] public float Smoothing = 0.035f;  // seconds
 
         [Header("Look")]
         public Graphic BaseGraphic;   // brightens while held
@@ -47,14 +49,9 @@ namespace Navigator.AR
         {
             if (_pointerId != NoPointer) return;   // already held by another finger
             _pointerId = e.pointerId;
+            // The ring starts under the thumb, exactly (no clamp: clamping would start the stick already deflected)
             _origin = Local(e);
-            if (Base != null)
-            {
-                // Keep the whole ring inside the zone
-                Vector2 half = _rt.rect.size * 0.5f - Base.rect.size * 0.5f;
-                _origin = new Vector2(Mathf.Clamp(_origin.x, -half.x, half.x), Mathf.Clamp(_origin.y, -half.y, half.y));
-                Base.anchoredPosition = _origin;
-            }
+            if (Base != null) Base.anchoredPosition = _origin;
             OnDrag(e);
         }
 
@@ -76,7 +73,7 @@ namespace Navigator.AR
             // Dead zone so a resting thumb doesn't drift, then a soft curve for fine aiming
             Vector2 n = v / Range;
             float m = n.magnitude;
-            _raw = m < DeadZone ? Vector2.zero
+            _raw = m <= DeadZone ? Vector2.zero
                  : n / m * Mathf.Pow((m - DeadZone) / (1f - DeadZone), Exponent);
         }
 
@@ -86,6 +83,10 @@ namespace Navigator.AR
         }
 
         void OnDisable() => Release();
+
+        // A call, a notification or switching apps can swallow the finger-up: never keep steering after it
+        void OnApplicationPause(bool paused) { if (paused) Release(); }
+        void OnApplicationFocus(bool focused) { if (!focused) Release(); }
 
         void Update()
         {

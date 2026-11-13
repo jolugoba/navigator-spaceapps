@@ -654,6 +654,7 @@ namespace Navigator.UI
             Events?.Cancel();
             SetControls(false);
             StopShip();
+            AudioFX.Play(Sfx.Go, 0.7f);   // arrival is the moment the whole flight was for
             RecordFlight(true);
             SetShipFrozen(true);
             Powerups?.ClearAll();
@@ -726,6 +727,7 @@ namespace Navigator.UI
             Events?.Cancel();
             SetControls(false);
             StopShip();
+            AudioFX.Play(reason == "fail.destroyed" ? Sfx.Explosion : Sfx.Alert);
             RecordFlight(false);
             SetShipFrozen(true);
             Outcome.FailReason = reason;

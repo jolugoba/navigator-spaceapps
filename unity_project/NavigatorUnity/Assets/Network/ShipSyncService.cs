@@ -49,14 +49,14 @@ namespace Navigator.Network
             if (Time.unscaledTime - _lastSend < 1f / hz) return;
             _lastSend = Time.unscaledTime;
 
-            string json = $"{{\"nodeId\":\"{state.NodeId}\"," +
-                          $"\"px\":{state.PosX:F2},\"py\":{state.PosY:F2},\"pz\":{state.PosZ:F2}," +
-                          $"\"vx\":{state.VelX:F2},\"vy\":{state.VelY:F2},\"vz\":{state.VelZ:F2}," +
-                          $"\"yaw\":{state.Yaw:F1},\"pitch\":{state.Pitch:F1},\"roll\":{state.Roll:F1}," +
-                          $"\"thr\":{state.Throttle:F2},\"boost\":{(state.Boosting?"true":"false")}," +
-                          $"\"burn\":{(state.BurnoutActive?"true":"false")}," +
-                          $"\"fuel\":{state.FuelFraction:F3},\"lives\":{state.Lives}," +
-                          $"\"score\":{state.Score},\"ts\":{state.Timestamp}}}";
+            string json = System.FormattableString.Invariant($"{{\"nodeId\":\"{state.NodeId}\",") +
+                          System.FormattableString.Invariant($"\"px\":{state.PosX:F2},\"py\":{state.PosY:F2},\"pz\":{state.PosZ:F2},") +
+                          System.FormattableString.Invariant($"\"vx\":{state.VelX:F2},\"vy\":{state.VelY:F2},\"vz\":{state.VelZ:F2},") +
+                          System.FormattableString.Invariant($"\"yaw\":{state.Yaw:F1},\"pitch\":{state.Pitch:F1},\"roll\":{state.Roll:F1},") +
+                          System.FormattableString.Invariant($"\"thr\":{state.Throttle:F2},\"boost\":{(state.Boosting?"true":"false")},") +
+                          System.FormattableString.Invariant($"\"burn\":{(state.BurnoutActive?"true":"false")},") +
+                          System.FormattableString.Invariant($"\"fuel\":{state.FuelFraction:F3},\"lives\":{state.Lives},") +
+                          System.FormattableString.Invariant($"\"score\":{state.Score},\"ts\":{state.Timestamp}}}");
 
             _senda?.Broadcast(NavMsg.Build(NavMsgType.shipState, _nodeId, json));
         }

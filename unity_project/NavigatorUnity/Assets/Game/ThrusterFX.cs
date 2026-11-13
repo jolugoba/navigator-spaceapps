@@ -127,6 +127,8 @@ namespace Navigator.Game
 
             _light.color     = c;
             _light.intensity = Mathf.MoveTowards(_light.intensity, rate > 0f ? (Boost ? 6f : 3.5f) : 0f, 30f * Time.deltaTime);
+            // A dark nozzle costs nothing: the light is only on while the engine glows
+            _light.enabled = _light.intensity > 0.01f;
 
             float speed = _rb != null && !_rb.isKinematic ? _rb.linearVelocity.magnitude : (Thrust > 0f ? 10f : 0f);
             _trail.emitting   = speed > 4f;
