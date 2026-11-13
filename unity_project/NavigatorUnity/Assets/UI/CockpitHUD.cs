@@ -475,9 +475,10 @@ namespace Navigator.UI
             if (!_fuel.IsLow) { if (LowFuelWarning.activeSelf) LowFuelWarning.SetActive(false); return; }
             if (_lowFuelLabel == null) _lowFuelLabel = LowFuelWarning.GetComponent<TMP_Text>();
             // Set the warning text only when it changes between "low" and "empty"
-            if (_lowFuelLabel != null && _fuel.IsEmpty != _lowFuelEmpty)
+            int state = (_fuel.IsEmpty ? 1 : 0) + (Loc.Current == Lang.Spanish ? 2 : 0);   // also follows the language
+            if (_lowFuelLabel != null && state != _lowFuelState)
             {
-                _lowFuelEmpty = _fuel.IsEmpty;
+                _lowFuelState = state;
                 _lowFuelLabel.text = Loc.T(_fuel.IsEmpty ? "hud.nofuel" : "hud.lowfuel");
             }
             if (_fuel.IsEmpty) { LowFuelWarning.SetActive(true); return; }
@@ -525,7 +526,7 @@ namespace Navigator.UI
         int _calDays = int.MinValue;
         string _calSignal;
         TMP_Text _lowFuelLabel;
-        bool _lowFuelEmpty;
+        int _lowFuelState = -1;   // -1: never written (the scene text is English only)
 
         public void SetCommDelay(string delay)
         {

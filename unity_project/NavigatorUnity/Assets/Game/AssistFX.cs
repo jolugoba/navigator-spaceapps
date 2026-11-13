@@ -15,7 +15,10 @@ namespace Navigator.Game
         {
             if (_mat == null)
             {
-                var sh = Shader.Find("Sprites/Default");
+                // The URP particle shader ships with every build (the explosion material uses it);
+                // Sprites/Default is only there in the editor unless something else references it
+                var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                if (sh == null) sh = Shader.Find("Sprites/Default");
                 if (sh == null) return;                       // no shader on this platform: skip the sparks
                 _mat = new Material(sh) { mainTexture = Texture2D.whiteTexture };
             }
