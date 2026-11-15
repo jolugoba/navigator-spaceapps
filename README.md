@@ -9,6 +9,11 @@ the result — and what would have happened if you had chosen differently.
 
 > 🇪🇸 Versión en español más abajo.
 
+## Try it now — no install
+
+**[https://space.guacalita.co](https://space.guacalita.co)** — runs in the browser on any phone or desktop (Chrome / Edge recommended).
+Camera and GPS required for AR and sky finder; grant them when the browser asks.
+
 ## How it answers the challenge
 
 | Challenge asks for | Navigator | Code |
@@ -54,6 +59,7 @@ See [`NAVIGATOR_UNITY_QUICKSTART.md`](NAVIGATOR_UNITY_QUICKSTART.md) and [`flutt
 **Design & equations:** [`NAVIGATOR_GAME_DESIGN_COMPLETE.md`](NAVIGATOR_GAME_DESIGN_COMPLETE.md).
 **The 7 worlds (landing and surface missions, in Spanish):** [`docs/mundos/`](docs/mundos/00_GUIA_MUNDOS.md) · models: [`NAVIGATOR_MESHY_MUNDOS.md`](NAVIGATOR_MESHY_MUNDOS.md).
 **Credits & licenses:** [`CREDITS.md`](CREDITS.md) · **Submission kit:** [`SPACE_APPS_SUBMISSION.md`](SPACE_APPS_SUBMISSION.md).
+**Presentation:** [`Navigator_2026_Presentation.pdf`](Navigator_2026_Presentation.pdf).
 
 ---
 
